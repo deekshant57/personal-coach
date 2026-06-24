@@ -2,7 +2,7 @@
   "name": "Personal Coach",
   "short_name": "Coach",
   "description": "Half marathon training tracker",
-  "start_url": "/personal-coach-app/",
+  "start_url": "/personal-coach/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
