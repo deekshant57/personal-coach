@@ -1,16 +1,25 @@
-const CACHE_NAME = 'coach-v2';
+const CACHE_NAME = 'coach-v11';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './js/app.js',
+  './js/auth.js',
   './js/data.js',
+  './js/plan-templates.js',
   './js/supabase.js',
   './js/today.js',
   './js/food.js',
   './js/week.js',
   './js/debrief.js',
+  './js/spinner.js',
   './manifest.json',
+  './icons/runner.png',
+  './icons/runner-sprite.png',
+  './icons/runner-frames/00.png',
+  './icons/runner-frames/01.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
 ];
 
 // Install — cache app shell

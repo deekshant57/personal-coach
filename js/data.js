@@ -19,6 +19,25 @@ export const FOOD_ITEMS = [
   { id: 'rice',     name: 'Rice',        protein: 4,  calories: 200, emoji: '\u{1F35A}', unit: 'bowl' },
 ];
 
+/** Human-readable portion label for summaries and debrief */
+export function formatFoodLabel(item, qty) {
+  const ref = FOOD_ITEMS.find(f => f.id === item.id);
+  const unit = ref?.unit;
+  const name = item.name;
+  if (!unit || unit === '1') return `${qty}× ${name}`;
+  if (/^\d+g$/.test(unit)) {
+    const gramsPerUnit = parseInt(unit, 10);
+    return `${qty}× ${name} (${gramsPerUnit * qty}g)`;
+  }
+  return `${qty}× ${name} (${qty} ${unit})`;
+}
+
+/** Short unit label for food grid tiles */
+export function formatUnitDisplay(unit) {
+  if (!unit || unit === '1') return 'each';
+  return unit;
+}
+
 // Meal slot labels by day type
 export const MEAL_SLOTS = {
   Run: ['pre-run', 'post-run', 'lunch', 'snack', 'dinner'],
@@ -46,6 +65,21 @@ export const DAY_TYPES = {
   'Active Recovery': { color: '#2dd4bf', label: 'Active Recovery' },
   Rest: { color: '#737373', label: 'Rest' },
 };
+
+const DAY_BADGE_CLASS = {
+  Run: 'day-badge--run',
+  Bodyweight: 'day-badge--bodyweight',
+  'Active Recovery': 'day-badge--active-recovery',
+  Rest: 'day-badge--rest',
+};
+
+/** HTML for day-type badge — no inline styles */
+export function renderDayBadge(dayType, { small = false } = {}) {
+  const info = DAY_TYPES[dayType] || DAY_TYPES.Rest;
+  const variant = DAY_BADGE_CLASS[dayType] || DAY_BADGE_CLASS.Rest;
+  const sm = small ? ' day-badge--sm' : '';
+  return `<span class="day-badge ${variant}${sm}">${info.label}</span>`;
+}
 
 // Knee status options
 export const KNEE_OPTIONS = ['Pain-free', 'Minor pressure', 'Discomfort', 'Pain'];

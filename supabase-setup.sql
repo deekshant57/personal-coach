@@ -99,7 +99,6 @@ ALTER TABLE food_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE run_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workout_logs ENABLE ROW LEVEL SECURITY;
 
--- Allow all operations for anon role (single user, personal project)
 CREATE POLICY "Allow all on week_plans" ON week_plans FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on daily_plans" ON daily_plans FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on daily_vitals" ON daily_vitals FOR ALL USING (true) WITH CHECK (true);
@@ -107,10 +106,7 @@ CREATE POLICY "Allow all on food_logs" ON food_logs FOR ALL USING (true) WITH CH
 CREATE POLICY "Allow all on run_logs" ON run_logs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on workout_logs" ON workout_logs FOR ALL USING (true) WITH CHECK (true);
 
--- ═══════════════════════════════════════════════════════════════
--- Indexes for common queries
--- ═══════════════════════════════════════════════════════════════
-
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_daily_plans_date ON daily_plans(date);
 CREATE INDEX IF NOT EXISTS idx_daily_vitals_date ON daily_vitals(date);
 CREATE INDEX IF NOT EXISTS idx_food_logs_date ON food_logs(date);
