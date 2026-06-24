@@ -46,7 +46,7 @@ export async function fetchDailyPlan(date) {
     .from('daily_plans')
     .select('*')
     .eq('date', date)
-    .single();
+    .maybeSingle();
   if (error) { console.error('fetchDailyPlan:', error); return null; }
   return data;
 }
@@ -66,11 +66,12 @@ export async function fetchWeekPlans(startDate, endDate) {
 // ── Daily Vitals ─────────────────────────────────────────────
 export async function fetchVitals(date) {
   if (!supabase) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('daily_vitals')
     .select('*')
     .eq('date', date)
-    .single();
+    .maybeSingle();
+  if (error) { console.error('fetchVitals:', error); return null; }
   return data;
 }
 
@@ -113,7 +114,10 @@ export async function upsertFoodLog(date, mealSlot, items, customText, totalProt
 }
 
 export async function deleteFoodLog(date, mealSlot) {
-  if (!supabase) return;
+  if (!supabase) {
+    deleteLocalFoodLog(date, mealSlot);
+    return;
+  }
   const { error } = await supabase
     .from('food_logs')
     .delete()
@@ -122,14 +126,21 @@ export async function deleteFoodLog(date, mealSlot) {
   if (error) console.error('deleteFoodLog:', error);
 }
 
+function deleteLocalFoodLog(date, mealSlot) {
+  const store = JSON.parse(localStorage.getItem('coach_food') || '{}');
+  delete store[`${date}_${mealSlot}`];
+  localStorage.setItem('coach_food', JSON.stringify(store));
+}
+
 // ── Run Logs ─────────────────────────────────────────────────
 export async function fetchRunLog(date) {
   if (!supabase) return getLocal('run', date);
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('run_logs')
     .select('*')
     .eq('date', date)
-    .single();
+    .maybeSingle();
+  if (error) { console.error('fetchRunLog:', error); return null; }
   return data;
 }
 
@@ -145,11 +156,12 @@ export async function upsertRunLog(date, log) {
 // ── Workout Logs ─────────────────────────────────────────────
 export async function fetchWorkoutLog(date) {
   if (!supabase) return getLocal('workout', date);
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('workout_logs')
     .select('*')
     .eq('date', date)
-    .single();
+    .maybeSingle();
+  if (error) { console.error('fetchWorkoutLog:', error); return null; }
   return data;
 }
 

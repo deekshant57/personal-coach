@@ -1,7 +1,7 @@
 // Food tab — tap grid, meal slots, protein calculation
 import { FOOD_ITEMS, SLOT_LABELS } from './data.js';
 import { state, getToday, getCurrentMealSlots, showToast } from './app.js';
-import { upsertFoodLog, fetchFoodLogs, getLocalFoodLogs, isConfigured } from './supabase.js';
+import { upsertFoodLog, fetchFoodLogs, getLocalFoodLogs, deleteFoodLog, isConfigured } from './supabase.js';
 import { loadMealsSummary } from './today.js';
 
 // ── Local State ──────────────────────────────────────────────
@@ -15,6 +15,7 @@ export function initFood() {
   renderFoodGrid();
   setupCustomModal();
   document.getElementById('save-meal').addEventListener('click', saveMeal);
+  document.getElementById('clear-slot').addEventListener('click', clearSlot);
 }
 
 export function loadFoodData() {
@@ -192,6 +193,9 @@ function renderMealSummary() {
 
 // ── Save Meal ────────────────────────────────────────────────
 async function saveMeal() {
+  const btn = document.getElementById('save-meal');
+  if (btn.disabled) return;
+
   const items = slotItems[activeSlot] || [];
   const customText = document.getElementById('food-notes').value || '';
 
@@ -200,30 +204,85 @@ async function saveMeal() {
     return;
   }
 
-  const totalProtein = items.reduce((s, i) => s + i.protein * i.qty, 0);
-  const totalCalories = items.reduce((s, i) => s + i.calories * i.qty, 0);
+  btn.disabled = true;
+  try {
+    const totalProtein = items.reduce((s, i) => s + i.protein * i.qty, 0);
+    const totalCalories = items.reduce((s, i) => s + i.calories * i.qty, 0);
 
-  slotNotes[activeSlot] = customText;
+    slotNotes[activeSlot] = customText;
 
-  await upsertFoodLog(getToday(), activeSlot, items, customText, totalProtein, totalCalories);
-  filledSlots.add(activeSlot);
+    await upsertFoodLog(getToday(), activeSlot, items, customText, totalProtein, totalCalories);
+    filledSlots.add(activeSlot);
 
-  // Mark pill as filled
-  document.querySelectorAll('.meal-slot-pill').forEach(p => {
-    if (p.dataset.slot === activeSlot) p.classList.add('filled');
-  });
+    // Mark pill as filled
+    document.querySelectorAll('.meal-slot-pill').forEach(p => {
+      if (p.dataset.slot === activeSlot) p.classList.add('filled');
+    });
 
-  showToast(`${SLOT_LABELS[activeSlot]} saved — ${totalProtein}g protein`);
+    showToast(`${SLOT_LABELS[activeSlot]} saved — ${totalProtein}g protein`);
 
-  // Auto-advance to next unfilled slot
-  const slots = getCurrentMealSlots();
-  const nextSlot = slots.find(s => !filledSlots.has(s) && s !== activeSlot);
-  if (nextSlot) {
-    selectSlot(nextSlot);
+    // Auto-advance to next unfilled slot
+    const slots = getCurrentMealSlots();
+    const nextSlot = slots.find(s => !filledSlots.has(s) && s !== activeSlot);
+    if (nextSlot) {
+      selectSlot(nextSlot);
+    }
+
+    // Refresh meals summary on Today tab
+    await loadMealsSummary();
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Clear / Delete Slot ─────────────────────────────────────
+async function clearSlot() {
+  const btn = document.getElementById('clear-slot');
+  if (btn.disabled) return;
+
+  const items = slotItems[activeSlot] || [];
+  const wasSaved = filledSlots.has(activeSlot);
+
+  if (items.length === 0 && !wasSaved) {
+    showToast('Nothing to clear');
+    return;
   }
 
-  // Refresh meals summary on Today tab
-  await loadMealsSummary();
+  btn.disabled = true;
+  try {
+    // Clear local state
+    delete slotItems[activeSlot];
+    delete slotNotes[activeSlot];
+    document.getElementById('food-notes').value = '';
+
+    // Delete from storage if it was saved
+    if (wasSaved) {
+      await deleteFoodLog(getToday(), activeSlot);
+      filledSlots.delete(activeSlot);
+      document.querySelectorAll('.meal-slot-pill').forEach(p => {
+        if (p.dataset.slot === activeSlot) p.classList.remove('filled');
+      });
+    }
+
+    renderSlotState();
+    updateTotalProtein();
+    await loadMealsSummary();
+    showToast(`${SLOT_LABELS[activeSlot] || activeSlot} cleared`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+export async function deleteMealSlot(mealSlot) {
+  await deleteFoodLog(getToday(), mealSlot);
+  delete slotItems[mealSlot];
+  delete slotNotes[mealSlot];
+  filledSlots.delete(mealSlot);
+  document.querySelectorAll('.meal-slot-pill').forEach(p => {
+    if (p.dataset.slot === mealSlot) p.classList.remove('filled');
+  });
+  renderSlotState();
+  updateTotalProtein();
 }
 
 // ── Protein Bar ──────────────────────────────────────────────
@@ -293,6 +352,9 @@ async function loadExistingLogs() {
 function setupCustomModal() {
   document.getElementById('custom-cancel').addEventListener('click', () => {
     document.getElementById('custom-food-modal').classList.remove('show');
+    document.getElementById('custom-name').value = '';
+    document.getElementById('custom-protein').value = '';
+    document.getElementById('custom-calories').value = '';
   });
 
   document.getElementById('custom-add').addEventListener('click', () => {
@@ -329,6 +391,9 @@ function setupCustomModal() {
   document.getElementById('custom-food-modal').addEventListener('click', (e) => {
     if (e.target.id === 'custom-food-modal') {
       document.getElementById('custom-food-modal').classList.remove('show');
+      document.getElementById('custom-name').value = '';
+      document.getElementById('custom-protein').value = '';
+      document.getElementById('custom-calories').value = '';
     }
   });
 }

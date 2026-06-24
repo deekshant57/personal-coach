@@ -219,9 +219,10 @@
       <!-- Current slot summary -->
       <div class="meal-summary" id="meal-summary"></div>
 
-      <!-- Save button (above sticky footer space) -->
-      <div style="padding-bottom: 100px;">
-        <button class="btn btn-primary btn-large mt-12" id="save-meal">Save Meal</button>
+      <!-- Save / Clear buttons (above sticky footer space) -->
+      <div style="padding-bottom: 100px; display: flex; gap: 10px;" class="mt-12">
+        <button class="btn btn-primary btn-large" id="save-meal" style="flex: 1;">Save Meal</button>
+        <button class="btn btn-large" id="clear-slot" style="flex: 0 0 auto; background: var(--surface); color: var(--accent-red); border: 1px solid var(--accent-red);">Clear</button>
       </div>
     </div>
 

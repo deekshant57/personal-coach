@@ -6,7 +6,7 @@ import {
   fetchWorkoutLog, upsertWorkoutLog,
   fetchFoodLogs, getLocalFoodLogs, isConfigured,
 } from './supabase.js';
-import { updateProteinBar } from './food.js';
+import { updateProteinBar, deleteMealSlot } from './food.js';
 
 // ── Init ─────────────────────────────────────────────────────
 export function initToday() {
@@ -66,17 +66,26 @@ async function loadVitals() {
 }
 
 async function saveVitals() {
-  const vitals = {
-    weight_kg: parseFloat(document.getElementById('input-weight').value) || null,
-    sleep_hours: parseFloat(document.getElementById('input-sleep').value) || null,
-    cigarettes: parseInt(document.getElementById('input-cigs').value) ?? null,
-    waist_inches: isMonday(state.currentDate) ? (parseFloat(document.getElementById('input-waist').value) || null) : null,
-  };
+  const btn = document.getElementById('save-vitals');
+  if (btn.disabled) return;
+  btn.disabled = true;
 
-  await upsertVitals(getToday(), vitals);
-  state.vitals = vitals;
-  collapseVitals(vitals);
-  showToast('Vitals saved');
+  try {
+    const vitals = {
+      ...(state.vitals || {}),
+      weight_kg: parseFloat(document.getElementById('input-weight').value) || null,
+      sleep_hours: parseFloat(document.getElementById('input-sleep').value) || null,
+      cigarettes: parseInt(document.getElementById('input-cigs').value) ?? null,
+      waist_inches: isMonday(state.currentDate) ? (parseFloat(document.getElementById('input-waist').value) || null) : null,
+    };
+
+    await upsertVitals(getToday(), vitals);
+    state.vitals = vitals;
+    collapseVitals(vitals);
+    showToast('Vitals saved');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function collapseVitals(data) {
@@ -266,34 +275,42 @@ function resetWorkoutFields() {
 }
 
 async function saveTraining() {
-  const plan = state.currentPlan;
-  const done = document.getElementById('training-done-btn').classList.contains('done');
+  const btn = document.getElementById('save-training');
+  if (btn.disabled) return;
+  btn.disabled = true;
 
-  if (plan?.run_type) {
-    const kneeEl = document.querySelector('#knee-segmented .segment.active');
-    const log = {
-      done,
-      actual_km: parseFloat(document.getElementById('input-run-km').value) || null,
-      time_display: document.getElementById('input-run-time').value || null,
-      avg_pace: document.getElementById('input-run-pace').value || null,
-      cadence: parseInt(document.getElementById('input-run-cadence').value) || null,
-      rpe: parseInt(document.getElementById('input-run-rpe').value) || null,
-      knee_status: kneeEl?.dataset.value || 'Pain-free',
-      notes: document.getElementById('input-run-notes').value || null,
-    };
-    await upsertRunLog(getToday(), log);
-    state.runLog = log;
-    showToast('Run log saved');
-  } else if (plan?.workout_plan) {
-    const log = {
-      done,
-      what_i_did: document.getElementById('input-workout-what').value || null,
-      rpe: parseInt(document.getElementById('input-workout-rpe').value) || null,
-      notes: document.getElementById('input-workout-notes').value || null,
-    };
-    await upsertWorkoutLog(getToday(), log);
-    state.workoutLog = log;
-    showToast('Workout log saved');
+  try {
+    const plan = state.currentPlan;
+    const done = document.getElementById('training-done-btn').classList.contains('done');
+
+    if (plan?.run_type) {
+      const kneeEl = document.querySelector('#knee-segmented .segment.active');
+      const log = {
+        done,
+        actual_km: parseFloat(document.getElementById('input-run-km').value) || null,
+        time_display: document.getElementById('input-run-time').value || null,
+        avg_pace: document.getElementById('input-run-pace').value || null,
+        cadence: parseInt(document.getElementById('input-run-cadence').value) || null,
+        rpe: parseInt(document.getElementById('input-run-rpe').value) || null,
+        knee_status: kneeEl?.dataset.value || 'Pain-free',
+        notes: document.getElementById('input-run-notes').value || null,
+      };
+      await upsertRunLog(getToday(), log);
+      state.runLog = log;
+      showToast('Run log saved');
+    } else if (plan?.workout_plan) {
+      const log = {
+        done,
+        what_i_did: document.getElementById('input-workout-what').value || null,
+        rpe: parseInt(document.getElementById('input-workout-rpe').value) || null,
+        notes: document.getElementById('input-workout-notes').value || null,
+      };
+      await upsertWorkoutLog(getToday(), log);
+      state.workoutLog = log;
+      showToast('Workout log saved');
+    }
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -328,10 +345,21 @@ export async function loadMealsSummary() {
     html += `<div class="meal-summary-item">
       <span class="name">${slot}: ${names || log.custom_text || ''}</span>
       <span class="protein">${Math.round(protein)}g</span>
+      <button class="remove-btn" data-slot="${slot}" aria-label="Remove ${slot}">&times;</button>
     </div>`;
   }
 
   list.innerHTML = html;
+
+  // Wire up delete buttons
+  list.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const slot = e.currentTarget.dataset.slot;
+      await deleteMealSlot(slot);
+      showToast(`${slot} removed`);
+      await loadMealsSummary();
+    });
+  });
 
   // Update global food logs in state
   state.foodLogs = {};
@@ -351,11 +379,20 @@ export async function loadMealsSummary() {
 // ── Notes Card ───────────────────────────────────────────────
 function setupNotesCard() {
   document.getElementById('save-notes').addEventListener('click', async () => {
-    const notes = document.getElementById('input-notes').value;
-    // Save notes as part of vitals
-    const current = state.vitals || {};
-    await upsertVitals(getToday(), { ...current, notes });
-    showToast('Notes saved');
+    const btn = document.getElementById('save-notes');
+    if (btn.disabled) return;
+    btn.disabled = true;
+
+    try {
+      const notes = document.getElementById('input-notes').value;
+      const current = state.vitals || {};
+      const merged = { ...current, notes };
+      await upsertVitals(getToday(), merged);
+      state.vitals = merged;
+      showToast('Notes saved');
+    } finally {
+      btn.disabled = false;
+    }
   });
 }
 

@@ -596,6 +596,11 @@ textarea.form-input {
 
 .meal-summary-item .name {
   color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .meal-summary-item .protein {
@@ -607,6 +612,18 @@ textarea.form-input {
   color: var(--accent-red);
   font-size: 18px;
   padding: 4px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.meal-summary-item .remove-btn:hover,
+.meal-summary-item .remove-btn:active {
+  opacity: 1;
 }
 
 /* ── Buttons ───────────────────────────────────────────────── */
@@ -622,6 +639,11 @@ textarea.form-input {
   gap: 8px;
   width: 100%;
   transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .btn-primary {

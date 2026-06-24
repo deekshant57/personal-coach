@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coach-v1';
+const CACHE_NAME = 'coach-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -34,6 +34,9 @@ self.addEventListener('activate', (event) => {
 // Fetch — network first for API, cache first for assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  // Only handle http/https requests — skip chrome-extension:// etc.
+  if (!url.protocol.startsWith('http')) return;
 
   // Supabase API calls — network only
   if (url.hostname.includes('supabase')) {
