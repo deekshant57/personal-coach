@@ -60,7 +60,15 @@
     <div class="app-sticky-header">
       <div class="user-bar">
         <span class="user-display" id="user-display"></span>
-        <button type="button" class="sign-out-btn" id="sign-out-btn">Log out</button>
+        <div class="user-bar-actions">
+          <span class="save-state-indicator hidden" id="save-state-indicator" role="status" aria-live="polite">Saving…</span>
+          <button type="button" class="sign-out-btn" id="sign-out-btn">Log out</button>
+        </div>
+      </div>
+
+      <div class="save-error-banner hidden" id="save-error-banner" role="alert">
+        <p class="save-error-message" id="save-error-message"></p>
+        <button type="button" class="save-error-retry" id="save-error-retry">Retry</button>
       </div>
       <div class="protein-bar-container">
         <div class="protein-bar-label" id="protein-label">
@@ -181,6 +189,7 @@
               <div class="form-group">
                 <label class="form-label">Cadence</label>
                 <input type="number" class="form-input" id="input-run-cadence" inputmode="numeric" placeholder="150">
+                <p class="form-hint hidden" id="run-cadence-hint">Below 150 — target 150–155</p>
               </div>
             </div>
             <div class="form-group mb-12">
@@ -241,6 +250,10 @@
         </div>
         <div class="card-body">
           <div id="meals-summary-list" class="text-muted">No meals logged yet</div>
+          <div class="meals-day-total hidden" id="meals-day-total">
+            <span class="meals-day-total-label">Day total</span>
+            <span class="meals-day-total-macros" id="meals-day-total-macros">0g P · ~0 kcal</span>
+          </div>
           <button class="btn btn-secondary mt-12" id="go-to-food">Log Food &rarr;</button>
         </div>
       </div>
@@ -322,7 +335,125 @@
         <span class="week-nav-label" id="week-nav-label">Week plan</span>
         <button type="button" class="week-nav-btn" id="week-next" aria-label="Next week">&rarr;</button>
       </div>
+      <div class="week-mileage-summary hidden" id="week-mileage-summary"></div>
+      <div class="coach-debrief-card hidden" id="coach-debrief-card"></div>
       <div id="week-cards"></div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+         TAB: PROGRESS (body composition)
+         ════════════════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-progress">
+      <div class="tab-loading-overlay" id="progress-loading-overlay" aria-hidden="true">
+        <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading">
+          <img class="coach-loader__frame" src="icons/runner-frames/00.png" alt="" decoding="async">
+        </span>
+      </div>
+      <h2 class="tab-title">Progress</h2>
+
+      <div class="card" id="long-run-card">
+        <div class="card-header">
+          <span class="card-title">Long Run Progress</span>
+        </div>
+        <div class="card-body" id="long-run-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card" id="weight-trend-card">
+        <div class="card-header">
+          <span class="card-title">Weight Trend</span>
+        </div>
+        <div class="card-body" id="weight-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <h3 class="tab-section-title">Body Composition</h3>
+      <p class="text-secondary tab-intro mb-12">Machine scans — InBody, Karada Scan, etc. Log right after your visit.</p>
+
+      <div id="scan-due-banner"></div>
+
+      <div class="card" id="latest-scan-card">
+        <div class="card-header">
+          <span class="card-title">Latest Scan</span>
+        </div>
+        <div class="card-body" id="latest-scan-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card" id="scan-form-card">
+        <div class="collapsible-toggle" id="scan-form-toggle">Log scan</div>
+        <div class="collapsible-content" id="scan-form-body">
+          <div class="card-body">
+            <p class="scan-form-hint text-secondary">Muscle mass = SMM on InBody · Muscle on Karada. Optional fields — fill what the printout shows.</p>
+            <div class="form-group mb-12">
+              <label class="form-label" id="scan-form-title">Log scan</label>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Scan date</label>
+                <input type="date" class="form-input" id="input-scan-date">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Machine</label>
+                <select class="form-input" id="input-scan-machine">
+                  <option value="InBody">InBody</option>
+                  <option value="Karada Scan">Karada Scan</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Weight (kg)</label>
+                <input type="number" class="form-input" id="input-scan-weight" inputmode="decimal" step="0.1" placeholder="78.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Body fat (%)</label>
+                <input type="number" class="form-input" id="input-scan-bf" inputmode="decimal" step="0.1" placeholder="28.5">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Muscle mass (kg)</label>
+                <input type="number" class="form-input" id="input-scan-muscle" inputmode="decimal" step="0.1" placeholder="30.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fat mass (kg) — optional</label>
+                <input type="number" class="form-input" id="input-scan-fat-mass" inputmode="decimal" step="0.1" placeholder="22.0">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Visceral fat — optional</label>
+                <input type="number" class="form-input" id="input-scan-visceral" inputmode="decimal" step="0.1" placeholder="8">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Waist (in) — optional</label>
+                <input type="number" class="form-input" id="input-scan-waist" inputmode="decimal" step="0.5" placeholder="33.5">
+              </div>
+            </div>
+            <div class="form-group mb-12">
+              <label class="form-label">Notes — optional</label>
+              <textarea class="form-input" id="input-scan-notes" placeholder="Fasted? Post-run? Hydration?"></textarea>
+            </div>
+            <div class="form-row">
+              <button type="button" class="btn btn-primary" id="save-scan">Save Scan</button>
+              <button type="button" class="btn btn-secondary" id="cancel-scan">Cancel</button>
+              <button type="button" class="btn btn-secondary hidden scan-delete-btn" id="delete-scan">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="scan-history-card">
+        <div class="card-header">
+          <span class="card-title">History</span>
+        </div>
+        <div class="card-body" id="scan-history"></div>
+      </div>
     </div>
 
     <!-- ════════════════════════════════════════════════════════
@@ -371,6 +502,12 @@
         <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>
       </svg>
       Week
+    </button>
+    <button class="nav-tab" data-tab="progress">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/>
+      </svg>
+      Progress
     </button>
     <button class="nav-tab" data-tab="debrief">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

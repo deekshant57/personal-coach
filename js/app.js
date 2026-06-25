@@ -13,9 +13,13 @@ import { initToday, loadTodayData } from './today.js';
 import { initFood, loadFoodData } from './food.js';
 import { initWeek, loadWeekView, syncWeekViewMonday } from './week.js';
 import { initDebrief, refreshDebrief, refreshDebriefIfActive } from './debrief.js';
+import { initProgress, loadProgressView, loadBodyCompForDate } from './progress.js';
 import { initDayProgress, updateDayProgress } from './day-progress.js';
 import { loadingInlineHtml, setButtonLoading, setOverlayLoading } from './spinner.js';
 import { flushAllAutosaves, setupAutosaveLifecycle } from './auto-save.js';
+import { invalidateWeekStatsCache } from './week-stats.js';
+import { initSaveState, clearSaveState } from './save-state.js';
+import { mergePlanWithFallback } from './plan-merge.js';
 
 // ── App State ────────────────────────────────────────────────
 export const state = {
@@ -25,6 +29,8 @@ export const state = {
   vitals: null,
   runLog: null,
   workoutLog: null,
+  bodyCompScans: [],
+  bodyCompScanForDate: null,
 };
 
 // ── Date Helpers ─────────────────────────────────────────────
@@ -126,6 +132,11 @@ export function showSavedToast() {
 }
 
 // ── Tab Routing ──────────────────────────────────────────────
+function updateTabChrome(activeTab) {
+  const isProgress = activeTab === 'progress';
+  document.querySelector('.app-sticky-header')?.classList.toggle('header--progress', isProgress);
+}
+
 function setupTabs() {
   const tabs = document.querySelectorAll('.nav-tab');
   tabs.forEach(tab => {
@@ -138,13 +149,15 @@ function setupTabs() {
 
       // Activate clicked
       tab.classList.add('active');
-      const id = `tab-${tab.dataset.tab}`;
-      document.getElementById(id).classList.add('active');
+      const tabName = tab.dataset.tab;
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      updateTabChrome(tabName);
 
       // Refresh data on tab switch
-      if (tab.dataset.tab === 'food') loadFoodData();
-      if (tab.dataset.tab === 'week') loadWeekView();
-      if (tab.dataset.tab === 'debrief') refreshDebrief();
+      if (tabName === 'food') loadFoodData();
+      if (tabName === 'week') loadWeekView();
+      if (tabName === 'progress') loadProgressView();
+      if (tabName === 'debrief') refreshDebrief();
     });
   });
 }
@@ -174,11 +187,14 @@ function setupDateNav() {
 }
 
 async function onDateChange() {
+  invalidateWeekStatsCache();
+  clearSaveState();
   setContentLoading(true);
   try {
     updateDateDisplay();
     await loadPlan();
     await loadTodayData();
+    await loadBodyCompForDate(getToday());
     await loadFoodData();
     syncWeekViewMonday();
     await loadWeekView();
@@ -259,9 +275,8 @@ async function loadPlan() {
   const plan = await fetchDailyPlan(date);
 
   if (plan) {
-    state.currentPlan = patchPlanWarmup(plan, date);
+    state.currentPlan = mergePlanWithFallback(plan, date);
   } else {
-    // Fallback: try to find plan from the hardcoded week 1 data
     state.currentPlan = getFallbackPlan(date);
   }
 
@@ -442,12 +457,14 @@ async function bootApp() {
   booted = true;
   setupTabs();
   setupDateNav();
+  initSaveState();
   setupAutosaveLifecycle();
   updateDateDisplay();
   await loadPlan();
   initToday();
   initFood();
   initWeek(openDayFromWeek);
+  initProgress();
   initDebrief();
   initDayProgress();
   await loadTodayData();

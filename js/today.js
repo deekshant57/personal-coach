@@ -3,7 +3,7 @@ import {
   extractWarmupCooldown,
   extractRunCues,
 } from './plan-templates.js';
-import { state, getToday, isMonday, isViewingFuture, showToast, showSavedToast, formatDate } from './app.js';
+import { state, getToday, isMonday, isViewingFuture, showToast, formatDate } from './app.js';
 import { SLOT_LABELS, formatFoodLabel } from './data.js';
 import {
   fetchVitals, upsertVitals,
@@ -14,6 +14,13 @@ import {
 import { updateProteinBar, deleteMealSlot } from './food.js';
 import { updateDayProgress } from './day-progress.js';
 import { refreshDebriefIfActive } from './debrief.js';
+import { invalidateWeekStatsCache } from './week-stats.js';
+import { trackSave } from './save-state.js';
+import {
+  applyAutoPaceToForm,
+  updateCadenceHint,
+  validateRunLogForDone,
+} from './run-log.js';
 import {
   scheduleAutosave,
   cancelAutosave,
@@ -32,6 +39,7 @@ function trainingAutosaveKey() {
 }
 
 function syncDayStatus() {
+  invalidateWeekStatsCache();
   updateDayProgress();
   refreshDebriefIfActive();
 }
@@ -68,6 +76,7 @@ export async function loadTodayData() {
     state.workoutLog = null;
     state.foodLogs = {};
     updateProteinBar(0);
+    updateMealsDayTotal(0, 0);
   }
 
   renderPlanCard();
@@ -126,11 +135,15 @@ async function saveVitals() {
       waist_inches: isMonday(state.currentDate) ? (parseFloat(document.getElementById('input-waist').value) || null) : null,
     };
 
-    await upsertVitals(getToday(), vitals);
-    state.vitals = vitals;
-    collapseVitals(vitals);
-    showSavedToast();
-    syncDayStatus();
+    const ok = await trackSave('vitals', 'Vitals', async () => {
+      const saved = await upsertVitals(getToday(), vitals);
+      if (!saved) return false;
+      state.vitals = vitals;
+      collapseVitals(vitals);
+      syncDayStatus();
+      return true;
+    });
+    if (!ok) return;
   } finally {
     setButtonLoading(btn, false, 'Save Vitals');
   }
@@ -218,31 +231,8 @@ function renderPlanCard() {
   document.getElementById('protein-target').textContent = `/ ${target}g protein`;
 }
 
-// ── Training Log Card ────────────────────────────────────────
-function parseTimeToMinutes(timeStr) {
-  if (!timeStr?.trim()) return null;
-  const parts = timeStr.trim().split(':');
-  if (parts.length !== 2) return null;
-  const m = parseInt(parts[0], 10);
-  const s = parseInt(parts[1], 10);
-  if (Number.isNaN(m) || Number.isNaN(s)) return null;
-  return m + s / 60;
-}
-
-function formatPace(minutesPerKm) {
-  const min = Math.floor(minutesPerKm);
-  const sec = Math.round((minutesPerKm - min) * 60);
-  return `${min}:${String(sec).padStart(2, '0')}/km`;
-}
-
 function tryAutoPace() {
-  const km = parseFloat(document.getElementById('input-run-km').value);
-  const mins = parseTimeToMinutes(document.getElementById('input-run-time').value);
-  const paceEl = document.getElementById('input-run-pace');
-  if (km > 0 && mins && !paceEl.value.trim()) {
-    paceEl.value = formatPace(mins / km);
-    scheduleTrainingAutosave();
-  }
+  if (applyAutoPaceToForm()) scheduleTrainingAutosave();
 }
 
 function runLogHasContent(log) {
@@ -294,22 +284,26 @@ async function persistTraining({ silent = true } = {}) {
     const hasContent = runLogHasContent(log) || state.runLog;
     if (!hasContent) return true;
 
-    const ok = await upsertRunLog(getToday(), log);
-    if (!ok) return false;
-    state.runLog = log;
-    syncDayStatus();
-    return true;
+    return trackSave(trainingAutosaveKey(), 'Training', async () => {
+      const ok = await upsertRunLog(getToday(), log);
+      if (!ok) return false;
+      state.runLog = log;
+      syncDayStatus();
+      return true;
+    }, { toastOnSuccess: !silent });
   }
 
   const log = collectWorkoutLogFromForm();
   const hasContent = workoutLogHasContent(log) || state.workoutLog;
   if (!hasContent) return true;
 
-  const ok = await upsertWorkoutLog(getToday(), log);
-  if (!ok) return false;
-  state.workoutLog = log;
-  syncDayStatus();
-  return true;
+  return trackSave(trainingAutosaveKey(), 'Training', async () => {
+    const ok = await upsertWorkoutLog(getToday(), log);
+    if (!ok) return false;
+    state.workoutLog = log;
+    syncDayStatus();
+    return true;
+  }, { toastOnSuccess: !silent });
 }
 
 function scheduleTrainingAutosave() {
@@ -318,9 +312,7 @@ function scheduleTrainingAutosave() {
   if (!plan?.run_type && !plan?.workout_plan) return;
 
   scheduleAutosave(trainingAutosaveKey(), async () => {
-    const ok = await persistTraining({ silent: true });
-    if (ok) showSavedToast();
-    else showToast('Save failed', { variant: 'error' });
+    await persistTraining({ silent: true });
   });
 }
 
@@ -349,8 +341,24 @@ function setupTrainingAutosave() {
 
 function setupTrainingLog() {
   document.getElementById('training-done-btn').addEventListener('click', () => {
-    document.getElementById('training-done-btn').classList.toggle('done');
+    const btn = document.getElementById('training-done-btn');
+    const wasDone = btn.classList.contains('done');
+
+    if (!wasDone && state.currentPlan?.run_type) {
+      tryAutoPace();
+      const log = { ...collectRunLogFromForm(), done: true };
+      const { valid, errors, warnings } = validateRunLogForDone(log);
+      if (!valid) {
+        showToast(errors[0], { variant: 'error' });
+        document.getElementById('training-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (warnings.length) showToast(warnings[0]);
+    }
+
+    btn.classList.toggle('done');
     scheduleTrainingAutosave();
+    syncDayStatus();
   });
 
   document.getElementById('input-run-rpe').addEventListener('input', (e) => {
@@ -361,6 +369,11 @@ function setupTrainingLog() {
   });
   document.getElementById('input-run-time').addEventListener('blur', tryAutoPace);
   document.getElementById('input-run-km').addEventListener('blur', tryAutoPace);
+  document.getElementById('input-run-time').addEventListener('input', tryAutoPace);
+  document.getElementById('input-run-km').addEventListener('input', tryAutoPace);
+  document.getElementById('input-run-cadence')?.addEventListener('input', (e) => {
+    updateCadenceHint(e.target.value);
+  });
 
   document.querySelectorAll('#knee-segmented .segment').forEach(seg => {
     seg.addEventListener('click', () => {
@@ -417,6 +430,7 @@ async function loadTrainingLog() {
         document.getElementById('input-run-time').value = log.time_display || '';
         document.getElementById('input-run-pace').value = log.avg_pace || '';
         document.getElementById('input-run-cadence').value = log.cadence ?? '';
+        updateCadenceHint(log.cadence);
         document.getElementById('input-run-rpe').value = log.rpe || 5;
         document.getElementById('run-rpe-value').textContent = log.rpe || 5;
         if (log.knee_status) {
@@ -453,6 +467,7 @@ function resetRunFields() {
   document.getElementById('input-run-time').value = '';
   document.getElementById('input-run-pace').value = '';
   document.getElementById('input-run-cadence').value = '';
+  updateCadenceHint('');
   document.getElementById('input-run-rpe').value = 5;
   document.getElementById('run-rpe-value').textContent = '5';
   document.getElementById('input-run-notes').value = '';
@@ -469,6 +484,20 @@ function resetWorkoutFields() {
 }
 
 // ── Meals Summary ────────────────────────────────────────────
+function updateMealsDayTotal(protein, calories) {
+  const row = document.getElementById('meals-day-total');
+  const macros = document.getElementById('meals-day-total-macros');
+  if (!row || !macros) return;
+
+  if (!protein && !calories) {
+    row.classList.add('hidden');
+    return;
+  }
+
+  row.classList.remove('hidden');
+  macros.textContent = `${Math.round(protein)}g P · ~${Math.round(calories).toLocaleString()} kcal`;
+}
+
 export async function loadMealsSummary() {
   const date = getToday();
   const logs = await fetchFoodLogs(date);
@@ -479,6 +508,7 @@ export async function loadMealsSummary() {
   if (!logs || logs.length === 0) {
     list.innerHTML = '<span class="text-muted">No meals logged yet</span>';
     updateProteinBar(0);
+    updateMealsDayTotal(0, 0);
     syncDayStatus();
     return;
   }
@@ -527,6 +557,7 @@ export async function loadMealsSummary() {
   }
 
   updateProteinBar(totalProtein);
+  updateMealsDayTotal(totalProtein, totalCalories);
   syncDayStatus();
 }
 
@@ -541,10 +572,13 @@ function setupNotesCard() {
       const notes = document.getElementById('input-notes').value;
       const current = state.vitals || {};
       const merged = { ...current, notes };
-      await upsertVitals(getToday(), merged);
-      state.vitals = merged;
-      showSavedToast();
-      syncDayStatus();
+      await trackSave('notes', 'Notes', async () => {
+        const ok = await upsertVitals(getToday(), merged);
+        if (!ok) return false;
+        state.vitals = merged;
+        syncDayStatus();
+        return true;
+      });
     } finally {
       setButtonLoading(btn, false, 'Save Notes');
     }
@@ -557,7 +591,7 @@ function loadNotes() {
 
 // ── Collapsibles ─────────────────────────────────────────────
 function setupCollapsibles() {
-  document.querySelectorAll('.collapsible-toggle').forEach(toggle => {
+  document.querySelectorAll('.collapsible-toggle:not(#scan-form-toggle)').forEach(toggle => {
     toggle.addEventListener('click', () => {
       const content = toggle.nextElementSibling;
       if (!content?.classList.contains('collapsible-content')) return;

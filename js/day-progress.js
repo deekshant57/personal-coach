@@ -1,5 +1,6 @@
 // Day progress strip — P1: what's left for the selected date (saved data only)
 import { state, getCurrentMealSlots, isViewingFuture, isMonday } from './app.js';
+import { isRunLogComplete } from './run-log.js';
 import { expandVitalsCard } from './vitals-ui.js';
 
 function isVitalsComplete() {
@@ -15,7 +16,9 @@ function isTrainingRequired() {
 
 function isTrainingComplete() {
   const plan = state.currentPlan;
-  if (plan?.run_type) return state.runLog?.done === true;
+  if (plan?.run_type) {
+    return isRunLogComplete(state.runLog);
+  }
   if (plan?.workout_plan) return state.workoutLog?.done === true;
   return false;
 }
@@ -44,10 +47,11 @@ export function computeDayProgress() {
 
   if (isTrainingRequired()) {
     const label = state.currentPlan.run_type ? 'Run' : 'Workout';
+    const done = isTrainingComplete();
     tasks.push({
       id: 'training',
-      label,
-      done: isTrainingComplete(),
+      label: state.currentPlan.run_type && state.runLog?.done && !done ? 'Run (incomplete)' : label,
+      done,
       action: 'training',
     });
   }

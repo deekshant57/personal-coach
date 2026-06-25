@@ -1,4 +1,5 @@
 // Debounced Supabase auto-save — cross-device, no localStorage
+// Callers' execute functions own trackSave (P8).
 
 const DEBOUNCE_MS = 1500;
 

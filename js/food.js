@@ -1,9 +1,10 @@
 // Food tab — tap grid, meal slots, protein calculation
 import { FOOD_ITEMS, SLOT_LABELS, formatFoodLabel, formatUnitDisplay } from './data.js';
-import { state, getToday, getCurrentMealSlots, showToast, showSavedToast, isViewingFuture } from './app.js';
+import { state, getToday, getCurrentMealSlots, showToast, isViewingFuture } from './app.js';
 import { upsertFoodLog, fetchFoodLogs, deleteFoodLog } from './supabase.js';
 import { loadMealsSummary } from './today.js';
 import { setOverlayLoading } from './spinner.js';
+import { trackSave } from './save-state.js';
 import {
   scheduleAutosave,
   cancelAutosave,
@@ -58,43 +59,46 @@ async function persistFoodSlot(slot, { silent = true } = {}) {
   if (!slot || isViewingFuture() || foodAutosaveSuspended) return true;
 
   const date = getToday();
-  const { items, customText } = getSlotPayload(slot);
-  const trimmedNotes = customText.trim();
-  const hadSaved = !!savedSnapshots[slot];
+  const key = foodSlotKey(date, slot);
+  const label = SLOT_LABELS[slot] || slot;
 
-  if (items.length === 0 && !trimmedNotes) {
-    if (!hadSaved) return true;
-    await deleteFoodLog(date, slot);
-    delete slotItems[slot];
-    delete slotNotes[slot];
-    delete savedSnapshots[slot];
-    filledSlots.delete(slot);
+  return trackSave(key, label, async () => {
+    const { items, customText } = getSlotPayload(slot);
+    const trimmedNotes = customText.trim();
+    const hadSaved = !!savedSnapshots[slot];
+
+    if (items.length === 0 && !trimmedNotes) {
+      if (!hadSaved) return true;
+      await deleteFoodLog(date, slot);
+      delete slotItems[slot];
+      delete slotNotes[slot];
+      delete savedSnapshots[slot];
+      filledSlots.delete(slot);
+      updateSlotPillStates();
+      renderSlotState();
+      updateTotalProtein();
+      await loadMealsSummary();
+      return true;
+    }
+
+    const totalProtein = items.reduce((s, i) => s + i.protein * i.qty, 0);
+    const totalCalories = items.reduce((s, i) => s + i.calories * i.qty, 0);
+    const ok = await upsertFoodLog(date, slot, items, trimmedNotes || null, totalProtein, totalCalories);
+    if (!ok) return false;
+
+    filledSlots.add(slot);
+    savedSnapshots[slot] = JSON.stringify({ items, notes: customText });
     updateSlotPillStates();
-    renderSlotState();
-    updateTotalProtein();
     await loadMealsSummary();
     return true;
-  }
-
-  const totalProtein = items.reduce((s, i) => s + i.protein * i.qty, 0);
-  const totalCalories = items.reduce((s, i) => s + i.calories * i.qty, 0);
-  const ok = await upsertFoodLog(date, slot, items, trimmedNotes || null, totalProtein, totalCalories);
-  if (!ok) return false;
-
-  filledSlots.add(slot);
-  savedSnapshots[slot] = JSON.stringify({ items, notes: customText });
-  updateSlotPillStates();
-  await loadMealsSummary();
-  return true;
+  }, { toastOnSuccess: !silent });
 }
 
 function scheduleFoodSlotAutosave(slot) {
   if (!slot || isViewingFuture() || foodAutosaveSuspended) return;
   const key = foodSlotKey(getToday(), slot);
   scheduleAutosave(key, async () => {
-    const ok = await persistFoodSlot(slot, { silent: true });
-    if (ok) showSavedToast();
-    else showToast('Save failed', { variant: 'error' });
+    await persistFoodSlot(slot, { silent: true });
   });
 }
 
@@ -346,12 +350,11 @@ async function selectSlot(slot, { skipGuard = false } = {}) {
     if (action === 'cancel') return;
     if (action === 'discard') discardSlotChanges(activeSlot);
     if (action === 'retry') {
-      const ok = await persistFoodSlot(activeSlot, { silent: true });
+      const ok = await persistFoodSlot(activeSlot, { silent: false });
       if (!ok) {
         showToast('Save failed', { variant: 'error' });
         return;
       }
-      showSavedToast();
     }
   }
 

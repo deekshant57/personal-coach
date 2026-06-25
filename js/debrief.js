@@ -2,8 +2,33 @@
 import { state, getToday, formatDayDisplayFromIso, isMonday, isViewingFuture, showToast } from './app.js';
 import { SLOT_LABELS, formatFoodLabel } from './data.js';
 import { computeDebriefReadiness } from './day-progress.js';
+import { buildBodyCompDebriefSection } from './progress.js';
+import { getMondayCheckInLine } from './week-stats.js';
 import { setButtonLoading } from './spinner.js';
 import { expandVitalsCard } from './vitals-ui.js';
+
+let mondayCheckInLine = null;
+let mondayCheckInLoading = false;
+
+async function loadMondayCheckInLine({ force = false } = {}) {
+  if (!isMonday(state.currentDate)) {
+    mondayCheckInLine = null;
+    return;
+  }
+  mondayCheckInLoading = true;
+  try {
+    mondayCheckInLine = await getMondayCheckInLine(
+      state.currentDate,
+      state.vitals,
+      { force },
+    );
+  } catch (err) {
+    console.error('Monday check-in stats:', err);
+    mondayCheckInLine = null;
+  } finally {
+    mondayCheckInLoading = false;
+  }
+}
 
 function buildDebriefText() {
   const date = getToday();
@@ -82,9 +107,10 @@ function buildDebriefText() {
     text += `\n## Monday Check-in\n`;
     text += `- **Date:** ${dateLabel}\n`;
     text += `- **Weight / Waist / Longest run / Avg sleep / Knee / Cigs/day:** `;
-    text += `${vitals.weight_kg || '-'} / ${vitals.waist_inches || '-'} / - / ${vitals.sleep_hours || '-'} / `;
-    text += `${state.runLog?.knee_status || '-'} / ${vitals.cigarettes ?? '-'}\n`;
+    text += `${mondayCheckInLoading ? 'Loading…' : (mondayCheckInLine || '—')}\n`;
   }
+
+  text += buildBodyCompDebriefSection(state.bodyCompScanForDate);
 
   return text;
 }
@@ -120,7 +146,7 @@ function navigateToTask(action) {
   });
 }
 
-export function refreshDebrief() {
+export async function refreshDebrief() {
   const preflight = document.getElementById('debrief-preflight');
   const list = document.getElementById('debrief-preflight-list');
   const status = document.getElementById('debrief-preflight-status');
@@ -156,6 +182,14 @@ export function refreshDebrief() {
     </li>
   `).join('');
 
+  if (isMonday(state.currentDate)) {
+    mondayCheckInLine = null;
+    preview.textContent = buildDebriefText();
+    await loadMondayCheckInLine();
+  } else {
+    mondayCheckInLine = null;
+  }
+
   preview.textContent = buildDebriefText();
   preview.classList.remove('hidden');
 
@@ -182,11 +216,18 @@ export function initDebrief() {
     const idleLabel = copyBtn.textContent.trim();
     setButtonLoading(copyBtn, true, idleLabel);
     try {
+      if (isMonday(state.currentDate)) {
+        await loadMondayCheckInLine({ force: true });
+      }
       const text = buildDebriefText();
       await copyToClipboard(text);
       showToast('Copied — paste into Cursor');
     } finally {
       setButtonLoading(copyBtn, false, idleLabel);
+      copyBtn.disabled = !computeDebriefReadiness().ready;
+      copyBtn.textContent = computeDebriefReadiness().ready
+        ? 'Copy Debrief to Clipboard'
+        : 'Complete logging to copy';
     }
   });
 

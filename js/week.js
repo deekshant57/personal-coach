@@ -6,13 +6,20 @@ import {
   formatDayDisplay,
   formatDayDisplayFromIso,
   getToday,
-  getFallbackPlan,
-  patchPlanWarmup,
 } from './app.js';
-import { fetchWeekPlans } from './supabase.js';
+import { fetchWeekPlans, fetchCoachDebriefForWeek } from './supabase.js';
 import { renderDayBadge } from './data.js';
+import { buildCoachDebriefCardHtml, wireCoachDebriefCard } from './coach-debrief.js';
+import { resolvePlansForRange } from './plan-merge.js';
 import { extractWarmupCooldown, extractRunCues } from './plan-templates.js';
 import { loadingCenterHtml, setOverlayLoading } from './spinner.js';
+import {
+  getWeekStats,
+  getPriorWeekRange,
+  formatKm,
+  getTenPercentCapKm,
+  getRaceCountdownDays,
+} from './week-stats.js';
 
 const TRAINING_BLOCK_START = new Date(2026, 5, 22); // Mon 22 Jun 2026 — Week 1
 
@@ -71,6 +78,89 @@ function setWeekNavLoading(loading) {
   setOverlayLoading('week-loading-overlay', loading);
 }
 
+function renderWeekMileageSummary(stats, priorStats) {
+  const el = document.getElementById('week-mileage-summary');
+  if (!el || !stats) return;
+
+  const actual = stats.actualKm || 0;
+  const planned = stats.plannedKm || 0;
+  const cap = getTenPercentCapKm(priorStats?.actualKm);
+  const daysToRace = getRaceCountdownDays();
+
+  let html = `
+    <div class="week-mileage-row">
+      <span class="week-mileage-label">Weekly mileage</span>
+      <span class="week-mileage-value">
+        <strong>${formatKm(actual)}</strong> / ${formatKm(planned)} km
+      </span>
+    </div>`;
+
+  if (stats.runDaysPlanned > 0) {
+    html += `<div class="week-mileage-meta">${stats.runDaysLogged} of ${stats.runDaysPlanned} runs logged</div>`;
+  }
+
+  if (stats.longestRun != null) {
+    html += `<div class="week-mileage-meta">Longest this week: ${formatKm(stats.longestRun)} km (${formatDayDisplayFromIso(stats.longestRunDate)})</div>`;
+  }
+
+  if (cap != null) {
+    html += `<div class="week-mileage-meta">+10% cap from prior week: ${formatKm(cap)} km</div>`;
+    if (planned > cap + 0.05) {
+      html += `<div class="week-mileage-warn">Planned ${formatKm(planned)} km exceeds +10% rule</div>`;
+    }
+  }
+
+  if (daysToRace > 0) {
+    html += `<div class="week-mileage-race">${daysToRace} days to half marathon</div>`;
+  }
+
+  el.innerHTML = html;
+  el.classList.remove('hidden');
+}
+
+function getDayCompletion(weekStats, date) {
+  return weekStats?.dayCompletion?.find((d) => d.date === date) || null;
+}
+
+function renderCompletionBadges(dayStatus, plan) {
+  if (!dayStatus) return '';
+
+  const chips = [
+    { label: 'Vitals', done: dayStatus.vitals },
+  ];
+
+  if (dayStatus.training !== null) {
+    chips.push({
+      label: plan.run_type ? 'Run' : 'Workout',
+      done: dayStatus.training,
+    });
+  }
+
+  chips.push({ label: 'Meals', done: dayStatus.meals });
+
+  return `<div class="week-card-completion">${chips.map((chip) => `
+      <span class="week-completion-chip${chip.done ? ' done' : ''}">
+        <span class="week-completion-mark" aria-hidden="true">${chip.done ? '✓' : '○'}</span>
+        <span>${chip.label}</span>
+      </span>
+    `).join('')}</div>`;
+}
+
+function renderCoachDebriefSection(debrief) {
+  const card = document.getElementById('coach-debrief-card');
+  if (!card) return;
+
+  if (!debrief) {
+    card.classList.add('hidden');
+    card.innerHTML = '';
+    return;
+  }
+
+  card.classList.remove('hidden');
+  card.innerHTML = buildCoachDebriefCardHtml(debrief);
+  wireCoachDebriefCard(card);
+}
+
 export async function loadWeekView() {
   const container = document.getElementById('week-cards');
   const labelEl = document.getElementById('week-nav-label');
@@ -92,22 +182,38 @@ export async function loadWeekView() {
 
   setWeekNavLoading(true);
   container.innerHTML = loadingCenterHtml('Loading week…');
+  document.getElementById('week-mileage-summary')?.classList.add('hidden');
+  renderCoachDebriefSection(null);
 
   try {
-    let plans = await fetchWeekPlans(startDate, endDate);
+    const range = { startIso: startDate, endIso: endDate };
+    const priorRange = getPriorWeekRange(monday);
 
-    if (plans.length === 0) {
-      plans = getFallbackWeekPlans().filter((p) => p.date >= startDate && p.date <= endDate);
-    } else {
-      plans = plans.map((p) => patchPlanWarmup(p, p.date));
-    }
+    const [fetchedPlans, priorFetched, coachDebrief] = await Promise.all([
+      fetchWeekPlans(startDate, endDate),
+      fetchWeekPlans(priorRange.startIso, priorRange.endIso),
+      fetchCoachDebriefForWeek(startDate),
+    ]);
+
+    const plans = resolvePlansForRange(startDate, endDate, fetchedPlans);
+    const priorPlans = resolvePlansForRange(priorRange.startIso, priorRange.endIso, priorFetched);
+
+    const [weekStats, priorWeekStats] = await Promise.all([
+      getWeekStats(range, { plans }),
+      getWeekStats(priorRange, { plans: priorPlans }),
+    ]);
 
     container.innerHTML = '';
 
     if (plans.length === 0) {
       container.innerHTML = '<p class="text-muted empty-state-pad">No plan for this week</p>';
+      renderWeekMileageSummary(weekStats, priorWeekStats);
+      renderCoachDebriefSection(coachDebrief);
       return;
     }
+
+    renderWeekMileageSummary(weekStats, priorWeekStats);
+    renderCoachDebriefSection(coachDebrief);
 
     plans.forEach((plan) => {
       const isViewing = plan.date === viewingDate;
@@ -140,9 +246,11 @@ export async function loadWeekView() {
         detailParts.push(`Workout: ${mainWorkout}`);
       }
       const detailText = detailParts.join('\n\n');
+      const dayStatus = getDayCompletion(weekStats, plan.date);
+      const completionHtml = renderCompletionBadges(dayStatus, plan);
 
       const card = document.createElement('article');
-      card.className = `week-card${isExpanded ? ' expanded' : ''}${isViewing ? ' viewing' : ''}`;
+      card.className = `week-card${isExpanded ? ' expanded' : ''}${isViewing ? ' viewing' : ''}${dayStatus?.complete ? ' complete' : ''}`;
       card.dataset.date = plan.date;
 
       card.innerHTML = `
@@ -155,6 +263,7 @@ export async function loadWeekView() {
         </span>
         <span class="text-muted week-card-protein">${plan.protein_target || 145}g P</span>
       </button>
+      ${completionHtml}
       <div class="week-card-summary">${escapeHtml(summary)}</div>
       ${plan.meals_plan ? `<div class="week-card-meals">${escapeHtml(plan.meals_plan)}</div>` : ''}
       ${detailText ? `<div class="week-card-detail">${escapeHtml(detailText)}</div>` : ''}
@@ -178,17 +287,4 @@ export async function loadWeekView() {
   } finally {
     setWeekNavLoading(false);
   }
-}
-
-function getFallbackWeekPlans() {
-  const dates = [
-    '2026-06-22', '2026-06-23', '2026-06-24', '2026-06-25',
-    '2026-06-26', '2026-06-27', '2026-06-28',
-  ];
-  return dates
-    .map((d) => {
-      const plan = getFallbackPlan(d);
-      return plan ? { ...plan, date: d } : null;
-    })
-    .filter(Boolean);
 }
