@@ -4,6 +4,7 @@ import { SLOT_LABELS, formatFoodLabel } from './data.js';
 import { computeDebriefReadiness } from './day-progress.js';
 import { buildBodyCompDebriefSection } from './progress.js';
 import { getMondayCheckInLine } from './week-stats.js';
+import { formatSupplementDebriefLine } from './supplements-data.js';
 import { setButtonLoading } from './spinner.js';
 import { expandVitalsCard } from './vitals-ui.js';
 
@@ -99,6 +100,10 @@ function buildDebriefText() {
   text += `- **Protein:** ${Math.round(totalProtein)}g (calculated) / **Calories:** ~${Math.round(totalCalories)} kcal\n`;
   text += `- **Sleep:** ${vitals.sleep_hours || '-'}h / **Cigs:** ${vitals.cigarettes ?? '-'} / **Weight:** ${vitals.weight_kg || '-'} kg\n`;
 
+  text += `\n## Supplements\n`;
+  text += `- **Date:** ${dateLabel}\n`;
+  text += `- **Taken:** ${formatSupplementDebriefLine(state.supplementLog, date)}\n`;
+
   const notes = document.getElementById('input-notes')?.value || vitals.notes || '';
   text += `\n## Notes / Deviations\n`;
   text += notes ? notes + '\n' : '(none)\n';
@@ -142,6 +147,8 @@ function navigateToTask(action) {
       document.getElementById('vitals-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (action === 'training') {
       document.getElementById('training-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (action === 'supplements') {
+      document.getElementById('supplements-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
 }

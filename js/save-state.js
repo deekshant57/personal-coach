@@ -21,6 +21,7 @@ export function labelFromAutosaveKey(key) {
   if (key.startsWith('training:')) return 'Training';
   if (key === 'vitals') return 'Vitals';
   if (key === 'notes') return 'Notes';
+  if (key === 'supplements') return 'Supplements';
   if (key.startsWith('scan:')) return 'Body scan';
   return 'Changes';
 }

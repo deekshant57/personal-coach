@@ -299,6 +299,44 @@ export async function deleteBodyCompScan(id) {
   return !error;
 }
 
+// ── Supplement Logs ──────────────────────────────────────────
+export async function fetchSupplementLog(date) {
+  if (!supabase || !uid()) return null;
+  const { data, error } = await supabase
+    .from('supplement_logs')
+    .select('*')
+    .eq('user_id', uid())
+    .eq('date', date)
+    .maybeSingle();
+  if (error) { console.error('fetchSupplementLog:', error); return null; }
+  return data;
+}
+
+export async function upsertSupplementLog(date, log) {
+  if (!supabase || !uid()) return false;
+  const { error } = await supabase
+    .from('supplement_logs')
+    .upsert(
+      { user_id: uid(), date, ...log, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,date' },
+    );
+  if (error) console.error('upsertSupplementLog:', error);
+  return !error;
+}
+
+export async function fetchSupplementLogsRange(startDate, endDate) {
+  if (!supabase || !uid()) return [];
+  const { data, error } = await supabase
+    .from('supplement_logs')
+    .select('*')
+    .eq('user_id', uid())
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('date');
+  if (error) { console.error('fetchSupplementLogsRange:', error); return []; }
+  return data || [];
+}
+
 // ── Coach Debriefs (weekly reports) ───────────────────────────
 export async function fetchCoachDebriefForWeek(weekStartIso) {
   if (!supabase || !uid()) return null;

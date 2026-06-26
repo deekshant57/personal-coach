@@ -105,6 +105,20 @@ CREATE TABLE IF NOT EXISTS workout_logs (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Supplement logs (daily adherence — Supradyn, Creatine, weekly D3)
+CREATE TABLE IF NOT EXISTS supplement_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  supradyn BOOLEAN NOT NULL DEFAULT false,
+  creatine BOOLEAN NOT NULL DEFAULT false,
+  uprise_d3_60k BOOLEAN NOT NULL DEFAULT false,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, date)
+);
+
 -- ═══════════════════════════════════════════════════════════════
 -- Row Level Security — permissive for single user (anon key)
 -- ═══════════════════════════════════════════════════════════════

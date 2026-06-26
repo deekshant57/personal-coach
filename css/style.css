@@ -762,10 +762,125 @@ textarea.form-input {
 }
 
 .toggle-btn.done .toggle-circle::after {
-  content: '\2713';
+  content: '✓';
+  font-size: 12px;
   color: var(--bg);
-  font-size: 14px;
   font-weight: 700;
+}
+
+/* ── Supplements ───────────────────────────────────────────── */
+.supp-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.supp-toggle {
+  text-align: left;
+}
+
+.supp-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.supp-toggle-label {
+  font-weight: 500;
+}
+
+.supp-toggle-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.supp-toggle.done .supp-toggle-hint {
+  color: rgba(74, 222, 128, 0.85);
+}
+
+.supplements-summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.supplements-history {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.supplements-history-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.supplements-history-strip {
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.supp-history-day {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.supp-history-day.complete {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.supp-history-day.partial {
+  border-color: var(--accent-orange, #fb923c);
+  color: var(--accent-orange, #fb923c);
+}
+
+.supp-adherence-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.supp-adherence-stat {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.supp-adherence-stat strong {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+.supp-adherence-stat span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.supp-d3-history {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.supp-d3-history li {
+  margin: 4px 0;
 }
 
 /* ── Training log (P2) ───────────────────────────────────────── */

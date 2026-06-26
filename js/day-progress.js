@@ -1,6 +1,7 @@
 // Day progress strip — P1: what's left for the selected date (saved data only)
 import { state, getCurrentMealSlots, isViewingFuture, isMonday } from './app.js';
 import { isRunLogComplete } from './run-log.js';
+import { isSupplementsComplete } from './supplements.js';
 import { expandVitalsCard } from './vitals-ui.js';
 
 function isVitalsComplete() {
@@ -64,6 +65,13 @@ export function computeDayProgress() {
     action: 'meals',
   });
 
+  tasks.push({
+    id: 'supplements',
+    label: 'Supplements',
+    done: isSupplementsComplete(),
+    action: 'supplements',
+  });
+
   const doneCount = tasks.filter((t) => t.done).length;
   return {
     tasks,
@@ -110,6 +118,8 @@ function navigateToTask(action) {
       document.getElementById('vitals-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (action === 'training') {
       document.getElementById('training-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (action === 'supplements') {
+      document.getElementById('supplements-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
 }

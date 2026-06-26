@@ -258,6 +258,51 @@
         </div>
       </div>
 
+      <!-- Card: Supplements -->
+      <div class="card" id="supplements-card">
+        <div class="card-header">
+          <span class="card-title">Supplements</span>
+          <span class="card-summary supplements-summary" id="supplements-summary">Not logged</span>
+        </div>
+        <div class="card-body">
+          <p class="form-hint mb-12" id="supplements-d3-hint"></p>
+          <div class="supp-toggle-list">
+            <button type="button" class="supp-toggle toggle-btn" id="supp-supradyn" data-key="supradyn">
+              <span class="toggle-circle"></span>
+              <span class="supp-toggle-text">
+                <span class="supp-toggle-label">Supradyn</span>
+                <span class="supp-toggle-hint">After breakfast</span>
+              </span>
+            </button>
+            <button type="button" class="supp-toggle toggle-btn" id="supp-creatine" data-key="creatine">
+              <span class="toggle-circle"></span>
+              <span class="supp-toggle-text">
+                <span class="supp-toggle-label">Creatine 5g</span>
+                <span class="supp-toggle-hint">With lunch</span>
+              </span>
+            </button>
+            <div id="supp-d3-row">
+              <button type="button" class="supp-toggle toggle-btn" id="supp-d3" data-key="uprise_d3_60k">
+                <span class="toggle-circle"></span>
+                <span class="supp-toggle-text">
+                  <span class="supp-toggle-label">Uprise D3 60K</span>
+                  <span class="supp-toggle-hint">Thursday — fattiest meal</span>
+                </span>
+              </button>
+            </div>
+          </div>
+          <div class="supplements-history">
+            <span class="supplements-history-label">Last 7 days</span>
+            <div class="supplements-history-strip" id="supplements-history-strip"></div>
+          </div>
+          <div class="form-group mt-12">
+            <label class="form-label">Notes — optional</label>
+            <input type="text" class="form-input" id="input-supplement-notes" placeholder="Missed dose reason, timing…">
+          </div>
+          <button class="btn btn-primary mt-8" id="save-supplements">Save Supplements</button>
+        </div>
+      </div>
+
       <!-- Card: Notes / Deviations -->
       <div class="card" id="notes-card">
         <div class="card-header">
@@ -365,6 +410,15 @@
           <span class="card-title">Weight Trend</span>
         </div>
         <div class="card-body" id="weight-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card" id="supplement-adherence-card">
+        <div class="card-header">
+          <span class="card-title">Supplement Adherence</span>
+        </div>
+        <div class="card-body" id="supplement-adherence-content">
           <p class="text-muted">Loading…</p>
         </div>
       </div>

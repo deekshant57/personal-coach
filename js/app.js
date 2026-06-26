@@ -15,6 +15,7 @@ import { initWeek, loadWeekView, syncWeekViewMonday } from './week.js';
 import { initDebrief, refreshDebrief, refreshDebriefIfActive } from './debrief.js';
 import { initProgress, loadProgressView, loadBodyCompForDate } from './progress.js';
 import { initDayProgress, updateDayProgress } from './day-progress.js';
+import { initSupplements } from './supplements.js';
 import { loadingInlineHtml, setButtonLoading, setOverlayLoading } from './spinner.js';
 import { flushAllAutosaves, setupAutosaveLifecycle } from './auto-save.js';
 import { invalidateWeekStatsCache } from './week-stats.js';
@@ -31,6 +32,8 @@ export const state = {
   workoutLog: null,
   bodyCompScans: [],
   bodyCompScanForDate: null,
+  supplementLog: null,
+  supplementHistory: [],
 };
 
 // ── Date Helpers ─────────────────────────────────────────────
@@ -263,7 +266,7 @@ function updateDateDisplay() {
 
 function updatePreviewMode() {
   const future = isViewingFuture();
-  const loggingIds = ['vitals-card', 'training-card', 'meals-summary-card', 'notes-card', 'day-progress'];
+  const loggingIds = ['vitals-card', 'training-card', 'meals-summary-card', 'supplements-card', 'notes-card', 'day-progress'];
   loggingIds.forEach((id) => {
     document.getElementById(id)?.classList.toggle('hidden', future);
   });

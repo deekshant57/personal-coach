@@ -11,6 +11,7 @@ import {
   fetchWorkoutLog, upsertWorkoutLog,
   fetchFoodLogs,
 } from './supabase.js';
+import { loadSupplements, initSupplements, resetSupplementsForFuture } from './supplements.js';
 import { updateProteinBar, deleteMealSlot } from './food.js';
 import { updateDayProgress } from './day-progress.js';
 import { refreshDebriefIfActive } from './debrief.js';
@@ -51,6 +52,7 @@ export function initToday() {
   setupTrainingAutosave();
   setupCollapsibles();
   setupNotesCard();
+  initSupplements();
   registerAutosaveFlush({ training: flushTrainingAutosave });
 
   // "Log Food →" button
@@ -68,6 +70,7 @@ export async function loadTodayData() {
       loadVitals(),
       loadTrainingLog(),
       loadMealsSummary(),
+      loadSupplements(),
     ]);
     loadNotes();
   } else {
@@ -75,6 +78,7 @@ export async function loadTodayData() {
     state.runLog = null;
     state.workoutLog = null;
     state.foodLogs = {};
+    resetSupplementsForFuture();
     updateProteinBar(0);
     updateMealsDayTotal(0, 0);
   }

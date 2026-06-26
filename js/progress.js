@@ -10,6 +10,7 @@ import {
   fetchBodyCompScanForDate,
   fetchAllRunLogs,
   fetchVitalsRange,
+  fetchSupplementLogsRange,
   upsertBodyCompScan,
   deleteBodyCompScan,
 } from './supabase.js';
@@ -28,6 +29,10 @@ import {
   renderWeightSparkline,
   WEIGHT_SPARKLINE_DAYS,
 } from './weight-trend.js';
+import {
+  renderSupplementAdherence,
+  supplementAdherenceStartIso,
+} from './supplement-adherence.js';
 
 const SCAN_INTERVAL_WEEKS = 5;
 
@@ -54,15 +59,17 @@ export async function loadProgressView() {
   try {
     const endIso = formatDate(new Date());
     const startIso = vitalsSparklineStartIso();
-    const [scans, runLogs, vitals] = await Promise.all([
+    const [scans, runLogs, vitals, supplementLogs] = await Promise.all([
       fetchBodyCompScans(),
       fetchAllRunLogs(),
       fetchVitalsRange(startIso, endIso),
+      fetchSupplementLogsRange(supplementAdherenceStartIso(), endIso),
     ]);
     state.bodyCompScans = scans;
     cachedRunLogs = runLogs;
     cachedVitals = vitals;
     renderProgressView();
+    renderSupplementAdherence(supplementLogs, endIso);
   } finally {
     setOverlayLoading('progress-loading-overlay', false);
   }
