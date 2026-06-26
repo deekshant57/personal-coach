@@ -1,4 +1,4 @@
--- Sync daily_plans warm-up / cool-down from generate-tracker.py
+-- Sync daily_plans from coach/week-plans.py
 -- Run in Supabase SQL Editor
 -- User: d6f25dae-4cc8-48dd-9822-fbccf9a92139
 

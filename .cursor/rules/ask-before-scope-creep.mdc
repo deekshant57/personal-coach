@@ -1,0 +1,21 @@
+---
+description: Ask before making changes outside the user's explicit request
+alwaysApply: true
+---
+
+# Ask Before Scope Creep
+
+Only implement what the user explicitly asked for in the current message.
+
+If you notice another issue, improvement, refactor, or related fix:
+
+1. **Do not change it** in the same pass.
+2. **State the reason** it might matter (one sentence).
+3. **Ask for permission** before editing.
+
+Exceptions (no ask needed):
+
+- Fixing a compile/syntax error directly caused by your own edit in the same task
+- Following an established project rule the user already set
+
+When the user says "do not touch anything else," treat that as strict for the entire task unless they approve additional changes.

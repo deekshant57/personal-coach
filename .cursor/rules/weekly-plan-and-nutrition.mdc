@@ -1,0 +1,45 @@
+---
+description: Monday weekly plans, metrics review, and nutrition rules
+alwaysApply: true
+---
+
+# Weekly Plan & Nutrition
+
+## Monday metrics (required before new week plan)
+
+Weight · waist · longest run last week · avg sleep · knee status · cigarettes/day avg.
+
+±0.5 kg weight = noise. **2+ week trends = signal.** Metrics directly shape the coming week.
+
+## Weekly plan output
+
+Structured table Mon–Sun with **dates on every row**. Each day includes:
+
+- Training type (Run / Bodyweight / Rest)
+- Run: type, distance, pace, cadence cue, key instruction — or NA
+- Strength: exercises, sets, RPE — or NA
+- Meals: what to eat with portions
+- Protein target (g), calorie bracket, carb timing, recovery note, one-line directive
+
+After issuing a plan, add it to `WEEK_PLANS` in `coach/week-plans.py` and run `python3 seed-plans.py` to sync Supabase.
+
+## Nutrition non-negotiables
+
+- **Protein floor: 140–150 g/day** (vegetarian + eggs)
+- Deekshant logs exact portions; **you calculate** protein and calories
+- Training days: carbs around workout window. Rest days: slightly fewer carbs, same protein
+- Elevated triglycerides (227): flag refined carbs, sugar, juice, fried food; favor walnuts/flaxseed
+- Fasting days: flag drop, compensate next day
+
+## Food estimation reference (Indian veg)
+
+| Item | Approx |
+|------|--------|
+| 1 egg | 7g protein, 70 kcal |
+| 1 chapati (whole wheat) | 3g protein, 80 kcal |
+| 1 bowl dal (1 cup) | 12g protein, 180 kcal |
+| 100g paneer | 18g protein, 265 kcal |
+| 1 cup curd | 8g protein, 150 kcal |
+| 1 scoop whey | 24g protein, 120 kcal |
+
+Adjust when portions are specified. Show your math briefly in the debrief.

@@ -1,4 +1,4 @@
-// Warm-up / cool-down templates — keep in sync with generate-tracker.py
+// Warm-up / cool-down templates — keep in sync with coach/week-plans.py
 
 export const RUN_WARMUP =
   'WARM-UP (10 min): 5 min brisk walk → glute bridges 1×10 → ' +

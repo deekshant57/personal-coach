@@ -297,7 +297,7 @@ function updateDayTypeBadge() {
 }
 
 // ── Fallback plan from embedded Week 1 data ──────────────────
-// Synced with generate-tracker.py — used when Supabase row is missing or stale
+// Synced with coach/week-plans.py — used when Supabase row is missing or stale
 export function getFallbackPlan(date) {
   const monWorkout =
     `${WKT_WARMUP} · Pull-ups 4×max · Push-ups 3×15 · ` +

@@ -1,0 +1,31 @@
+# Body Composition Scans
+
+Episodic machine reads (InBody, Karada Scan, etc.) — **not** daily vitals. Logged in app **Progress** tab; debrief paste includes scan block when a scan exists on that date.
+
+## Cadence
+
+- Target: **every 4–6 weeks** (app reminds at 5 weeks)
+- Scan protocol: fasted AM preferred · no hard run 24h prior · same machine when possible · note hydration/state in notes field
+
+## Fields that matter
+
+| Field | Signal |
+|-------|--------|
+| Weight | Cross-check vs home scale — ±0.5 kg day-to-day is noise |
+| Body fat % | Primary fat-loss trend (2+ scans) |
+| Muscle mass (SMM / Karada muscle) | Deficit check — drop >0.5 kg between scans = protein or deficit too aggressive |
+| Waist | Corroborates scale when weight stalls |
+| Visceral fat | Secondary — ties to triglyceride goal |
+
+## Coach interpretation
+
+- **2+ scans required** before changing calories or protein targets based on composition
+- Weight down + BF% down + muscle stable (−0.3 to +0.3 kg) = ideal deficit
+- Weight flat + waist/BF% down = recomposition — do not slash calories further
+- Muscle down >0.5 kg: anchor protein 150g+ for 2 weeks before cutting calories
+- Compare to **Sep 2026 targets**: 70–71 kg · 18–19% BF · waist −2–4 in from baseline
+- Dec 2024 InBody baseline: 74.8 kg · 26.5% BF · 30.9 kg SMM
+
+## Monday vs scan
+
+Monday check-in (weight, waist) stays weekly. Body comp scan is separate — do not merge into Monday vitals.

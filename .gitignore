@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*
+imports/processed/activities.json
+.cursor/skills/*/backups/*.json

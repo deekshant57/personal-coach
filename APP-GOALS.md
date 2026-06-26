@@ -10,7 +10,7 @@ This document defines *why the app exists* and *what good looks like*. All UI/UX
 
 ## 1. Product purpose
 
-Replace the daily Excel tracker (`deekshant-daily-tracker.xlsx`) with a **phone-native logging surface** that feeds the existing Cursor coaching loop unchanged.
+Replace the legacy Excel tracker with a **phone-native logging surface** that feeds the existing Cursor coaching loop unchanged.
 
 The app is **input + display**. The coach (Claude in Cursor) remains the brain: debrief, protein math verification, weekly plan authoring, load adjustments.
 
@@ -103,7 +103,7 @@ If the app fails at date context, data persistence, or debrief completeness, not
 
 - **Not** replacing Cursor coach or in-app AI debrief
 - **Not** Strava/GPX import (stays in `import-runs.py`)
-- **Not** weekly plan authoring in-app (coach updates `generate-tracker.py` / Supabase)
+- **Not** weekly plan authoring in-app (coach updates `coach/week-plans.py` / Supabase)
 - **Not** macro coaching, meal suggestions, or triglyceride warnings in-app
 - **Not** multi-athlete, social, or gamification
 - **Not** desktop-first layout or feature parity with Excel power-user workflows
@@ -210,7 +210,7 @@ Implementation detail: **`WEEK-STATS-SPEC.md`** (week windows, aggregations, con
 
 | File | Role |
 |------|------|
-| `COACH-CONTEXT.md` | Parent project workflow |
+| `COACH-CONTEXT.md` | Project workflow |
 | `personal-details.md` | Athlete profile |
 | `WEEK-STATS-SPEC.md` | Week aggregation contract — P7–P13 implementation |
 | `.cursor/rules/*.mdc` | Coach debrief + plan rules the app must feed |

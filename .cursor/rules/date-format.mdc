@@ -1,0 +1,51 @@
+---
+description: Single user-facing date format for personal-coach-app
+globs: personal-coach-app/**
+alwaysApply: false
+---
+
+# Date Format — DD MMM,YY
+
+All user-visible dates in the app use **one format only**:
+
+```
+DD MMM,YY
+```
+
+Examples: `24 Jun,26` · `06 Sep,26` · `01 Jan,27`
+
+## Implementation
+
+| Use | Function | Example |
+|-----|----------|---------|
+| **UI / copy / debrief** | `formatDayDisplay(d)` or `formatDayDisplayFromIso('YYYY-MM-DD')` | `24 Jun,26` |
+| **Storage / API / keys** | `formatDate(d)` | `2026-06-24` |
+
+Both live in `personal-coach-app/js/app.js`. Never format dates ad hoc in components.
+
+```javascript
+// ✅ GOOD — header, week cards, debrief paste
+formatDayDisplay(state.currentDate)
+formatDayDisplayFromIso(plan.date)
+
+// ❌ BAD — locale-dependent or alternate shapes
+d.toLocaleDateString(...)
+plan.date.slice(5)
+`${day}/${month}/${year}`
+```
+
+## Rules
+
+1. **Never show ISO `YYYY-MM-DD` in the UI** — that format is internal only.
+2. **Never add a second display format** (no weekday prefix, no `MM-DD`, no long year).
+3. **Week ranges** use the same format: `22 Jun,26 – 28 Jun,26`.
+4. **Debrief paste** header and date fields use `DD MMM,YY`, not ISO.
+5. New screens must import from `app.js`; do not duplicate month arrays or parsers.
+
+## Coach / debrief trigger
+
+Paste line format:
+
+```
+End of day tracker upload — 24 Jun,26
+```

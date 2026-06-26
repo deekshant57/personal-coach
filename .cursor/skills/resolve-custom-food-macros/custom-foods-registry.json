@@ -1,0 +1,65 @@
+{
+  "water": {
+    "protein": 0,
+    "calories": 0,
+    "unit": "1",
+    "resolved_at": "2026-06-24",
+    "source": "reference"
+  },
+  "1 cup milk share with 1 banana, 2 walnuts, 5 almonds,1/2 spoon peanut butter & 1/2 spoon honey": {
+    "protein": 14,
+    "calories": 400,
+    "unit": "1 serving",
+    "resolved_at": "2026-06-24",
+    "source": "estimated",
+    "notes": "1 cup milk (8g) + banana (1g) + 2 walnuts + 5 almonds + ½ tbsp PB + ½ tbsp honey"
+  },
+  "1 bowl pesto & paneer with lemonade (150ml)": {
+    "protein": 24,
+    "calories": 450,
+    "unit": "1 bowl + 150ml",
+    "resolved_at": "2026-06-24",
+    "source": "estimated",
+    "notes": "~100g paneer in pesto bowl + sweet lemonade"
+  },
+  "oil cooked ladyfinger vegies 1 bowl": {
+    "protein": 4,
+    "calories": 140,
+    "unit": "1 bowl",
+    "resolved_at": "2026-06-24",
+    "source": "estimated",
+    "notes": "bhindi/okra 1 bowl with cooking oil"
+  },
+  "1/2 bowl paneer mexican burrito + 1/2 chipotle paneer panini sandwich": {
+    "protein": 27,
+    "calories": 470,
+    "unit": "1 serving",
+    "resolved_at": "2026-06-24",
+    "source": "estimated",
+    "notes": "half portions of two paneer restaurant items"
+  },
+  "1 small cup banana milk shake with peanut butter, almonds & walnuts & honey": {
+    "protein": 12,
+    "calories": 355,
+    "unit": "1 small cup",
+    "resolved_at": "2026-06-24",
+    "source": "estimated",
+    "notes": "~200ml milk + banana + PB + nuts + honey"
+  },
+  "1 cup coffee with milk": {
+    "protein": 4,
+    "calories": 75,
+    "unit": "1 cup",
+    "resolved_at": "2026-06-24",
+    "source": "estimated",
+    "notes": "milk-dominant coffee"
+  },
+  "1 & half besan chilla with grated paneer toppings": {
+    "protein": 17,
+    "calories": 340,
+    "unit": "1.5 chillas",
+    "resolved_at": "2026-06-24",
+    "source": "estimated",
+    "notes": "1.5 besan chillas (~9g P, 225 kcal) + ~40g grated paneer (~7g P, 106 kcal)"
+  }
+}

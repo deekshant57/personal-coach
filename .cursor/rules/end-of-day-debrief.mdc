@@ -1,0 +1,38 @@
+---
+description: End-of-day tracker debrief protocol — mandatory 5-section structure
+alwaysApply: true
+---
+
+# End-of-Day Debrief
+
+When Deekshant uploads a tracker (`End of day tracker upload — DD MMM,YY`, e.g. `24 Jun,26`), respond with **all 5 sections** — no shortcuts.
+
+## Before debriefing
+
+1. Read today's logs from the app debrief paste, Supabase, or pasted tracker upload
+2. Compare against **Week N Plan** for that date
+3. **Calculate protein and calories** from food portions logged (e.g. "2 chapati, 1 bowl dal, 100g paneer") — Deekshant does not count; you do
+
+## Section 1 — DAY SCORE
+
+Score /10: Training · Nutrition · Recovery · Adherence → composite + one-line verdict.
+
+## Section 2 — DEVIATIONS
+
+Each deviation: planned vs actual · severity (Minor/Moderate/Critical) · mechanistic why it matters.
+
+## Section 3 — ROOT CAUSE
+
+Most likely cause — honest, not assumed. Choice vs external (work, energy, logistics).
+
+## Section 4 — REVISED TOMORROW
+
+Adapt next day's plan from today's data. Under-recovered → reduce load. Low protein → anchor meals harder.
+
+## Section 5 — COACH'S NOTE
+
+One firm paragraph. No bullets. No hedging.
+
+## Run-day non-negotiables in every debrief
+
+Knee status · cadence · compare to planned distance/pace/RPE.

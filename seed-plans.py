@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seed or sync Supabase week plans from generate-tracker.py"""
+"""Seed or sync Supabase week plans from coach/week-plans.py"""
 
 import argparse
 import json
@@ -8,7 +8,7 @@ import ssl
 import sys
 import urllib.request
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.dirname(__file__))
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://lqtwtcgnzpsrhfuynzdk.supabase.co')
 ANON_KEY = os.environ.get(
@@ -25,11 +25,11 @@ NA = 'NA'
 
 
 def load_week_plans():
-    tracker_path = os.path.join(os.path.dirname(__file__), '..', 'generate-tracker.py')
-    with open(tracker_path, 'r') as f:
+    plans_path = os.path.join(os.path.dirname(__file__), 'coach', 'week-plans.py')
+    with open(plans_path, 'r') as f:
         source = f.read()
     ns = {}
-    exec(compile(source, tracker_path, 'exec'), ns)
+    exec(compile(source, plans_path, 'exec'), ns)
     return ns.get('WEEK_PLANS', {})
 
 
@@ -70,7 +70,7 @@ def build_day_rows(week_plans, user_id):
 def write_sql_file(path, week_plans, user_id):
     rows = build_day_rows(week_plans, user_id)
     lines = [
-        '-- Sync daily_plans warm-up / cool-down from generate-tracker.py',
+        '-- Sync daily_plans from coach/week-plans.py',
         '-- Run in Supabase SQL Editor',
         f"-- User: {user_id}",
         '',
@@ -107,7 +107,7 @@ def api_request(path, data, headers, method='POST'):
 def seed_week_plans(user_id):
     week_plans = load_week_plans()
     if not week_plans:
-        print('ERROR: No WEEK_PLANS found in generate-tracker.py')
+        print('ERROR: No WEEK_PLANS found in coach/week-plans.py')
         return
 
     headers = {
