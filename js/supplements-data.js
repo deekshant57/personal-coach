@@ -49,6 +49,59 @@ export function getNextD3Date(fromDate = new Date()) {
   return d;
 }
 
+/** When to take Supradyn based on today's plan. */
+export function getSupradynTimingHint(plan) {
+  if (plan?.run_type) return 'After post-run meal (~7:30)';
+  if (plan?.workout_plan) return 'After workout (~7:45)';
+  return 'After breakfast (~8:00)';
+}
+
+/** Per-supplement tasks for the Today day-progress strip. */
+export function getSupplementTasks(plan, log, dateIso) {
+  const supradynHint = getSupradynTimingHint(plan);
+  const tasks = [
+    {
+      id: 'supradyn',
+      key: 'supradyn',
+      label: 'Supradyn',
+      hint: supradynHint,
+      done: !!log?.supradyn,
+      required: true,
+      action: 'supplements',
+      focusKey: 'supradyn',
+    },
+    {
+      id: 'creatine',
+      key: 'creatine',
+      label: 'Creatine',
+      hint: 'With lunch',
+      done: !!log?.creatine,
+      required: true,
+      action: 'supplements',
+      focusKey: 'creatine',
+    },
+  ];
+
+  if (isD3Day(dateIso)) {
+    tasks.push({
+      id: 'uprise_d3_60k',
+      key: 'uprise_d3_60k',
+      label: 'D3 60K',
+      hint: 'With fattiest meal',
+      done: !!log?.uprise_d3_60k,
+      required: true,
+      action: 'supplements',
+      focusKey: 'uprise_d3_60k',
+    });
+  }
+
+  return tasks;
+}
+
+export function areSupplementTasksComplete(tasks) {
+  return tasks.filter((t) => t.required).every((t) => t.done);
+}
+
 /** Supplement keys required for a given calendar date. */
 export function getRequiredSupplementKeys(dateIso) {
   const keys = ['supradyn', 'creatine'];

@@ -304,6 +304,28 @@ Typical Fasting Foods:
 * Milk shakes
 * One evening meal
 
+## Calorie & deficit anchors
+
+Maintenance (est.):
+~2,450 kcal/day (desk job + 3–4 runs + bodyweight; recalculate from weight trend)
+
+Deficit target:
+15–18% (~400–450 kcal below maintenance)
+
+Run-day intake:
+~2,050 kcal · 150g+ protein · 55g+ fat
+
+Rest/recovery intake:
+~1,900 kcal · 150g protein
+
+Fat floor:
+55–65 g/day — do not cut eggs/paneer to go lower
+
+Recalculate TDEE when weekly km crosses 25, 35, 45 (see `weekly-plan-and-nutrition.mdc`).
+
+Pre-long-run (Friday dinner):
+Carb-forward — +1 chapati or small poha; not a light dinner
+
 ---
 
 # Lifestyle
@@ -395,6 +417,9 @@ Creatine Monohydrate:
 Whey Protein:
 1-2 scoops daily (food log, not supplement toggle)
 
+Algae Omega-3:
+1–2 g EPA+DHA daily with lunch (triglycerides 227; walnuts/flax ALA alone is insufficient)
+
 ---
 
 # September 2026 Targets
@@ -468,3 +493,16 @@ Focus:
 Mission:
 
 Arrive at the start line on 6 September healthy, lighter, stronger, and capable of completing 21.1 km with confidence.
+
+---
+
+# Post-Race Transition (after 6 Sep 2026)
+
+Sep 7–20:
+Maintenance ~2,200–2,400 kcal/day — no deficit. Running volume drops; do not keep cut calories.
+
+Sep 21+:
+Reassess body comp scan → lean bulk or hold maintenance based on BF% (target was 18–19%).
+
+Reverse diet if needed:
++100–150 kcal/week only if weight keeps dropping after race week.

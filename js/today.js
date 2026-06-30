@@ -11,7 +11,7 @@ import {
   fetchWorkoutLog, upsertWorkoutLog,
   fetchFoodLogs,
 } from './supabase.js';
-import { loadSupplements, initSupplements, resetSupplementsForFuture } from './supplements.js';
+import { loadSupplements, initSupplements, resetSupplementsForFuture, refreshSupplementHints } from './supplements.js';
 import { updateProteinBar, deleteMealSlot } from './food.js';
 import { updateDayProgress } from './day-progress.js';
 import { refreshDebriefIfActive } from './debrief.js';
@@ -233,6 +233,9 @@ function renderPlanCard() {
   // Update protein target
   const target = plan.protein_target || 145;
   document.getElementById('protein-target').textContent = `/ ${target}g protein`;
+
+  refreshSupplementHints();
+  updateDayProgress();
 }
 
 function tryAutoPace() {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coach-v13';
+const CACHE_NAME = 'coach-v14';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,9 @@ const ASSETS = [
   './js/week.js',
   './js/progress.js',
   './js/debrief.js',
+  './js/day-progress.js',
+  './js/supplements.js',
+  './js/supplements-data.js',
   './js/spinner.js',
   './manifest.json',
   './icons/runner.png',

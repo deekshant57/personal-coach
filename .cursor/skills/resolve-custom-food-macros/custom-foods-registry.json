@@ -61,5 +61,244 @@
     "resolved_at": "2026-06-24",
     "source": "estimated",
     "notes": "1.5 besan chillas (~9g P, 225 kcal) + ~40g grated paneer (~7g P, 106 kcal)"
+  },
+  "1 aloo paratha with curd": {
+    "protein": 16,
+    "calories": 430,
+    "unit": "1 serving",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "1 medium aloo paratha (~8g P, 320 kcal) + 1 bowl curd (8g P, 150 kcal)"
+  },
+  "2 bati, 1 bowl dal": {
+    "protein": 24,
+    "calories": 580,
+    "unit": "1 serving",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "2 wheat bati (~6g P, 200 kcal each) + 1 bowl dal (12g P, 180 kcal)"
+  },
+  "paneer vegies pulaw (rice) 1 bowl": {
+    "protein": 14,
+    "calories": 420,
+    "unit": "1 bowl",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "~200g cooked pulao with paneer + mixed veg"
+  },
+  "1 tandoori roti with paneer veg thali": {
+    "protein": 28,
+    "calories": 680,
+    "unit": "1 thali",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "1 tandoori roti + paneer sabzi + dal + rice/veg sides"
+  },
+  "2 oranges": {
+    "protein": 2,
+    "calories": 120,
+    "unit": "2 medium",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "2 medium oranges ~60 kcal each"
+  },
+  "1 plate poha": {
+    "protein": 4,
+    "calories": 250,
+    "unit": "1 plate",
+    "resolved_at": "2026-06-27",
+    "source": "grid",
+    "notes": "matches FOOD_ITEMS poha — light oil + peanuts"
+  },
+  "poha": {
+    "protein": 4,
+    "calories": 250,
+    "unit": "plate",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "1 plate upma": {
+    "protein": 4,
+    "calories": 240,
+    "unit": "1 plate",
+    "resolved_at": "2026-06-27",
+    "source": "grid",
+    "notes": "matches FOOD_ITEMS upma"
+  },
+  "upma": {
+    "protein": 4,
+    "calories": 240,
+    "unit": "plate",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "2 moong dal chilla with grated paneer": {
+    "protein": 20,
+    "calories": 280,
+    "unit": "2 chillas",
+    "resolved_at": "2026-06-27",
+    "source": "grid",
+    "notes": "matches FOOD_ITEMS moong_chilla"
+  },
+  "moong chilla": {
+    "protein": 20,
+    "calories": 280,
+    "unit": "2 w/ paneer",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "besan chilla": {
+    "protein": 17,
+    "calories": 340,
+    "unit": "1.5 w/ paneer",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "1 bowl rajma": {
+    "protein": 15,
+    "calories": 210,
+    "unit": "1 bowl",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "rajma": {
+    "protein": 15,
+    "calories": 210,
+    "unit": "bowl",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "100g tofu bhurji": {
+    "protein": 12,
+    "calories": 144,
+    "unit": "100g",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "tofu": {
+    "protein": 12,
+    "calories": 144,
+    "unit": "100g",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "1 bowl sprout chaat": {
+    "protein": 10,
+    "calories": 180,
+    "unit": "1 bowl",
+    "resolved_at": "2026-06-27",
+    "source": "grid",
+    "notes": "moong sprouts + onion, tomato, lemon — no fried sev"
+  },
+  "sprout chaat": {
+    "protein": 10,
+    "calories": 180,
+    "unit": "bowl",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "1 glass sattu drink": {
+    "protein": 10,
+    "calories": 120,
+    "unit": "1 glass",
+    "resolved_at": "2026-06-27",
+    "source": "grid",
+    "notes": "sattu + water + pinch salt/lemon — pre-run option"
+  },
+  "sattu drink": {
+    "protein": 10,
+    "calories": 120,
+    "unit": "1",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "200g hung curd": {
+    "protein": 14,
+    "calories": 160,
+    "unit": "200g",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "hung curd": {
+    "protein": 14,
+    "calories": 160,
+    "unit": "200g",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "30g roasted chana": {
+    "protein": 8,
+    "calories": 140,
+    "unit": "30g",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "roasted chana": {
+    "protein": 8,
+    "calories": 140,
+    "unit": "30g",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "1 bowl palak dal": {
+    "protein": 14,
+    "calories": 190,
+    "unit": "1 bowl",
+    "resolved_at": "2026-06-27",
+    "source": "grid",
+    "notes": "thick dal with spinach — larger portion than plain dal"
+  },
+  "palak dal": {
+    "protein": 14,
+    "calories": 190,
+    "unit": "bowl",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "80g paneer bhurji": {
+    "protein": 14,
+    "calories": 220,
+    "unit": "80g",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "paneer bhurji": {
+    "protein": 14,
+    "calories": 220,
+    "unit": "80g",
+    "resolved_at": "2026-06-27",
+    "source": "grid"
+  },
+  "banana milk shake with whey, almonds, walnuts & dates": {
+    "protein": 18,
+    "calories": 380,
+    "unit": "1 glass",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "~200ml milk + banana + 1 whey + nuts + 2 dates — log as Custom when notes describe full shake"
+  },
+  "1 bowl lobia": {
+    "protein": 15,
+    "calories": 200,
+    "unit": "1 bowl",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "black-eyed peas — same slot as rajma/chana rotation"
+  },
+  "cucumber raita 1 bowl": {
+    "protein": 6,
+    "calories": 90,
+    "unit": "1 bowl",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "curd-based raita with cucumber"
+  },
+  "egg curry 2 eggs with rice and chapati": {
+    "protein": 18,
+    "calories": 420,
+    "unit": "1 serving",
+    "resolved_at": "2026-06-27",
+    "source": "estimated",
+    "notes": "2 eggs in curry + 1 bowl rice + 2 chapati — restaurant/home composite"
   }
 }

@@ -25,11 +25,43 @@ After issuing a plan, add it to `WEEK_PLANS` in `coach/week-plans.py` and run `p
 
 ## Nutrition non-negotiables
 
-- **Protein floor: 140–150 g/day** (vegetarian + eggs)
+- **Protein floor: 140–150 g/day** (vegetarian + eggs); **152g+ on long-run days**
 - Deekshant logs exact portions; **you calculate** protein and calories
 - Training days: carbs around workout window. Rest days: slightly fewer carbs, same protein
 - Elevated triglycerides (227): flag refined carbs, sugar, juice, fried food; favor walnuts/flaxseed
-- Fasting days: flag drop, compensate next day
+- **Fat floor: 55–65 g/day** — never cut eggs/paneer to chase lower calories
+- **Friday pre-long-run dinner:** carb-forward (+1 chapati or poha); not a light dinner
+
+## Deficit anchors (state explicitly in plans)
+
+- Maintenance est. ~2,450 kcal · deficit 15–18% · run days ~2,050 · rest/recovery ~1,900
+- Recalculate when weekly km crosses **25, 35, 45**
+
+## Fasting (HM prep: Jun–Sep 2026)
+
+- **Avoid fasting** during HM prep weeks
+- If unavoidable: minimum **1,500 kcal** and **140g protein** in eating window; no peanut/milk shakes (TG risk)
+- Compensate next day at **maintenance**, not binge
+
+## Rest-day NEAT
+
+- **Wed (active recovery) and Sun (rest):** mandatory **25–30 min brisk walk** (~7:45 PM if not morning)
+- Creates deficit via activity, not food restriction alone
+
+## Mileage-scaled calories (apply on Monday debrief)
+
+| Weekly km | Run-day kcal adjustment |
+|-----------|-------------------------|
+| ≤20 | Base (~2,050) |
+| 21–35 | +100 kcal run days |
+| 36–45 | +150 kcal run days |
+| 46+ | +200 kcal long-run day only |
+
+## Refeed template (12+ km long-run weeks)
+
+- One day per week at maintenance **~2,300 kcal**, same protein
+- **+1–2 chapati at lunch** on long-run Saturday
+- Label in plan: `REFEED — long-run week`
 
 ## Food estimation reference (Indian veg)
 

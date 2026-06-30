@@ -70,6 +70,9 @@ Explicit decisions for Week N+1:
 - Sleep or stress constraints
 - Knee modifiers (reduce, hold, or progress)
 - Nutrition adjustments (protein anchor, calorie bracket, carb timing notes) — prose only
+- **Mileage-scaled calories:** apply table in `weekly-plan-and-nutrition.mdc` when weekly km crosses 25 / 35 / 45
+- **Refeed:** if long run ≥12 km, include one maintenance/refeed day in Week N+1 plan
+- **Deficit taper:** if recent body comp scan shows BF% band change, adjust deficit per `body-comp.mdc`
 
 ## Section 7 — WEEK N+1 PLAN
 

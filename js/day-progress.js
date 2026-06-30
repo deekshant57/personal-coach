@@ -1,7 +1,9 @@
 // Day progress strip — P1: what's left for the selected date (saved data only)
-import { state, getCurrentMealSlots, isViewingFuture, isMonday } from './app.js';
+import { state, getCurrentMealSlots, isViewingFuture, isMonday, getToday } from './app.js';
 import { isRunLogComplete } from './run-log.js';
-import { isSupplementsComplete } from './supplements.js';
+import {
+  getSupplementTasks,
+} from './supplements-data.js';
 import { expandVitalsCard } from './vitals-ui.js';
 
 function isVitalsComplete() {
@@ -41,6 +43,33 @@ function getMealProgress() {
   };
 }
 
+function getSupplementProgressTasks() {
+  const dateIso = state.currentDate || getToday();
+  return getSupplementTasks(state.currentPlan, state.supplementLog, dateIso);
+}
+
+function formatSupplementChipLabel(task) {
+  if (task.done) return task.label;
+  return `${task.label} · ${task.hint}`;
+}
+
+export function focusSupplementToggle(focusKey) {
+  document.querySelector('.nav-tab[data-tab="today"]')?.click();
+
+  requestAnimationFrame(() => {
+    const card = document.getElementById('supplements-card');
+    card?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const btnId = focusKey === 'uprise_d3_60k' ? 'supp-d3' : `supp-${focusKey}`;
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+
+    btn.classList.add('supp-focus-pulse');
+    btn.focus({ preventScroll: true });
+    window.setTimeout(() => btn.classList.remove('supp-focus-pulse'), 2000);
+  });
+}
+
 export function computeDayProgress() {
   const tasks = [
     { id: 'vitals', label: 'Vitals', done: isVitalsComplete(), action: 'vitals' },
@@ -65,12 +94,15 @@ export function computeDayProgress() {
     action: 'meals',
   });
 
-  tasks.push({
-    id: 'supplements',
-    label: 'Supplements',
-    done: isSupplementsComplete(),
-    action: 'supplements',
-  });
+  for (const suppTask of getSupplementProgressTasks()) {
+    tasks.push({
+      id: suppTask.id,
+      label: formatSupplementChipLabel(suppTask),
+      done: suppTask.done,
+      action: 'supplements',
+      focusKey: suppTask.focusKey,
+    });
+  }
 
   const doneCount = tasks.filter((t) => t.done).length;
   return {
@@ -104,9 +136,14 @@ export function computeDebriefReadiness() {
   };
 }
 
-function navigateToTask(action) {
+function navigateToTask(action, focusKey) {
   if (action === 'meals') {
     document.querySelector('.nav-tab[data-tab="food"]')?.click();
+    return;
+  }
+
+  if (action === 'supplements' && focusKey) {
+    focusSupplementToggle(focusKey);
     return;
   }
 
@@ -144,7 +181,7 @@ export function updateDayProgress() {
   summaryEl.classList.toggle('complete', allDone);
 
   chipsEl.innerHTML = tasks.map((task) => `
-    <button type="button" class="progress-chip${task.done ? ' done' : ''}" data-action="${task.action}">
+    <button type="button" class="progress-chip${task.done ? ' done' : ''}" data-action="${task.action}"${task.focusKey ? ` data-focus-key="${task.focusKey}"` : ''}>
       <span class="progress-chip-mark" aria-hidden="true">${task.done ? '✓' : '○'}</span>
       <span class="progress-chip-label">${task.label}</span>
     </button>
@@ -155,7 +192,7 @@ export function initDayProgress() {
   document.getElementById('day-progress-chips')?.addEventListener('click', (e) => {
     const chip = e.target.closest('[data-action]');
     if (!chip) return;
-    navigateToTask(chip.dataset.action);
+    navigateToTask(chip.dataset.action, chip.dataset.focusKey || null);
   });
   updateDayProgress();
 }

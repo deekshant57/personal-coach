@@ -6,6 +6,9 @@ import {
   getNextD3Date,
   getRequiredSupplementKeys,
   isSupplementLogComplete,
+  getSupradynTimingHint,
+  getSupplementTasks,
+  areSupplementTasksComplete,
   dateRangeEnding,
   toIsoDate,
 } from './supplements-data.js';
@@ -63,6 +66,13 @@ function updateSummary(log, dateIso) {
   summary.textContent = parts.join(' · ') || 'Not logged';
 }
 
+function renderSupradynHint() {
+  const hintEl = document.querySelector('#supp-supradyn .supp-toggle-hint');
+  if (hintEl) {
+    hintEl.textContent = getSupradynTimingHint(state.currentPlan);
+  }
+}
+
 function renderD3Hint(dateIso) {
   const hint = document.getElementById('supplements-d3-hint');
   const d3Row = document.getElementById('supp-d3-row');
@@ -98,7 +108,14 @@ function renderHistoryStrip(logs, endIso) {
 }
 
 export function isSupplementsComplete() {
-  return isSupplementLogComplete(state.supplementLog, getToday());
+  const dateIso = getToday();
+  return areSupplementTasksComplete(
+    getSupplementTasks(state.currentPlan, state.supplementLog, dateIso),
+  );
+}
+
+export function refreshSupplementHints() {
+  renderSupradynHint();
 }
 
 export async function loadSupplements() {
@@ -114,6 +131,7 @@ export async function loadSupplements() {
 
   applyLogToForm(log);
   updateSummary(log, date);
+  renderSupradynHint();
   renderD3Hint(date);
   renderHistoryStrip(state.supplementHistory, date);
   syncSupplementStatus();

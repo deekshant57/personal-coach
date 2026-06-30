@@ -17,6 +17,18 @@ export const FOOD_ITEMS = [
   { id: 'veggies',  name: 'Veggies',     protein: 3,  calories: 50,  emoji: '\u{1F966}', unit: '1' },
   { id: 'milk',     name: 'Milk',        protein: 8,  calories: 150, emoji: '\u{1F95B}', unit: 'cup' },
   { id: 'rice',     name: 'Rice',        protein: 4,  calories: 200, emoji: '\u{1F35A}', unit: 'bowl' },
+  { id: 'poha',     name: 'Poha',        protein: 4,  calories: 250, emoji: '\u{1F35A}', unit: 'plate' },
+  { id: 'upma',     name: 'Upma',        protein: 4,  calories: 240, emoji: '\u{1F33E}', unit: 'plate' },
+  { id: 'moong_chilla', name: 'Moong Chilla', protein: 20, calories: 280, emoji: '\u{1F95E}', unit: '2 w/ paneer' },
+  { id: 'besan_chilla', name: 'Besan Chilla', protein: 17, calories: 340, emoji: '\u{1F95E}', unit: '1.5 w/ paneer' },
+  { id: 'rajma',    name: 'Rajma',       protein: 15, calories: 210, emoji: '\u{1FAD8}', unit: 'bowl' },
+  { id: 'tofu',     name: 'Tofu',        protein: 12, calories: 144, emoji: '\u{1F9C8}', unit: '100g' },
+  { id: 'sprout_chaat', name: 'Sprout Chaat', protein: 10, calories: 180, emoji: '\u{1F957}', unit: 'bowl' },
+  { id: 'sattu',    name: 'Sattu Drink', protein: 10, calories: 120, emoji: '\u{1F964}', unit: '1' },
+  { id: 'hung_curd', name: 'Hung Curd',  protein: 14, calories: 160, emoji: '\u{1F95B}', unit: '200g' },
+  { id: 'roasted_chana', name: 'Roasted Chana', protein: 8, calories: 140, emoji: '\u{1FAD8}', unit: '30g' },
+  { id: 'palak_dal', name: 'Palak Dal',  protein: 14, calories: 190, emoji: '\u{1F96C}', unit: 'bowl' },
+  { id: 'paneer_bhurji', name: 'Paneer Bhurji', protein: 14, calories: 220, emoji: '\u{1F373}', unit: '80g' },
 ];
 
 /** Human-readable portion label for summaries and debrief */
