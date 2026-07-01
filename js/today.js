@@ -6,13 +6,20 @@ import {
 import { state, getToday, isMonday, isViewingFuture, showToast, formatDate } from './app.js';
 import { SLOT_LABELS, formatFoodLabel } from './data.js';
 import {
+  macrosFromResolvedLog,
+  analyzeDayFoodLogs,
+  escapeHtml,
+  needsMacroResolve,
+  formatMealMacroLabel,
+} from './food-macros.js';
+import { autoResolveFoodLogsForDate } from './food-resolve.js';
+import {
   fetchVitals, upsertVitals,
   fetchRunLog, upsertRunLog,
   fetchWorkoutLog, upsertWorkoutLog,
-  fetchFoodLogs,
 } from './supabase.js';
 import { loadSupplements, initSupplements, resetSupplementsForFuture, refreshSupplementHints } from './supplements.js';
-import { updateProteinBar, deleteMealSlot } from './food.js';
+import { updateProteinBar, deleteMealSlot, fetchFoodLogsForDate, invalidateFoodLogsCache } from './food.js';
 import { updateDayProgress } from './day-progress.js';
 import { refreshDebriefIfActive } from './debrief.js';
 import { invalidateWeekStatsCache } from './week-stats.js';
@@ -22,6 +29,15 @@ import {
   updateCadenceHint,
   validateRunLogForDone,
 } from './run-log.js';
+import {
+  renderWorkoutExerciseList,
+  setupWorkoutExerciseHandlers,
+  collectWorkoutLogFromForm,
+  workoutLogHasLoggedWork,
+  workoutExercisesInteracted,
+  validateWorkoutLogForDone,
+  resetWorkoutExerciseList,
+} from './workout-log.js';
 import {
   scheduleAutosave,
   cancelAutosave,
@@ -50,6 +66,7 @@ export function initToday() {
   setupVitals();
   setupTrainingLog();
   setupTrainingAutosave();
+  setupWorkoutExerciseHandlers(null, scheduleTrainingAutosave);
   setupCollapsibles();
   setupNotesCard();
   initSupplements();
@@ -66,12 +83,17 @@ export async function loadTodayData() {
   const future = isViewingFuture();
 
   if (!future) {
-    await Promise.all([
+    const results = await Promise.allSettled([
       loadVitals(),
       loadTrainingLog(),
       loadMealsSummary(),
       loadSupplements(),
     ]);
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        console.error('loadTodayData:', result.reason);
+      }
+    }
     loadNotes();
   } else {
     state.vitals = null;
@@ -79,7 +101,7 @@ export async function loadTodayData() {
     state.workoutLog = null;
     state.foodLogs = {};
     resetSupplementsForFuture();
-    updateProteinBar(0);
+    updateProteinBar(0, 0);
     updateMealsDayTotal(0, 0);
   }
 
@@ -251,7 +273,8 @@ function runLogHasContent(log) {
 }
 
 function workoutLogHasContent(log) {
-  return !!log.what_i_did || !!log.notes;
+  const fallback = document.getElementById('input-workout-what')?.value?.trim() || '';
+  return workoutLogHasLoggedWork(log, { fallbackText: fallback }) || !!log?.notes;
 }
 
 function setDoneToggle(done) {
@@ -272,14 +295,6 @@ function collectRunLogFromForm() {
   };
 }
 
-function collectWorkoutLogFromForm() {
-  return {
-    done: document.getElementById('training-done-btn').classList.contains('done'),
-    what_i_did: document.getElementById('input-workout-what').value || null,
-    rpe: parseInt(document.getElementById('input-workout-rpe').value, 10) || null,
-    notes: document.getElementById('input-workout-notes').value || null,
-  };
-}
 
 async function persistTraining({ silent = true } = {}) {
   const plan = state.currentPlan;
@@ -301,7 +316,7 @@ async function persistTraining({ silent = true } = {}) {
   }
 
   const log = collectWorkoutLogFromForm();
-  const hasContent = workoutLogHasContent(log) || state.workoutLog;
+  const hasContent = workoutLogHasContent(log) || state.workoutLog || workoutExercisesInteracted();
   if (!hasContent) return true;
 
   return trackSave(trainingAutosaveKey(), 'Training', async () => {
@@ -351,13 +366,23 @@ function setupTrainingLog() {
     const btn = document.getElementById('training-done-btn');
     const wasDone = btn.classList.contains('done');
 
+    if (!wasDone && state.currentPlan?.workout_plan) {
+      const log = { ...collectWorkoutLogFromForm(), done: true };
+      const { valid, errors } = validateWorkoutLogForDone(log);
+      if (!valid) {
+        showToast(errors[0], { variant: 'error' });
+        document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+        return;
+      }
+    }
+
     if (!wasDone && state.currentPlan?.run_type) {
       tryAutoPace();
       const log = { ...collectRunLogFromForm(), done: true };
       const { valid, errors, warnings } = validateRunLogForDone(log);
       if (!valid) {
         showToast(errors[0], { variant: 'error' });
-        document.getElementById('training-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
         return;
       }
       if (warnings.length) showToast(warnings[0]);
@@ -417,6 +442,7 @@ function renderTrainingCard() {
     title.textContent = `Workout Log — ${plan.workout_plan}`;
     document.getElementById('workout-planned-hint').textContent =
       `Planned: ${plan.workout_plan}`;
+    renderWorkoutExerciseList(plan, state.workoutLog);
   }
 }
 
@@ -455,10 +481,17 @@ async function loadTrainingLog() {
       state.workoutLog = log;
       if (log) {
         setDoneToggle(log.done);
-        document.getElementById('input-workout-what').value = log.what_i_did || '';
         document.getElementById('input-workout-rpe').value = log.rpe || 5;
         document.getElementById('workout-rpe-value').textContent = log.rpe || 5;
         document.getElementById('input-workout-notes').value = log.notes || '';
+        const fallback = document.getElementById('workout-fallback-details');
+        if (!log.exercises_json && log.what_i_did) {
+          fallback?.setAttribute('open', '');
+          document.getElementById('input-workout-what').value = log.what_i_did;
+        } else {
+          fallback?.removeAttribute('open');
+          document.getElementById('input-workout-what').value = '';
+        }
       } else {
         setDoneToggle(false);
         resetWorkoutFields();
@@ -488,9 +521,29 @@ function resetWorkoutFields() {
   document.getElementById('input-workout-rpe').value = 5;
   document.getElementById('workout-rpe-value').textContent = '5';
   document.getElementById('input-workout-notes').value = '';
+  document.getElementById('workout-fallback-details')?.removeAttribute('open');
+  if (state.currentPlan?.workout_plan) {
+    resetWorkoutExerciseList(state.currentPlan);
+  }
 }
 
 // ── Meals Summary ────────────────────────────────────────────
+function renderMealsCoachAlerts(issues) {
+  const root = document.getElementById('meals-coach-alerts');
+  if (!root) return;
+  if (!issues?.length) {
+    root.classList.add('hidden');
+    root.innerHTML = '';
+    return;
+  }
+  root.classList.remove('hidden');
+  root.innerHTML = issues.map((issue) => `
+    <div class="coach-alert coach-alert--${issue.type === 'notes-only' ? 'warn' : 'action'}">
+      <span>${escapeHtml(issue.message)}</span>
+    </div>
+  `).join('');
+}
+
 function updateMealsDayTotal(protein, calories) {
   const row = document.getElementById('meals-day-total');
   const macros = document.getElementById('meals-day-total-macros');
@@ -507,14 +560,30 @@ function updateMealsDayTotal(protein, calories) {
 
 export async function loadMealsSummary() {
   const date = getToday();
-  const logs = await fetchFoodLogs(date);
+  let logs = await fetchFoodLogsForDate(date, { force: true });
+
+  const { logs: resolvedLogs, patchedSlots, resolvedCount } = await autoResolveFoodLogsForDate(date, logs);
+  if (patchedSlots.length) {
+    invalidateFoodLogsCache();
+    logs = resolvedLogs;
+    if (resolvedCount > 0) {
+      showToast(`Filled macros for ${resolvedCount} custom food${resolvedCount === 1 ? '' : 's'}`, { variant: 'saved' });
+    }
+  } else {
+    logs = resolvedLogs;
+  }
+
+  state.foodIssues = analyzeDayFoodLogs(logs, SLOT_LABELS);
+  renderMealsCoachAlerts(state.foodIssues);
 
   const list = document.getElementById('meals-summary-list');
   state.foodLogs = {};
 
   if (!logs || logs.length === 0) {
+    state.foodIssues = [];
+    renderMealsCoachAlerts([]);
     list.innerHTML = '<span class="text-muted">No meals logged yet</span>';
-    updateProteinBar(0);
+    updateProteinBar(0, 0);
     updateMealsDayTotal(0, 0);
     syncDayStatus();
     return;
@@ -525,17 +594,23 @@ export async function loadMealsSummary() {
   let html = '';
 
   for (const log of logs) {
-    const items = typeof log.items === 'string' ? JSON.parse(log.items) : (log.items || []);
-    const protein = log.total_protein || items.reduce((s, i) => s + (i.protein || 0) * (i.qty || 1), 0);
+    const { items, protein, calories } = macrosFromResolvedLog(log);
     const slot = log.meal_slot;
     const label = SLOT_LABELS[slot] || slot;
-    const names = items.map(i => formatFoodLabel(i, i.qty || 1)).join(', ');
+    const names = items.map((i) => formatFoodLabel(i, i.qty || 1)).join(', ');
+    const noteText = (log.custom_text || '').trim();
+    const hasUnresolved = items.some(needsMacroResolve);
     totalProtein += protein;
-    totalCalories += log.total_calories || 0;
+    totalCalories += calories;
 
-    html += `<div class="meal-summary-item">
-      <span class="name">${label}: ${names || log.custom_text || ''}</span>
-      <span class="protein">${Math.round(protein)}g</span>
+    const macroLabel = formatMealMacroLabel(protein, calories, items);
+
+    html += `<div class="meal-summary-item${hasUnresolved ? ' meal-summary-item--warn' : ''}">
+      <div class="meal-summary-item-main">
+        <span class="name">${label}: ${escapeHtml(names || noteText || '—')}</span>
+        ${names && noteText ? `<span class="meal-slot-notes">${escapeHtml(noteText)}</span>` : ''}
+      </div>
+      <span class="protein">${macroLabel}</span>
       <button class="remove-btn" data-slot="${slot}" aria-label="Remove ${slot}">&times;</button>
     </div>`;
   }
@@ -554,16 +629,16 @@ export async function loadMealsSummary() {
 
   // Update global food logs in state
   for (const log of logs) {
-    const items = typeof log.items === 'string' ? JSON.parse(log.items) : (log.items || []);
+    const { items, protein, calories } = macrosFromResolvedLog(log);
     state.foodLogs[log.meal_slot] = {
       items,
       customText: log.custom_text,
-      totalProtein: log.total_protein || 0,
-      totalCalories: log.total_calories || 0,
+      totalProtein: protein,
+      totalCalories: calories,
     };
   }
 
-  updateProteinBar(totalProtein);
+  updateProteinBar(totalProtein, totalCalories);
   updateMealsDayTotal(totalProtein, totalCalories);
   syncDayStatus();
 }
@@ -602,8 +677,6 @@ function setupCollapsibles() {
     toggle.addEventListener('click', () => {
       const content = toggle.nextElementSibling;
       if (!content?.classList.contains('collapsible-content')) return;
-      toggle.classList.add('collapsible-animate');
-      content.classList.add('collapsible-animate');
       toggle.classList.toggle('open');
       content.classList.toggle('open');
     });
