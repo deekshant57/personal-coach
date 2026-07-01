@@ -27,6 +27,7 @@ SQL_SYNC_FIELDS = (
     'day_name',
     'day_type',
     'protein_target',
+    'calorie_target',
     'water_target',
     'run_type',
     'run_km',
@@ -73,7 +74,7 @@ def api_headers():
 def sql_value(column, value):
     if value is None:
         return 'NULL'
-    if column in ('protein_target', 'run_km'):
+    if column in ('protein_target', 'calorie_target', 'run_km'):
         return str(value)
     return sql_literal(value)
 
@@ -108,6 +109,7 @@ def build_day_rows(week_plans, user_id):
                 'day_name': day['day'],
                 'day_type': day['type'],
                 'protein_target': day.get('protein', 145),
+                'calorie_target': day.get('calories'),
                 'water_target': day.get('water', '2L'),
                 'run_type': run['type'] if is_run else None,
                 'run_km': run['km'] if is_run else None,
@@ -128,6 +130,7 @@ def day_row_to_api_payload(row, week_plan_id=None):
         'day_name': row['day_name'],
         'day_type': row['day_type'],
         'protein_target': row['protein_target'],
+        'calorie_target': row['calorie_target'],
         'water_target': row['water_target'],
         'run_type': row['run_type'],
         'run_km': row['run_km'],

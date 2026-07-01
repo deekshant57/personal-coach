@@ -16,6 +16,12 @@ export const SUPPLEMENT_ITEMS = [
     daily: true,
   },
   {
+    key: 'omega_3',
+    label: 'Omega-3 (Algae)',
+    hint: 'With lunch — 1-2g EPA+DHA',
+    daily: true,
+  },
+  {
     key: 'uprise_d3_60k',
     label: 'Uprise D3 60K',
     hint: 'Thursday — with fattiest meal',
@@ -80,6 +86,16 @@ export function getSupplementTasks(plan, log, dateIso) {
       action: 'supplements',
       focusKey: 'creatine',
     },
+    {
+      id: 'omega_3',
+      key: 'omega_3',
+      label: 'Omega-3',
+      hint: 'With lunch',
+      done: !!log?.omega_3,
+      required: true,
+      action: 'supplements',
+      focusKey: 'omega_3',
+    },
   ];
 
   if (isD3Day(dateIso)) {
@@ -104,7 +120,7 @@ export function areSupplementTasksComplete(tasks) {
 
 /** Supplement keys required for a given calendar date. */
 export function getRequiredSupplementKeys(dateIso) {
-  const keys = ['supradyn', 'creatine'];
+  const keys = ['supradyn', 'creatine', 'omega_3'];
   if (isD3Day(dateIso)) keys.push('uprise_d3_60k');
   return keys;
 }
@@ -121,6 +137,8 @@ export function formatSupplementDebriefLine(log, dateIso) {
   else parts.push('Supradyn ✗');
   if (log.creatine) parts.push('Creatine ✓');
   else parts.push('Creatine ✗');
+  if (log.omega_3) parts.push('Omega-3 ✓');
+  else parts.push('Omega-3 ✗');
   if (isD3Day(dateIso)) {
     parts.push(log.uprise_d3_60k ? 'Uprise D3 60K ✓' : 'Uprise D3 60K ✗');
   } else {

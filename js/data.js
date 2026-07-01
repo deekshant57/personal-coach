@@ -1,35 +1,61 @@
 // Food reference items — protein/calories per unit
 export const FOOD_ITEMS = [
-  { id: 'egg',      name: 'Egg',         protein: 7,  calories: 70,  emoji: '\u{1F95A}', unit: '1' },
-  { id: 'chapati',  name: 'Chapati',     protein: 3,  calories: 80,  emoji: '\u{1FAD3}', unit: '1' },
-  { id: 'dal',      name: 'Dal',         protein: 12, calories: 180, emoji: '\u{1F963}', unit: 'bowl' },
-  { id: 'paneer',   name: 'Paneer',      protein: 18, calories: 265, emoji: '\u{1F9C0}', unit: '100g' },
-  { id: 'curd',     name: 'Curd',        protein: 8,  calories: 150, emoji: '\u{1F95B}', unit: 'cup' },
-  { id: 'whey',     name: 'Whey',        protein: 24, calories: 120, emoji: '\u{1F4AA}', unit: 'scoop' },
-  { id: 'banana',   name: 'Banana',      protein: 1,  calories: 105, emoji: '\u{1F34C}', unit: '1' },
-  { id: 'toast',    name: 'Toast',       protein: 3,  calories: 80,  emoji: '\u{1F35E}', unit: '1' },
-  { id: 'walnuts',  name: 'Walnuts',     protein: 3,  calories: 130, emoji: '\u{1F330}', unit: '10' },
-  { id: 'peanuts',  name: 'Peanuts',     protein: 7,  calories: 170, emoji: '\u{1F95C}', unit: '30g' },
-  { id: 'flaxseed', name: 'Flaxseed',    protein: 2,  calories: 55,  emoji: '\u{1F331}', unit: 'tbsp' },
-  { id: 'dates',    name: 'Dates',       protein: 1,  calories: 40,  emoji: '\u{1F334}', unit: '2' },
-  { id: 'chana',    name: 'Chana',       protein: 15, calories: 210, emoji: '\u{1FAD8}', unit: 'bowl' },
-  { id: 'salad',    name: 'Salad',       protein: 2,  calories: 30,  emoji: '\u{1F957}', unit: '1' },
-  { id: 'veggies',  name: 'Veggies',     protein: 3,  calories: 50,  emoji: '\u{1F966}', unit: '1' },
-  { id: 'milk',     name: 'Milk',        protein: 8,  calories: 150, emoji: '\u{1F95B}', unit: 'cup' },
-  { id: 'rice',     name: 'Rice',        protein: 4,  calories: 200, emoji: '\u{1F35A}', unit: 'bowl' },
-  { id: 'poha',     name: 'Poha',        protein: 4,  calories: 250, emoji: '\u{1F35A}', unit: 'plate' },
-  { id: 'upma',     name: 'Upma',        protein: 4,  calories: 240, emoji: '\u{1F33E}', unit: 'plate' },
-  { id: 'moong_chilla', name: 'Moong Chilla', protein: 20, calories: 280, emoji: '\u{1F95E}', unit: '2 w/ paneer' },
-  { id: 'besan_chilla', name: 'Besan Chilla', protein: 17, calories: 340, emoji: '\u{1F95E}', unit: '1.5 w/ paneer' },
-  { id: 'rajma',    name: 'Rajma',       protein: 15, calories: 210, emoji: '\u{1FAD8}', unit: 'bowl' },
-  { id: 'tofu',     name: 'Tofu',        protein: 12, calories: 144, emoji: '\u{1F9C8}', unit: '100g' },
-  { id: 'sprout_chaat', name: 'Sprout Chaat', protein: 10, calories: 180, emoji: '\u{1F957}', unit: 'bowl' },
-  { id: 'sattu',    name: 'Sattu Drink', protein: 10, calories: 120, emoji: '\u{1F964}', unit: '1' },
-  { id: 'hung_curd', name: 'Hung Curd',  protein: 14, calories: 160, emoji: '\u{1F95B}', unit: '200g' },
-  { id: 'roasted_chana', name: 'Roasted Chana', protein: 8, calories: 140, emoji: '\u{1FAD8}', unit: '30g' },
-  { id: 'palak_dal', name: 'Palak Dal',  protein: 14, calories: 190, emoji: '\u{1F96C}', unit: 'bowl' },
-  { id: 'paneer_bhurji', name: 'Paneer Bhurji', protein: 14, calories: 220, emoji: '\u{1F373}', unit: '80g' },
+  { id: 'egg',      name: 'Egg',         protein: 7,  calories: 70,  fat: 5,  emoji: '\u{1F95A}', unit: '1' },
+  { id: 'chapati',  name: 'Chapati',     protein: 3,  calories: 80,  fat: 3,  emoji: '\u{1FAD3}', unit: '1' },
+  { id: 'dal',      name: 'Dal',         protein: 12, calories: 180, fat: 4,  emoji: '\u{1F963}', unit: 'bowl' },
+  { id: 'paneer',   name: 'Paneer',      protein: 18, calories: 265, fat: 21, emoji: '\u{1F9C0}', unit: '100g' },
+  { id: 'curd',     name: 'Curd',        protein: 8,  calories: 150, fat: 8,  emoji: '\u{1F95B}', unit: 'cup' },
+  { id: 'whey',     name: 'Whey',        protein: 24, calories: 120, fat: 2,  emoji: '\u{1F4AA}', unit: 'scoop' },
+  { id: 'banana',   name: 'Banana',      protein: 1,  calories: 105, fat: 0,  emoji: '\u{1F34C}', unit: '1' },
+  { id: 'toast',    name: 'Toast',       protein: 3,  calories: 80,  fat: 1,  emoji: '\u{1F35E}', unit: '1' },
+  { id: 'walnuts',  name: 'Walnuts',     protein: 3,  calories: 130, fat: 13, emoji: '\u{1F330}', unit: '10' },
+  { id: 'peanuts',  name: 'Peanuts',     protein: 7,  calories: 170, fat: 14, emoji: '\u{1F95C}', unit: '30g' },
+  { id: 'flaxseed', name: 'Flaxseed',    protein: 2,  calories: 55,  fat: 4,  emoji: '\u{1F331}', unit: 'tbsp' },
+  { id: 'dates',    name: 'Dates',       protein: 1,  calories: 40,  fat: 0,  emoji: '\u{1F334}', unit: '2' },
+  { id: 'chana',    name: 'Chana',       protein: 15, calories: 210, fat: 5,  emoji: '\u{1FAD8}', unit: 'bowl' },
+  { id: 'salad',    name: 'Salad',       protein: 2,  calories: 30,  fat: 1,  emoji: '\u{1F957}', unit: '1' },
+  { id: 'veggies',  name: 'Veggies',     protein: 3,  calories: 50,  fat: 1,  emoji: '\u{1F966}', unit: '1' },
+  { id: 'milk',     name: 'Milk',        protein: 8,  calories: 150, fat: 8,  emoji: '\u{1F95B}', unit: 'cup' },
+  { id: 'rice',     name: 'Rice',        protein: 4,  calories: 200, fat: 1,  emoji: '\u{1F35A}', unit: 'bowl' },
+  { id: 'poha',     name: 'Poha',        protein: 4,  calories: 250, fat: 8,  emoji: '\u{1F35A}', unit: 'plate' },
+  { id: 'upma',     name: 'Upma',        protein: 4,  calories: 240, fat: 7,  emoji: '\u{1F33E}', unit: 'plate' },
+  { id: 'moong_chilla', name: 'Moong Chilla', protein: 20, calories: 280, fat: 14, emoji: '\u{1F95E}', unit: '2 w/ paneer' },
+  { id: 'besan_chilla', name: 'Besan Chilla', protein: 17, calories: 340, fat: 18, emoji: '\u{1F95E}', unit: '1.5 w/ paneer' },
+  { id: 'rajma',    name: 'Rajma',       protein: 15, calories: 210, fat: 3,  emoji: '\u{1FAD8}', unit: 'bowl' },
+  { id: 'tofu',     name: 'Tofu',        protein: 12, calories: 144, fat: 9,  emoji: '\u{1F9C8}', unit: '100g' },
+  { id: 'sprout_chaat', name: 'Sprout Chaat', protein: 10, calories: 180, fat: 4, emoji: '\u{1F957}', unit: 'bowl' },
+  { id: 'sattu',    name: 'Sattu Drink', protein: 10, calories: 120, fat: 2,  emoji: '\u{1F964}', unit: '1' },
+  { id: 'hung_curd', name: 'Hung Curd',  protein: 14, calories: 160, fat: 6,  emoji: '\u{1F95B}', unit: '200g' },
+  { id: 'roasted_chana', name: 'Roasted Chana', protein: 8, calories: 140, fat: 4, emoji: '\u{1FAD8}', unit: '30g' },
+  { id: 'palak_dal', name: 'Palak Dal',  protein: 14, calories: 190, fat: 6,  emoji: '\u{1F96C}', unit: 'bowl' },
+  { id: 'paneer_bhurji', name: 'Paneer Bhurji', protein: 14, calories: 220, fat: 15, emoji: '\u{1F373}', unit: '80g' },
 ];
+
+/** Sum protein and calories from a food_log items array */
+export function sumItemsMacros(items) {
+  return (items || []).reduce(
+    (acc, i) => {
+      const qty = i.qty || 1;
+      acc.protein += (i.protein || 0) * qty;
+      acc.calories += (i.calories || 0) * qty;
+      acc.fat += (i.fat || 0) * qty;
+      return acc;
+    },
+    { protein: 0, calories: 0, fat: 0 }
+  );
+}
+
+/** Prefer stored totals; fall back to summing items (e.g. after macro skill patch). */
+export function macrosFromFoodLog(log) {
+  const items = typeof log.items === 'string' ? JSON.parse(log.items) : (log.items || []);
+  const fromItems = sumItemsMacros(items);
+  return {
+    items,
+    protein: log.total_protein || fromItems.protein,
+    calories: log.total_calories || fromItems.calories,
+    fat: log.total_fat || fromItems.fat,
+  };
+}
 
 /** Human-readable portion label for summaries and debrief */
 export function formatFoodLabel(item, qty) {
@@ -54,8 +80,9 @@ export function formatUnitDisplay(unit) {
 export const MEAL_SLOTS = {
   Run: ['pre-run', 'post-run', 'lunch', 'snack', 'dinner'],
   Bodyweight: ['pre-workout', 'post-workout', 'lunch', 'snack', 'dinner'],
-  'Active Recovery': ['pre-workout', 'post-workout', 'lunch', 'snack', 'dinner'],
+  'Active Recovery': ['breakfast', 'lunch', 'snack', 'dinner'],
   Rest: ['breakfast', 'lunch', 'snack', 'dinner'],
+  Gym: ['pre-workout', 'post-workout', 'lunch', 'snack', 'dinner'],
 };
 
 // Display labels for meal slots
@@ -76,6 +103,7 @@ export const DAY_TYPES = {
   Bodyweight: { color: '#fb923c', label: 'Bodyweight' },
   'Active Recovery': { color: '#2dd4bf', label: 'Active Recovery' },
   Rest: { color: '#737373', label: 'Rest' },
+  Gym: { color: '#a78bfa', label: 'Gym' },
 };
 
 const DAY_BADGE_CLASS = {
@@ -83,6 +111,7 @@ const DAY_BADGE_CLASS = {
   Bodyweight: 'day-badge--bodyweight',
   'Active Recovery': 'day-badge--active-recovery',
   Rest: 'day-badge--rest',
+  Gym: 'day-badge--gym',
 };
 
 /** HTML for day-type badge — no inline styles */

@@ -53,9 +53,9 @@ body {
   min-height: 100dvh;
   padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
+  overscroll-behavior-y: auto;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: visible;
   width: 100%;
 }
 
@@ -215,6 +215,56 @@ a {
   padding-top: 10px;
 }
 
+.coach-next {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-amber) 10%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent-amber) 35%, var(--border));
+}
+
+.coach-next-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.coach-next-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  color: var(--accent-amber);
+  margin-bottom: 4px;
+}
+
+.coach-next-text {
+  display: block;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.coach-next-btn {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-green);
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--accent-green);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.coach-next-btn:active {
+  background: rgba(74, 222, 128, 0.22);
+}
+
 .day-progress-summary {
   font-size: 12px;
   font-weight: 600;
@@ -232,9 +282,30 @@ a {
   display: flex;
   gap: 6px;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .day-progress-chips,
+  .meal-slots {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
+  }
+
+  .day-progress-chips::-webkit-scrollbar,
+  .meal-slots::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+
+  .day-progress-chips::-webkit-scrollbar-thumb,
+  .meal-slots::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+  }
 }
 
 .day-progress-chips::-webkit-scrollbar {
@@ -318,6 +389,7 @@ a {
 .day-badge--bodyweight { background: var(--accent-orange); }
 .day-badge--active-recovery { background: var(--accent-teal); }
 .day-badge--rest { background: var(--text-muted); }
+.day-badge--gym { background: #a78bfa; color: #1a1a2e; }
 
 /* ── Tab titles & shared typography ─────────────────────────── */
 .tab-title {
@@ -349,36 +421,27 @@ a {
   font-size: 13px;
 }
 
-/* ── Loading animation (2-frame walk cycle) ──────────────────── */
+/* ── Loading indicator (static) ──────────────────────────────── */
 
 .coach-loader {
-  display: inline-flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-green);
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.coach-loader__frame {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center bottom;
-  display: block;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
 .coach-loader--sm {
-  width: 26px;
-  height: 26px;
+  width: 16px;
+  height: 16px;
 }
 
 .coach-loader--lg {
-  width: 80px;
-  height: 80px;
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
 }
 
 .loading-center {
@@ -420,7 +483,7 @@ a {
   position: fixed;
   inset: 0;
   z-index: 45;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   background: color-mix(in srgb, var(--bg) 72%, transparent);
@@ -432,6 +495,7 @@ a {
 
 .content-loading-overlay.is-active,
 .auth-loading-overlay.is-active {
+  display: flex;
   opacity: 1;
   visibility: visible;
   pointer-events: all;
@@ -449,7 +513,7 @@ a {
   position: absolute;
   inset: 0;
   z-index: 5;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   background: color-mix(in srgb, var(--bg) 65%, transparent);
@@ -460,6 +524,7 @@ a {
 }
 
 .tab-loading-overlay.is-active {
+  display: flex;
   opacity: 1;
   visibility: visible;
   pointer-events: all;
@@ -539,9 +604,25 @@ a {
   color: var(--accent-green);
 }
 
+.protein-bar-label .macro-targets {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
 .protein-bar-label .target {
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+.protein-bar-label .calorie-current {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.protein-bar-label .calorie-current.hidden {
+  display: none;
 }
 
 .protein-bar-label.warning .current {
@@ -906,6 +987,145 @@ textarea.form-input {
   line-height: 1.4;
 }
 
+.workout-exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.workout-empty-hint {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.workout-exercise-card {
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.workout-exercise-card.skipped {
+  opacity: 0.5;
+}
+
+.workout-exercise-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 10px;
+}
+
+.workout-exercise-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1 1 100%;
+}
+
+.workout-target-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  background: rgba(96, 165, 250, 0.12);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.workout-exercise-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex: 1 1 100%;
+}
+
+.workout-set-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workout-set-pill {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.workout-set-pill.active {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.workout-set-pill.done {
+  border-color: var(--accent-green);
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--accent-green);
+}
+
+.workout-set-steppers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.workout-set-stepper {
+  min-height: 44px;
+  height: 44px;
+}
+
+.workout-set-stepper .stepper-btn {
+  width: 44px;
+  height: 44px;
+}
+
+.workout-simple-done {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.workout-simple-done.done {
+  border-color: var(--accent-green);
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--accent-green);
+}
+
+.workout-fallback-details {
+  margin-bottom: 12px;
+}
+
+.workout-fallback-details summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px 0;
+  list-style: none;
+}
+
+.workout-fallback-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.workout-fallback-details[open] summary {
+  margin-bottom: 8px;
+}
+
 .training-footer {
   display: flex;
   flex-direction: column;
@@ -990,6 +1210,7 @@ textarea.form-input {
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 4px 0 12px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -1201,6 +1422,42 @@ textarea.form-input {
 }
 
 /* ── Today: meals day total ────────────────────────────────── */
+.meals-coach-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.coach-alert {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.coach-alert--warn {
+  background: color-mix(in srgb, var(--accent-amber) 10%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent-amber) 30%, var(--border));
+  color: var(--text);
+}
+
+.coach-alert--action {
+  background: color-mix(in srgb, var(--accent-green) 8%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent-green) 25%, var(--border));
+  color: var(--text);
+}
+
+.food-coach-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--accent-amber) 10%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent-amber) 35%, var(--border));
+}
+
 .meals-day-total {
   display: flex;
   justify-content: space-between;
@@ -1230,9 +1487,31 @@ textarea.form-input {
 .meal-summary-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 8px;
   padding: 8px 0;
   font-size: 14px;
+}
+
+.meal-summary-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meal-slot-notes {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.meal-summary-item--warn .protein {
+  color: var(--accent-amber);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .meal-summary-item .name {
@@ -2623,16 +2902,13 @@ textarea.form-input {
   padding: 0;
 }
 
-/* ── Reduced motion ──────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* ── No motion — instant UI ──────────────────────────────────── */
+*,
+*::before,
+*::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
 }
 
 /* ── Responsive (tablet/desktop fallback) ──────────────────── */
