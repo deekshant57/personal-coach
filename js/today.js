@@ -443,6 +443,26 @@ function renderTrainingCard() {
     document.getElementById('workout-planned-hint').textContent =
       `Planned: ${plan.workout_plan}`;
     renderWorkoutExerciseList(plan, state.workoutLog);
+
+    // Restore saved workout form state
+    const log = state.workoutLog;
+    if (log) {
+      setDoneToggle(log.done);
+      document.getElementById('input-workout-rpe').value = log.rpe || 5;
+      document.getElementById('workout-rpe-value').textContent = log.rpe || 5;
+      document.getElementById('input-workout-notes').value = log.notes || '';
+      const fallback = document.getElementById('workout-fallback-details');
+      if (!log.exercises_json && log.what_i_did) {
+        fallback?.setAttribute('open', '');
+        document.getElementById('input-workout-what').value = log.what_i_did;
+      } else {
+        fallback?.removeAttribute('open');
+        document.getElementById('input-workout-what').value = '';
+      }
+    } else if (!isViewingFuture()) {
+      setDoneToggle(false);
+      resetWorkoutFields();
+    }
   }
 }
 
@@ -479,25 +499,6 @@ async function loadTrainingLog() {
     } else if (plan.workout_plan) {
       const log = await fetchWorkoutLog(getToday());
       state.workoutLog = log;
-      if (log) {
-        setDoneToggle(log.done);
-        document.getElementById('input-workout-rpe').value = log.rpe || 5;
-        document.getElementById('workout-rpe-value').textContent = log.rpe || 5;
-        document.getElementById('input-workout-notes').value = log.notes || '';
-        const fallback = document.getElementById('workout-fallback-details');
-        if (!log.exercises_json && log.what_i_did) {
-          fallback?.setAttribute('open', '');
-          document.getElementById('input-workout-what').value = log.what_i_did;
-        } else {
-          fallback?.removeAttribute('open');
-          document.getElementById('input-workout-what').value = '';
-        }
-        // Re-render exercises with saved set data (done states, reps)
-        renderWorkoutExerciseList(plan, log);
-      } else {
-        setDoneToggle(false);
-        resetWorkoutFields();
-      }
     }
   } finally {
     trainingAutosaveSuspended = false;
