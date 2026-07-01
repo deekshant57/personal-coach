@@ -16,9 +16,7 @@
 
   <!-- Auth gate — must sign in before any page -->
   <div class="auth-loading-overlay" id="auth-loading-overlay" aria-hidden="true">
-    <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading">
-      <img class="coach-loader__frame" src="icons/runner-frames/00.png" alt="" decoding="async">
-    </span>
+    <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
   </div>
 
   <div class="auth-screen" id="auth-screen">
@@ -49,9 +47,7 @@
   <div class="toast" id="toast"></div>
 
   <div class="content-loading-overlay" id="content-loading-overlay" aria-hidden="true">
-    <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading">
-      <img class="coach-loader__frame" src="icons/runner-frames/00.png" alt="" decoding="async">
-    </span>
+    <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
   </div>
 
   <div class="app-container">
@@ -73,7 +69,10 @@
       <div class="protein-bar-container">
         <div class="protein-bar-label" id="protein-label">
           <span class="current" id="protein-current">0g</span>
-          <span class="target" id="protein-target">/ 148g protein</span>
+          <span class="macro-targets">
+            <span class="target" id="protein-target">/ 148g protein</span>
+            <span id="calorie-current" class="calorie-current hidden"></span>
+          </span>
         </div>
         <div class="protein-bar">
           <div class="protein-bar-fill" id="protein-fill" style="width: 0%"></div>
@@ -94,6 +93,13 @@
       </div>
 
       <div class="day-progress" id="day-progress">
+        <div class="coach-next hidden" id="coach-next">
+          <div class="coach-next-copy">
+            <span class="coach-next-label">Coach says</span>
+            <span class="coach-next-text" id="coach-next-text"></span>
+          </div>
+          <button type="button" class="coach-next-btn" id="coach-next-btn">Go</button>
+        </div>
         <div class="day-progress-summary" id="day-progress-summary">0 of 0 done</div>
         <div class="day-progress-chips" id="day-progress-chips"></div>
       </div>
@@ -217,10 +223,14 @@
           <!-- Workout fields (visible on workout days) -->
           <div class="hidden" id="workout-fields">
             <p class="training-planned-hint" id="workout-planned-hint"></p>
-            <div class="form-group mb-12">
-              <label class="form-label">What I Did</label>
-              <textarea class="form-input" id="input-workout-what" placeholder="Pull-ups 4x6, Push-ups 3x12..."></textarea>
-            </div>
+            <div id="workout-exercise-list" class="workout-exercise-list"></div>
+            <details class="workout-fallback-details" id="workout-fallback-details">
+              <summary>Log something else…</summary>
+              <div class="form-group mb-12">
+                <label class="form-label">Extra / substitutions</label>
+                <textarea class="form-input" id="input-workout-what" placeholder="Monsoon backup, skipped exercise, etc."></textarea>
+              </div>
+            </details>
             <div class="form-group mb-12">
               <label class="form-label">RPE (1-10)</label>
               <div class="rpe-slider-container">
@@ -249,6 +259,7 @@
           <span class="card-title">Meals Logged</span>
         </div>
         <div class="card-body">
+          <div class="meals-coach-alerts hidden" id="meals-coach-alerts"></div>
           <div id="meals-summary-list" class="text-muted">No meals logged yet</div>
           <div class="meals-day-total hidden" id="meals-day-total">
             <span class="meals-day-total-label">Day total</span>
@@ -279,6 +290,13 @@
               <span class="supp-toggle-text">
                 <span class="supp-toggle-label">Creatine 5g</span>
                 <span class="supp-toggle-hint">With lunch</span>
+              </span>
+            </button>
+            <button type="button" class="supp-toggle toggle-btn" id="supp-omega_3" data-key="omega_3" data-supp-focus="omega_3">
+              <span class="toggle-circle"></span>
+              <span class="supp-toggle-text">
+                <span class="supp-toggle-label">Omega-3 (Algae)</span>
+                <span class="supp-toggle-hint">With lunch — 1-2g EPA+DHA</span>
               </span>
             </button>
             <div id="supp-d3-row">
@@ -321,11 +339,10 @@
          ════════════════════════════════════════════════════════ -->
     <div class="tab-content" id="tab-food">
       <div class="tab-loading-overlay" id="food-loading-overlay" aria-hidden="true">
-        <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading">
-          <img class="coach-loader__frame" src="icons/runner-frames/00.png" alt="" decoding="async">
-        </span>
+        <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
       </div>
       <h2 class="tab-title">Log Food</h2>
+      <div class="food-coach-banner hidden" id="food-coach-banner" role="status"></div>
       <div class="food-preview-banner hidden" id="food-preview-banner">Preview only — logging opens on the day.</div>
       <div class="food-plan-preview hidden" id="food-plan-preview"></div>
 
@@ -371,9 +388,7 @@
          ════════════════════════════════════════════════════════ -->
     <div class="tab-content" id="tab-week">
       <div class="tab-loading-overlay" id="week-loading-overlay" aria-hidden="true">
-        <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading">
-          <img class="coach-loader__frame" src="icons/runner-frames/00.png" alt="" decoding="async">
-        </span>
+        <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
       </div>
       <div class="week-nav">
         <button type="button" class="week-nav-btn" id="week-prev" aria-label="Previous week">&larr;</button>
@@ -390,9 +405,7 @@
          ════════════════════════════════════════════════════════ -->
     <div class="tab-content" id="tab-progress">
       <div class="tab-loading-overlay" id="progress-loading-overlay" aria-hidden="true">
-        <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading">
-          <img class="coach-loader__frame" src="icons/runner-frames/00.png" alt="" decoding="async">
-        </span>
+        <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
       </div>
       <h2 class="tab-title">Progress</h2>
 

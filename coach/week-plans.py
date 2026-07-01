@@ -520,7 +520,7 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-07-04", "day": "Sat", "type": "Run",
-                "protein": 152, "calories": 2150, "water": "2.5L+",
+                "protein": 145, "calories": 2150, "water": "2.5L+",
                 "run": {
                     "type": "Long Easy", "km": 5.5, "pace": "8:15–9:00/km",
                     "cue": (
@@ -536,14 +536,14 @@ WEEK_PLANS = {
                 "meals": (
                     "— PROTEIN MATH (verified): banana (1g) + dates (1g) + 4 eggs (28g) "
                     "+ poha (4g) + curd (8g) + 2 chapati (6g) + dal (12g) + paneer (18g) "
-                    "+ whey (24g) + whey (24g) + peanuts (7g) + 3 eggs (21g) + dal (12g) "
-                    "+ veggies (3g) = ~152g · CALORIES ~2,100–2,200 (highest carb day) —\n"
+                    "+ whey (24g) + peanuts (7g) + 3 eggs (21g) + dal (12g) "
+                    "+ veggies (3g) = ~145g · CALORIES ~2,100–2,200 (highest carb day) —\n"
                     "6:20 Pre-run — 1 banana + 2 dates + 250ml water\n"
                     "6:40 Warm-up — extra 5 min today\n"
                     "~8:00 Post-run — 4 eggs + 1 plate poha (or upma) + curd + 1 scoop whey "
                     "+ 500ml water with pinch salt + lemon\n"
                     "1:00 Lunch — 2 chapati + dal + 100g paneer (don't skip carbs)\n"
-                    "4:00 Snack — 1 scoop whey + handful peanuts (30g)\n"
+                    "4:00 Snack — peanuts (30g)\n"
                     "8:30 Dinner — 3 eggs + dal + veggies\n"
                     f"{SUPPL_DAILY}\n"
                     f"{MONSOON_NOTE}"
@@ -852,7 +852,7 @@ WEEK_PLANS = {
         "days": [
             {
                 "date": "2026-07-13", "day": "Mon", "type": "Gym",
-                "protein": 161, "calories": 2150, "water": "2L",
+                "protein": 164, "calories": 2150, "water": "2L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "Gym — Push + Core (progress weights)",
@@ -869,8 +869,8 @@ WEEK_PLANS = {
                 "meals": (
                     "— PROTEIN MATH (verified): 4 eggs (28g) + moong chilla 2 w/ paneer (20g) "
                     "+ 2 chapati (6g) + rajma (15g) + paneer (18g) + salad (2g) "
-                    "+ whey (24g) + roasted chana (8g) + 3 eggs (21g) + tofu (12g) "
-                    "+ hung curd (14g) + veggies (3g) = ~161g · CALORIES ~2,100–2,200 —\n"
+                    "+ whey (24g) + roasted chana (8g) + 2 eggs (14g) + tofu (12g) "
+                    "+ hung curd (14g) + veggies (3g) = ~164g · CALORIES ~2,100–2,200 —\n"
                     "6:15 Pre-gym — Water + black coffee\n"
                     "8:00 Post-gym — 4 eggs + 2 moong chillas with paneer\n"
                     "1:00 Lunch — 2 chapati + 1 bowl rajma + 100g paneer + salad\n"
@@ -914,7 +914,7 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-07-15", "day": "Wed", "type": "Active Recovery",
-                "protein": 149, "calories": 1900, "water": "2L",
+                "protein": 142, "calories": 1900, "water": "2L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "Knee prep + mobility — mandatory",
@@ -932,7 +932,7 @@ WEEK_PLANS = {
                     "— PROTEIN MATH (verified): 4 eggs (28g) + besan chilla 1.5 w/ paneer (17g) "
                     "+ 1.5 chapati (5g) + chana (15g) + curd (8g) + salad (2g) "
                     "+ whey (24g) + flaxseed (2g) + walnuts (3g) + 3 eggs (21g) "
-                    "+ paneer bhurji 80g (14g) + veggies (3g) = ~149g · CALORIES ~1,850–1,950 —\n"
+                    "+ paneer bhurji 80g (14g) + veggies (3g) = ~142g · CALORIES ~1,850–1,950 —\n"
                     "8:00 Breakfast — 4 eggs + 1.5 besan chilla with paneer\n"
                     "1:00 Lunch — 1.5 chapati + chana + curd + salad\n"
                     "4:30 Snack — 1 scoop whey + flaxseed + 10 walnuts\n"
@@ -1316,7 +1316,7 @@ WEEK_PLANS = {
         "days": [
             {
                 "date": "2026-07-27", "day": "Mon", "type": "Gym",
-                "protein": 161, "calories": 2150, "water": "2L",
+                "protein": 166, "calories": 2150, "water": "2L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "Gym — Push + Core",
@@ -1334,7 +1334,7 @@ WEEK_PLANS = {
                     "— PROTEIN MATH (verified): 4 eggs (28g) + poha (4g) + whey (24g) "
                     "+ 2 chapati (6g) + rajma (15g) + paneer (18g) + salad (2g) "
                     "+ whey (24g) + peanuts (7g) + 3 eggs (21g) + palak dal (14g) "
-                    "+ veggies (3g) = ~162g · CALORIES ~2,100–2,200 —\n"
+                    "+ veggies (3g) = ~166g · CALORIES ~2,100–2,200 —\n"
                     "6:15 Pre-gym — Water + black coffee\n"
                     "8:00 Post-gym — 4 eggs + poha + 1 scoop whey\n"
                     "1:00 Lunch — 2 chapati + rajma + paneer + salad\n"
@@ -1373,7 +1373,7 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-07-29", "day": "Wed", "type": "Active Recovery",
-                "protein": 149, "calories": 1900, "water": "2L",
+                "protein": 142, "calories": 1900, "water": "2L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "Knee prep + mobility",
@@ -1389,7 +1389,7 @@ WEEK_PLANS = {
                     "— PROTEIN MATH (verified): 4 eggs (28g) + besan chilla 1.5 w/ paneer (17g) "
                     "+ 1.5 chapati (5g) + chana (15g) + curd (8g) + salad (2g) "
                     "+ whey (24g) + flaxseed (2g) + walnuts (3g) + 3 eggs (21g) "
-                    "+ paneer bhurji 80g (14g) + veggies (3g) = ~149g · CALORIES ~1,850–1,950 —\n"
+                    "+ paneer bhurji 80g (14g) + veggies (3g) = ~142g · CALORIES ~1,850–1,950 —\n"
                     "8:00 Breakfast — 4 eggs + besan chilla with paneer\n"
                     "1:00 Lunch — 1.5 chapati + chana + curd + salad\n"
                     "4:30 Snack — 1 scoop whey + flaxseed + 10 walnuts\n"
@@ -1469,7 +1469,7 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-08-01", "day": "Sat", "type": "Run",
-                "protein": 152, "calories": 2150, "water": "3L+",
+                "protein": 153, "calories": 2150, "water": "3L+",
                 "run": {
                     "type": "Long Easy", "km": 10, "pace": "8:00–8:45/km",
                     "cue": (
@@ -1486,15 +1486,15 @@ WEEK_PLANS = {
                 "meals": (
                     "— PROTEIN MATH (verified): banana (1g) + dates (1g) + 4 eggs (28g) "
                     "+ 2 chapati (6g) + curd (8g) + whey (24g) + 3 chapati (9g) "
-                    "+ chana (15g) + paneer (18g) + whey (24g) + peanuts (7g) "
-                    "+ 3 eggs (21g) + dal (12g) + veggies (3g) = ~152g · "
+                    "+ chana (15g) + paneer (18g) + peanuts (7g) "
+                    "+ 3 eggs (21g) + dal (12g) + veggies (3g) = ~153g · "
                     "CALORIES ~2,200–2,300 (highest carb day — earned it) —\n"
                     "6:00 Pre-run — 1 banana + 2 dates + 250ml water\n"
                     "~7:40 Warm-up — full 10 min today\n"
                     "~8:40 Post-run — 4 eggs + 2 chapati + curd + 1 scoop whey "
                     "+ 500ml electrolyte water\n"
                     "1:00 Lunch — 3 chapati + chana + paneer (extra carbs)\n"
-                    "4:00 Snack — 1 scoop whey + peanuts (30g)\n"
+                    "4:00 Snack — peanuts (30g)\n"
                     "8:30 Dinner — 3 eggs + dal + veggies\n"
                     f"{SUPPL_DAILY}\n"
                     f"{MONSOON_NOTE}"
@@ -1508,18 +1508,18 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-08-02", "day": "Sun", "type": "Rest",
-                "protein": 149, "calories": 1850, "water": "2L",
+                "protein": 144, "calories": 1850, "water": "2L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "NEAT walk + recovery",
                     "detail": "Mandatory: 25–30 min brisk walk · Foam roll full body 10 min · Light stretching",
                 },
                 "meals": (
-                    "— PROTEIN MATH (verified): 4 eggs (28g) + whey (24g) "
+                    "— PROTEIN MATH (verified): 4 eggs (28g) "
                     "+ 2 chapati (6g) + dal (12g) + paneer (18g) + salad (2g) + curd (8g) "
                     "+ whey (24g) + roasted chana (8g) + 3 eggs (21g) + hung curd (14g) "
-                    "+ veggies (3g) = ~152g · CALORIES ~1,800–1,900 —\n"
-                    "8:00 Breakfast — 4 eggs + 1 scoop whey\n"
+                    "+ veggies (3g) = ~144g · CALORIES ~1,800–1,900 —\n"
+                    "8:00 Breakfast — 4 eggs\n"
                     "1:00 Lunch — 2 chapati + dal + paneer + salad + curd\n"
                     "4:30 Snack — 1 scoop whey + roasted chana (30g)\n"
                     "8:30 Dinner — 3 eggs + hung curd + veggies\n"
@@ -1815,7 +1815,7 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-08-12", "day": "Wed", "type": "Active Recovery",
-                "protein": 149, "calories": 1900, "water": "2L",
+                "protein": 139, "calories": 1900, "water": "2L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "Knee prep + mobility",
@@ -1831,7 +1831,7 @@ WEEK_PLANS = {
                     "— PROTEIN MATH (verified): 4 eggs (28g) + besan chilla 1.5 w/ paneer (17g) "
                     "+ 1.5 chapati (5g) + dal (12g) + curd (8g) + salad (2g) "
                     "+ whey (24g) + flaxseed (2g) + walnuts (3g) + 3 eggs (21g) "
-                    "+ paneer bhurji 80g (14g) + veggies (3g) = ~146g · CALORIES ~1,850–1,950 —\n"
+                    "+ paneer bhurji 80g (14g) + veggies (3g) = ~139g · CALORIES ~1,850–1,950 —\n"
                     "8:00 Breakfast — 4 eggs + besan chilla with paneer\n"
                     "1:00 Lunch — 1.5 chapati + dal + curd + salad\n"
                     "4:30 Snack — 1 scoop whey + flaxseed + 10 walnuts\n"
@@ -1915,7 +1915,7 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-08-15", "day": "Sat", "type": "Run",
-                "protein": 152, "calories": 2150, "water": "3L+",
+                "protein": 150, "calories": 2150, "water": "3L+",
                 "run": {
                     "type": "Long Easy", "km": 11, "pace": "8:00–8:45/km",
                     "cue": (
@@ -1931,13 +1931,13 @@ WEEK_PLANS = {
                 "meals": (
                     "— PROTEIN MATH (verified): banana (1g) + dates (1g) + 4 eggs (28g) "
                     "+ 2 chapati (6g) + curd (8g) + whey (24g) + 3 chapati (9g) + dal (12g) "
-                    "+ paneer (18g) + whey (24g) + peanuts (7g) + 3 eggs (21g) "
-                    "+ dal (12g) + veggies (3g) = ~152g · CALORIES ~2,200–2,300 —\n"
+                    "+ paneer (18g) + peanuts (7g) + 3 eggs (21g) "
+                    "+ dal (12g) + veggies (3g) = ~150g · CALORIES ~2,200–2,300 —\n"
                     "6:00 Pre-run — banana + dates + water\n"
                     "~8:00 Warm-up — full 10 min\n"
                     "~9:00 Post-run — 4 eggs + 2 chapati + curd + 1 scoop whey + electrolytes\n"
                     "1:00 Lunch — 3 chapati + dal + paneer (extra carbs)\n"
-                    "4:00 Snack — 1 scoop whey + peanuts (30g)\n"
+                    "4:00 Snack — peanuts (30g)\n"
                     "8:30 Dinner — 3 eggs + dal + veggies\n"
                     f"{SUPPL_DAILY}\n"
                     f"{MONSOON_NOTE}"
@@ -1951,18 +1951,18 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-08-16", "day": "Sun", "type": "Rest",
-                "protein": 149, "calories": 1850, "water": "2L",
+                "protein": 144, "calories": 1850, "water": "2L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "NEAT walk + recovery",
                     "detail": "Mandatory: 25–30 min walk · Foam roll full body 10 min",
                 },
                 "meals": (
-                    "— PROTEIN MATH (verified): 4 eggs (28g) + whey (24g) "
+                    "— PROTEIN MATH (verified): 4 eggs (28g) "
                     "+ 2 chapati (6g) + dal (12g) + paneer (18g) + salad (2g) + curd (8g) "
                     "+ whey (24g) + roasted chana (8g) + 3 eggs (21g) + hung curd (14g) "
-                    "+ veggies (3g) = ~152g · CALORIES ~1,800–1,900 —\n"
-                    "8:00 Breakfast — 4 eggs + 1 scoop whey\n"
+                    "+ veggies (3g) = ~144g · CALORIES ~1,800–1,900 —\n"
+                    "8:00 Breakfast — 4 eggs\n"
                     "1:00 Lunch — 2 chapati + dal + paneer + salad + curd\n"
                     "4:30 Snack — 1 scoop whey + roasted chana (30g)\n"
                     "8:30 Dinner — 3 eggs + hung curd + veggies\n"
@@ -2148,7 +2148,7 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-08-22", "day": "Sat", "type": "Run",
-                "protein": 155, "calories": 2200, "water": "3L+",
+                "protein": 153, "calories": 2200, "water": "3L+",
                 "run": {
                     "type": "Long Easy", "km": 14, "pace": "8:00–8:45/km",
                     "cue": (
@@ -2165,14 +2165,14 @@ WEEK_PLANS = {
                 "meals": (
                     "— PROTEIN MATH (verified): banana (1g) + dates (1g) + 4 eggs (28g) "
                     "+ 2 chapati (6g) + curd (8g) + whey (24g) + 3 chapati (9g) + chana (15g) "
-                    "+ paneer (18g) + whey (24g) + peanuts (7g) + 3 eggs (21g) + dal (12g) "
-                    "+ veggies (3g) = ~155g · "
+                    "+ paneer (18g) + peanuts (7g) + 3 eggs (21g) + dal (12g) "
+                    "+ veggies (3g) = ~153g · "
                     "CALORIES ~2,300–2,400 (highest of entire plan — earned it) —\n"
                     "5:45 Pre-run — 1 banana + 2 dates + 250ml water\n"
                     "~6:00 Warm-up — full 10 min\n"
                     "~8:30 Post-run — 4 eggs + 2 chapati + curd + 1 scoop whey + electrolytes\n"
                     "1:00 Lunch — 3 chapati + chana + paneer (extra carbs — refuel)\n"
-                    "4:00 Snack — 1 scoop whey + peanuts (30g)\n"
+                    "4:00 Snack — peanuts (30g)\n"
                     "8:30 Dinner — 3 eggs + dal + veggies\n"
                     f"{SUPPL_DAILY}\n"
                     f"{MONSOON_NOTE}"
@@ -2419,18 +2419,18 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-08-30", "day": "Sun", "type": "Rest",
-                "protein": 149, "calories": 1900, "water": "2L",
+                "protein": 144, "calories": 1900, "water": "2L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "NEAT walk + recovery",
                     "detail": "Easy 20 min walk · Light stretching · No foam rolling (save it for race week)",
                 },
                 "meals": (
-                    "— PROTEIN MATH (verified): 4 eggs (28g) + whey (24g) "
+                    "— PROTEIN MATH (verified): 4 eggs (28g) "
                     "+ 2 chapati (6g) + dal (12g) + paneer (18g) + salad (2g) + curd (8g) "
                     "+ whey (24g) + roasted chana (8g) + 3 eggs (21g) + hung curd (14g) "
-                    "+ veggies (3g) = ~152g · CALORIES ~1,850–1,950 —\n"
-                    "8:00 Breakfast — 4 eggs + 1 scoop whey\n"
+                    "+ veggies (3g) = ~144g · CALORIES ~1,850–1,950 —\n"
+                    "8:00 Breakfast — 4 eggs\n"
                     "1:00 Lunch — 2 chapati + dal + paneer + salad + curd\n"
                     "4:30 Snack — 1 scoop whey + roasted chana (30g)\n"
                     "8:30 Dinner — 3 eggs + hung curd + veggies\n"
@@ -2575,7 +2575,7 @@ WEEK_PLANS = {
             },
             {
                 "date": "2026-09-05", "day": "Fri", "type": "Rest",
-                "protein": 150, "calories": 2200, "water": "3L",
+                "protein": 163, "calories": 2200, "water": "3L",
                 "run": {"type": NA, "km": NA, "pace": NA, "cue": NA},
                 "workout": {
                     "plan": "Complete rest — race prep",
@@ -2585,7 +2585,7 @@ WEEK_PLANS = {
                     "— PROTEIN MATH (verified): 4 eggs (28g) + poha (4g) + whey (24g) "
                     "+ 3 chapati (9g) + dal (12g) + paneer (18g) + salad (2g) "
                     "+ whey (24g) + peanuts (7g) + 3 eggs (21g) + curd (8g) "
-                    "+ 1 chapati (3g) + veggies (3g) = ~160g · "
+                    "+ 1 chapati (3g) + veggies (3g) = ~163g · "
                     "CALORIES ~2,200–2,350 — CARB LOADING DAY —\n"
                     "8:00 Breakfast — 4 eggs + poha + 1 scoop whey\n"
                     "1:00 Lunch — 3 chapati + dal + paneer + salad (extra carbs)\n"

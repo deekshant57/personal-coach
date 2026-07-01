@@ -26,13 +26,14 @@ function syncSupplementStatus() {
 }
 
 function emptyLog() {
-  return { supradyn: false, creatine: false, uprise_d3_60k: false, notes: null };
+  return { supradyn: false, creatine: false, omega_3: false, uprise_d3_60k: false, notes: null };
 }
 
 function collectLogFromForm() {
   return {
     supradyn: document.getElementById('supp-supradyn')?.classList.contains('done') ?? false,
     creatine: document.getElementById('supp-creatine')?.classList.contains('done') ?? false,
+    omega_3: document.getElementById('supp-omega_3')?.classList.contains('done') ?? false,
     uprise_d3_60k: document.getElementById('supp-d3')?.classList.contains('done') ?? false,
     notes: document.getElementById('input-supplement-notes')?.value.trim() || null,
   };
@@ -62,6 +63,7 @@ function updateSummary(log, dateIso) {
   const parts = [];
   if (log.supradyn) parts.push('Supradyn');
   if (log.creatine) parts.push('Creatine');
+  if (log.omega_3) parts.push('Omega-3');
   if (log.uprise_d3_60k) parts.push('D3');
   summary.textContent = parts.join(' · ') || 'Not logged';
 }
