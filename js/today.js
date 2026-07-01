@@ -492,6 +492,8 @@ async function loadTrainingLog() {
           fallback?.removeAttribute('open');
           document.getElementById('input-workout-what').value = '';
         }
+        // Re-render exercises with saved set data (done states, reps)
+        renderWorkoutExerciseList(plan, log);
       } else {
         setDoneToggle(false);
         resetWorkoutFields();
