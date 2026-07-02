@@ -31,6 +31,29 @@ from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 BACKUPS_DIR = SKILL_DIR / "backups"
+REPO_ROOT = SKILL_DIR.parents[2]
+WORKSPACE_ROOT = SKILL_DIR.parents[3]
+
+
+def load_env_file() -> None:
+    """Load Supabase keys from .env without overwriting existing env."""
+    for path in (
+        REPO_ROOT / ".env",
+        WORKSPACE_ROOT / ".env",
+    ):
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            os.environ.setdefault(
+                key.strip(), value.strip().strip('"').strip("'")
+            )
+
+
+load_env_file()
 
 SUPABASE_URL = os.environ.get(
     "SUPABASE_URL", "https://lqtwtcgnzpsrhfuynzdk.supabase.co"

@@ -48,9 +48,11 @@ Paste the full Cursor response including all 8 sections.
 
 ### 2. Dry-run
 
-```bash
-export SUPABASE_SERVICE_ROLE_KEY='…'   # Dashboard → Settings → API → service_role
+**Desktop:** scripts auto-load `SUPABASE_SERVICE_ROLE_KEY` from `personal-coach-app/.env` or parent `../.env`.
 
+**Phone / Cloud Agent:** add `SUPABASE_SERVICE_ROLE_KEY` as a **Runtime Secret** in [Cursor Cloud Agents → Secrets](https://cursor.com/dashboard/cloud-agents). `SUPABASE_URL` and `SUPABASE_USER_ID` are in `.cursor/environment.json`.
+
+```bash
 python3 .cursor/skills/save-weekly-debrief/scripts/save-weekly-debrief.py \
   --debrief-monday 2026-06-29 \
   --file reports/2026-06-29-weekly-debrief.md \

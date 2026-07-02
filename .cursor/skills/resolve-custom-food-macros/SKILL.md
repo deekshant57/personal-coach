@@ -19,7 +19,24 @@ Every invocation **must** end with a Supabase patch (dry-run preview first, then
 - User logs **Custom** items in the app (name only → protein/calories default to 0).
 - Coach meal plans mention foods not in `personal-coach-app/js/data.js` `FOOD_ITEMS`.
 - **Slot notes** (`custom_text`) carry prep/portion detail ("extra ghee", "half portion", "100g") that changes macros but does not affect in-app totals today.
-- The app cannot estimate these; this skill resolves and writes macros back.
+- The app **auto-resolves** known custom foods from `js/custom-foods-registry.js` on every Food/Today load (synced from this skill's registry). Cursor patch is only needed for **new** foods not yet in the registry, or bulk backfill before sync.
+
+### In-app auto-resolve (primary path)
+
+On load, the PWA:
+
+1. Looks up each `custom_*` item with missing macros in `js/custom-foods-registry.js`
+2. Converts **notes-only** rows to a custom item when notes match the registry exactly
+3. Persists fixes to Supabase silently
+4. Surfaces unresolved items in **Coach says** + Meals Logged alerts
+
+After adding entries here, run:
+
+```bash
+python3 scripts/sync-food-registry.py
+```
+
+Then hard-refresh the PWA. The Cursor `--apply` patch is a **fallback** for dates already logged before sync, or when you cannot refresh the app.
 
 ---
 
@@ -58,6 +75,7 @@ Patch **only** when **all** are true:
 | Allowed | Forbidden without explicit user request |
 |---------|----------------------------------------|
 | `custom-foods-registry.json` | `js/data.js`, `coach/week-plans.py`, `daily_plans` |
+| Run `python3 scripts/sync-food-registry.py` after registry edits | Forgetting to sync — app won't see new entries |
 
 **Use the patch script** — do not hand-write curl/SQL for Supabase. The script enforces the rules above.
 
@@ -174,10 +192,15 @@ Include a **Flags** subsection when any row is notes-only or grid+modifier (unpa
 
 ### Step 4–5: Supabase patch (mandatory)
 
+**Desktop:** scripts auto-load `SUPABASE_SERVICE_ROLE_KEY` from `personal-coach-app/.env` or parent `../.env` if present.
+
+**Phone / Cloud Agent:** add a **Runtime Secret** in [Cursor Cloud Agents → Secrets](https://cursor.com/dashboard/cloud-agents):
+- `SUPABASE_SERVICE_ROLE_KEY` — service_role key from Supabase Dashboard → Settings → API (never commit)
+- `SUPABASE_URL` and `SUPABASE_USER_ID` are already in `.cursor/environment.json` (non-secret)
+
 ```bash
-export SUPABASE_SERVICE_ROLE_KEY='…'   # Dashboard → Settings → API → service_role (never commit)
-# Optional: defaults to Deekshant's user_id from supabase-auth.sql
-export SUPABASE_USER_ID='d6f25dae-4cc8-48dd-9822-fbccf9a92139'
+# Only needed if env is not loaded automatically:
+export SUPABASE_SERVICE_ROLE_KEY='…'
 
 # Preview — no writes
 python3 .cursor/skills/resolve-custom-food-macros/scripts/patch-food-logs.py \

@@ -1,5 +1,16 @@
 // Food tab — tap grid, meal slots, protein calculation
-import { FOOD_ITEMS, SLOT_LABELS, formatFoodLabel, formatUnitDisplay } from './data.js';
+import { FOOD_ITEMS, SLOT_LABELS, formatFoodLabel, formatUnitDisplay, sumItemsMacros } from './data.js';
+import {
+  resolveLogItems,
+  itemFromNotesOnly,
+  needsMacroResolve,
+  formatMealMacroLabel,
+  analyzeDayFoodLogs,
+  escapeHtml,
+  isCustomFoodItem,
+  macrosFromResolvedLog,
+} from './food-macros.js';
+import { autoResolveFoodLogsForDate } from './food-resolve.js';
 import { state, getToday, getCurrentMealSlots, showToast, isViewingFuture } from './app.js';
 import { upsertFoodLog, fetchFoodLogs, deleteFoodLog } from './supabase.js';
 import { loadMealsSummary } from './today.js';
@@ -25,12 +36,27 @@ let dirtySlotResolve = null;
 let editingCustomId = null;
 let foodAutosaveSuspended = false;
 
+let foodLogsCache = { date: null, logs: null };
+
+export function invalidateFoodLogsCache() {
+  foodLogsCache = { date: null, logs: null };
+}
+
+export async function fetchFoodLogsForDate(date, { force = false } = {}) {
+  if (!force && foodLogsCache.date === date && foodLogsCache.logs !== null) {
+    return foodLogsCache.logs;
+  }
+  const logs = await fetchFoodLogs(date);
+  foodLogsCache = { date, logs: logs || [] };
+  return foodLogsCache.logs;
+}
+
 function foodSlotKey(date, slot) {
   return `food:${date}:${slot}`;
 }
 
 function isCustomItem(item) {
-  return String(item.id).startsWith('custom_');
+  return isCustomFoodItem(item);
 }
 
 // ── Init ─────────────────────────────────────────────────────
@@ -70,6 +96,7 @@ async function persistFoodSlot(slot, { silent = true } = {}) {
     if (items.length === 0 && !trimmedNotes) {
       if (!hadSaved) return true;
       await deleteFoodLog(date, slot);
+      invalidateFoodLogsCache();
       delete slotItems[slot];
       delete slotNotes[slot];
       delete savedSnapshots[slot];
@@ -81,13 +108,17 @@ async function persistFoodSlot(slot, { silent = true } = {}) {
       return true;
     }
 
-    const totalProtein = items.reduce((s, i) => s + i.protein * i.qty, 0);
-    const totalCalories = items.reduce((s, i) => s + i.calories * i.qty, 0);
-    const ok = await upsertFoodLog(date, slot, items, trimmedNotes || null, totalProtein, totalCalories);
+    const { items: resolvedItems } = resolveLogItems(items);
+    const totalProtein = resolvedItems.reduce((s, i) => s + i.protein * i.qty, 0);
+    const totalCalories = resolvedItems.reduce((s, i) => s + i.calories * i.qty, 0);
+    const ok = await upsertFoodLog(date, slot, resolvedItems, trimmedNotes || null, totalProtein, totalCalories);
     if (!ok) return false;
 
+    invalidateFoodLogsCache();
+    slotItems[slot] = resolvedItems;
+
     filledSlots.add(slot);
-    savedSnapshots[slot] = JSON.stringify({ items, notes: customText });
+    savedSnapshots[slot] = JSON.stringify({ items: resolvedItems, notes: customText });
     updateSlotPillStates();
     await loadMealsSummary();
     return true;
@@ -363,6 +394,25 @@ async function selectSlot(slot, { skipGuard = false } = {}) {
   renderSlotState();
 }
 
+function renderFoodCoachBanner() {
+  const banner = document.getElementById('food-coach-banner');
+  if (!banner) return;
+
+  const issues = state.foodIssues || [];
+  const slotIssues = issues.filter((i) => i.slot === activeSlot);
+  const showIssues = slotIssues.length ? slotIssues : issues;
+
+  if (!showIssues.length) {
+    banner.classList.add('hidden');
+    banner.innerHTML = '';
+    return;
+  }
+
+  const issue = showIssues[0];
+  banner.classList.remove('hidden');
+  banner.innerHTML = `<strong>${escapeHtml(issue.label)}</strong> — ${escapeHtml(issue.message.replace(`${issue.label}: `, ''))}`;
+}
+
 function renderSlotState() {
   const plan = state.currentPlan;
   const hint = document.getElementById('meal-hint');
@@ -393,6 +443,7 @@ function renderSlotState() {
   document.getElementById('food-notes').value = slotNotes[activeSlot] || '';
   updateSlotPillStates();
   updateFoodFooter();
+  renderFoodCoachBanner();
   applyFoodSearchFilter();
 }
 
@@ -408,7 +459,7 @@ function renderFoodGrid() {
     el.innerHTML = `
       <span class="food-item-emoji">${item.emoji}</span>
       <span class="food-item-name">${item.name}</span>
-      <span class="food-item-protein">${item.protein}g P</span>
+      <span class="food-item-protein">${item.protein}g P · ${item.calories} kcal</span>
       <span class="food-item-unit">per ${formatUnitDisplay(item.unit)}</span>
       <button type="button" class="food-item-add">ADD</button>
       <div class="food-item-stepper hidden">
@@ -527,6 +578,17 @@ function renderMealSummary() {
   const items = slotItems[activeSlot] || [];
 
   if (items.length === 0) {
+    const notes = (slotNotes[activeSlot] || '').trim();
+    if (notes) {
+      const fromRegistry = itemFromNotesOnly(notes);
+      container.innerHTML = `<div class="meal-summary-item meal-summary-item--warn">
+        <div class="meal-summary-item-main">
+          <span class="name">Notes: ${escapeHtml(notes)}</span>
+          <span class="meal-slot-notes">${fromRegistry ? 'Known food — save slot to apply macros' : 'Add a Custom item with this name for accurate totals'}</span>
+        </div>
+      </div>`;
+      return;
+    }
     container.innerHTML = '<span class="text-muted text-sm-muted">No items added yet</span>';
     return;
   }
@@ -539,12 +601,13 @@ function renderMealSummary() {
     const c = item.calories * item.qty;
     totalP += p;
     totalC += c;
+    const unresolved = needsMacroResolve(item);
 
     if (isCustomItem(item)) {
-      html += `<div class="meal-summary-item meal-summary-item-custom" data-item-id="${item.id}">
+      html += `<div class="meal-summary-item meal-summary-item-custom${unresolved ? ' meal-summary-item--warn' : ''}" data-item-id="${item.id}">
         <div class="meal-summary-item-main">
           <span class="name">${formatFoodLabel(item, item.qty)}</span>
-          <span class="protein">${p}g P · ${c} kcal</span>
+          <span class="protein">${unresolved ? formatMealMacroLabel(p, c, [item]) : `${p}g P · ${c} kcal`}</span>
         </div>
         <div class="meal-summary-item-controls">
           <div class="meal-summary-stepper">
@@ -561,7 +624,7 @@ function renderMealSummary() {
 
     html += `<div class="meal-summary-item">
       <span class="name">${formatFoodLabel(item, item.qty)}</span>
-      <span class="protein">${p}g</span>
+      <span class="protein">${p}g P · ${c} kcal</span>
     </div>`;
   });
 
@@ -594,6 +657,7 @@ async function goToNextMeal() {
 export async function deleteMealSlot(mealSlot) {
   cancelAutosave(foodSlotKey(getToday(), mealSlot));
   await deleteFoodLog(getToday(), mealSlot);
+  invalidateFoodLogsCache();
   delete slotItems[mealSlot];
   delete slotNotes[mealSlot];
   delete savedSnapshots[mealSlot];
@@ -604,7 +668,7 @@ export async function deleteMealSlot(mealSlot) {
 }
 
 // ── Protein Bar ──────────────────────────────────────────────
-export function updateProteinBar(total) {
+export function updateProteinBar(total, calories = null) {
   const target = state.currentPlan?.protein_target || 145;
   const pct = Math.min(100, (total / target) * 100);
 
@@ -612,23 +676,34 @@ export function updateProteinBar(total) {
   document.getElementById('protein-target').textContent = `/ ${target}g protein`;
   document.getElementById('protein-fill').style.width = `${pct}%`;
 
+  const calEl = document.getElementById('calorie-current');
+  if (calEl) {
+    const showCal = calories != null && calories > 0;
+    calEl.textContent = showCal ? `~${Math.round(calories).toLocaleString()} kcal` : '';
+    calEl.classList.toggle('hidden', !showCal);
+  }
+
   const isLow = pct < 60;
   document.getElementById('protein-label').classList.toggle('warning', isLow);
   document.getElementById('protein-fill').classList.toggle('warning', isLow);
 }
 
 function updateTotalProtein() {
-  let total = 0;
+  let totalP = 0;
+  let totalC = 0;
   for (const [, items] of Object.entries(slotItems)) {
     if (!items) continue;
-    total += items.reduce((s, i) => s + i.protein * i.qty, 0);
+    const macros = sumItemsMacros(items);
+    totalP += macros.protein;
+    totalC += macros.calories;
   }
   for (const [slot, data] of Object.entries(state.foodLogs)) {
     if (!slotItems[slot]) {
-      total += data.totalProtein || 0;
+      totalP += data.totalProtein || 0;
+      totalC += data.totalCalories || 0;
     }
   }
-  updateProteinBar(total);
+  updateProteinBar(totalP, totalC);
 }
 
 // ── Load Existing Logs ───────────────────────────────────────
@@ -637,7 +712,12 @@ async function loadExistingLogs() {
   cancelAutosavesByPrefix(`food:${date}:`);
 
   foodAutosaveSuspended = true;
-  const logs = await fetchFoodLogs(date);
+  let logs = await fetchFoodLogsForDate(date, { force: true });
+  const { logs: resolvedLogs, patchedSlots } = await autoResolveFoodLogsForDate(date, logs);
+  if (patchedSlots.length) {
+    invalidateFoodLogsCache();
+    logs = resolvedLogs;
+  }
 
   filledSlots.clear();
   slotItems = {};
@@ -646,7 +726,7 @@ async function loadExistingLogs() {
 
   if (logs && logs.length > 0) {
     for (const log of logs) {
-      const items = typeof log.items === 'string' ? JSON.parse(log.items) : (log.items || []);
+      const { items } = macrosFromResolvedLog(log);
       const notes = log.custom_text || '';
       slotItems[log.meal_slot] = items;
       slotNotes[log.meal_slot] = notes;
@@ -656,6 +736,8 @@ async function loadExistingLogs() {
       }
     }
   }
+
+  state.foodIssues = analyzeDayFoodLogs(logs || [], SLOT_LABELS);
 
   activeSlot = getFirstUnfilledSlot();
   updateSlotPillStates();
@@ -747,4 +829,15 @@ function setupCustomModal() {
       closeCustomModal();
     }
   });
+}
+
+export async function focusFoodSlot(slot) {
+  const tab = document.querySelector('.nav-tab[data-tab="food"]');
+  if (!tab?.classList.contains('active')) {
+    tab?.click();
+  }
+  await loadFoodData();
+  if (slot && getCurrentMealSlots().includes(slot)) {
+    await selectSlot(slot, { skipGuard: true });
+  }
 }

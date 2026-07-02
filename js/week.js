@@ -68,8 +68,6 @@ export function initWeek(onOpenDay) {
     weekViewMonday.setDate(weekViewMonday.getDate() + 7);
     loadWeekView();
   });
-
-  loadWeekView();
 }
 
 function setWeekNavLoading(loading) {
@@ -272,7 +270,6 @@ export async function loadWeekView() {
 
       const headerBtn = card.querySelector('.week-card-header');
     headerBtn.addEventListener('click', () => {
-      card.classList.add('week-card-animate');
       const expanded = card.classList.toggle('expanded');
       headerBtn.setAttribute('aria-expanded', String(expanded));
     });

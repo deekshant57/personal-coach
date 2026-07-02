@@ -1,0 +1,7 @@
+{
+  "install": "python3 -c \"import sys; print('python', sys.version.split()[0])\"",
+  "env": {
+    "SUPABASE_URL": "https://lqtwtcgnzpsrhfuynzdk.supabase.co",
+    "SUPABASE_USER_ID": "d6f25dae-4cc8-48dd-9822-fbccf9a92139"
+  }
+}

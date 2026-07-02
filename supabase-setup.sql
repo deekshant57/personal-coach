@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS workout_logs (
   date DATE NOT NULL UNIQUE,
   done BOOLEAN DEFAULT false,
   what_i_did TEXT,
+  exercises_json JSONB,
   rpe INT CHECK (rpe BETWEEN 1 AND 10),
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),

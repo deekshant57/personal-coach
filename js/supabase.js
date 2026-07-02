@@ -229,12 +229,16 @@ export async function fetchWorkoutLog(date) {
 
 export async function upsertWorkoutLog(date, log) {
   if (!supabase || !uid()) return false;
-  const { error } = await supabase
+  const row = { user_id: uid(), date, ...log, updated_at: new Date().toISOString() };
+  let { error } = await supabase
     .from('workout_logs')
-    .upsert(
-      { user_id: uid(), date, ...log, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id,date' }
-    );
+    .upsert(row, { onConflict: 'user_id,date' });
+  if (error?.code === 'PGRST204' || /exercises_json/.test(error?.message || '')) {
+    const { exercises_json: _drop, ...legacyRow } = row;
+    ({ error } = await supabase
+      .from('workout_logs')
+      .upsert(legacyRow, { onConflict: 'user_id,date' }));
+  }
   if (error) console.error('upsertWorkoutLog:', error);
   return !error;
 }

@@ -1,4 +1,6 @@
-{
+// Auto-synced from .cursor/skills/resolve-custom-food-macros/custom-foods-registry.json
+// Run: python3 scripts/sync-food-registry.py
+export const CUSTOM_FOODS_REGISTRY = {
   "water": {
     "protein": 0,
     "calories": 0,
@@ -340,5 +342,37 @@
     "resolved_at": "2026-07-01",
     "source": "estimated",
     "notes": "~200ml milk + banana + almonds + walnuts + cashew, no whey"
+  },
+  "banana milk shake with poha": {
+    "protein": 5,
+    "calories": 355,
+    "unit": "1 glass",
+    "resolved_at": "2026-07-01",
+    "source": "estimated",
+    "notes": "~200ml milk + banana + 1 plate poha (light)"
+  },
+  "1 bowl rajma rice + 1 chapati with half bowl dal makhani": {
+    "protein": 22,
+    "calories": 620,
+    "unit": "1 meal",
+    "resolved_at": "2026-07-01",
+    "source": "estimated",
+    "notes": "rajma rice bowl + 1 chapati + half bowl dal makhani"
+  },
+  "1 aloo tikki protein plus burger by mcd": {
+    "protein": 15,
+    "calories": 390,
+    "unit": "1 burger",
+    "resolved_at": "2026-07-01",
+    "source": "estimated",
+    "notes": "McDonald's India Aloo Tikki Protein Plus — label estimate"
+  },
+  "1 plate pani poori": {
+    "protein": 5,
+    "calories": 300,
+    "unit": "1 plate (~6 pcs)",
+    "resolved_at": "2026-07-01",
+    "source": "estimated",
+    "notes": "street pani puri plate, potato + semolina shells + chutneys"
   }
-}
+};

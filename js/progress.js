@@ -88,8 +88,6 @@ function toggleScanForm() {
   const body = document.getElementById('scan-form-body');
   const toggle = document.getElementById('scan-form-toggle');
   if (!body || !toggle) return;
-  toggle.classList.add('collapsible-animate');
-  body.classList.add('collapsible-animate');
   const open = body.classList.toggle('open');
   toggle.classList.toggle('open', open);
   if (open && !editingScanId) {
@@ -127,8 +125,6 @@ function fillScanForm(scan) {
   document.getElementById('delete-scan')?.classList.remove('hidden');
   const body = document.getElementById('scan-form-body');
   const toggle = document.getElementById('scan-form-toggle');
-  toggle?.classList.add('collapsible-animate');
-  body?.classList.add('collapsible-animate');
   body?.classList.add('open');
   toggle?.classList.add('open');
 }
@@ -208,7 +204,7 @@ async function onHistoryClick(e) {
     const scan = state.bodyCompScans.find((s) => s.id === editBtn.dataset.editScan);
     if (scan) {
       fillScanForm(scan);
-      document.getElementById('scan-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('scan-form-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
     return;
   }

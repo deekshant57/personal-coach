@@ -1,71 +1,8 @@
-// Shared loading animation helpers (aligned 2-frame walk cycle)
-
-export const RUNNER_FRAME_COUNT = 2;
-const FRAME_MS = 180;
-const FRAME_PATHS = Array.from(
-  { length: RUNNER_FRAME_COUNT },
-  (_, i) => `icons/runner-frames/${String(i).padStart(2, '0')}.png`,
-);
-
-let frameIndex = 0;
-let lastTick = 0;
-let rafId = null;
-let preloadPromise = null;
-
-function preloadFrames() {
-  if (!preloadPromise) {
-    preloadPromise = Promise.all(
-      FRAME_PATHS.map(
-        (src) =>
-          new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(src);
-            img.onerror = () => reject(new Error(`Failed to load ${src}`));
-            img.src = src;
-          }),
-      ),
-    );
-  }
-  return preloadPromise;
-}
-
-function paintFrames() {
-  const src = FRAME_PATHS[frameIndex];
-  document.querySelectorAll('.coach-loader__frame').forEach((el) => {
-    if (el.getAttribute('src') !== src) el.setAttribute('src', src);
-  });
-}
-
-function tick(ts) {
-  if (!lastTick) lastTick = ts;
-  if (ts - lastTick >= FRAME_MS) {
-    frameIndex = (frameIndex + 1) % RUNNER_FRAME_COUNT;
-    paintFrames();
-    lastTick = ts;
-  }
-  if (document.querySelector('.coach-loader__frame')) {
-    rafId = requestAnimationFrame(tick);
-  } else {
-    rafId = null;
-    lastTick = 0;
-  }
-}
-
-function ensureAnimation() {
-  preloadFrames()
-    .then(() => {
-      paintFrames();
-      if (!rafId) rafId = requestAnimationFrame(tick);
-    })
-    .catch(() => {});
-}
-
-const RUNNER_MARKUP = `<img class="coach-loader__frame" src="${FRAME_PATHS[0]}" alt="" decoding="async">`;
+// Shared loading indicator helpers (static — no animation loop)
 
 export function spinnerHtml(size = '') {
-  ensureAnimation();
   const sizeClass = size ? ` coach-loader--${size}` : '';
-  return `<span class="coach-loader${sizeClass}" role="status" aria-label="Loading">${RUNNER_MARKUP}</span>`;
+  return `<span class="coach-loader${sizeClass}" role="status" aria-label="Loading"></span>`;
 }
 
 export function loadingCenterHtml(message = 'Loading…') {
@@ -105,8 +42,3 @@ export function setOverlayLoading(overlayId, loading) {
   el.classList.toggle('is-active', loading);
   el.setAttribute('aria-hidden', loading ? 'false' : 'true');
 }
-
-// Start preloading as soon as the module loads.
-preloadFrames().then(() => {
-  if (document.querySelector('.coach-loader__frame')) ensureAnimation();
-});

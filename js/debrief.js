@@ -144,11 +144,11 @@ function navigateToTask(action) {
   requestAnimationFrame(() => {
     if (action === 'vitals') {
       expandVitalsCard();
-      document.getElementById('vitals-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('vitals-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
     } else if (action === 'training') {
-      document.getElementById('training-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
     } else if (action === 'supplements') {
-      document.getElementById('supplements-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('supplements-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
   });
 }

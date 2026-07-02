@@ -1,10 +1,12 @@
 // Day progress strip — P1: what's left for the selected date (saved data only)
 import { state, getCurrentMealSlots, isViewingFuture, isMonday, getToday } from './app.js';
 import { isRunLogComplete } from './run-log.js';
+import { isWorkoutLogComplete } from './workout-log.js';
 import {
   getSupplementTasks,
 } from './supplements-data.js';
 import { expandVitalsCard } from './vitals-ui.js';
+import { focusFoodSlot } from './food.js';
 
 function isVitalsComplete() {
   const v = state.vitals;
@@ -22,7 +24,7 @@ function isTrainingComplete() {
   if (plan?.run_type) {
     return isRunLogComplete(state.runLog);
   }
-  if (plan?.workout_plan) return state.workoutLog?.done === true;
+  if (plan.workout_plan) return isWorkoutLogComplete(state.workoutLog);
   return false;
 }
 
@@ -58,7 +60,7 @@ export function focusSupplementToggle(focusKey) {
 
   requestAnimationFrame(() => {
     const card = document.getElementById('supplements-card');
-    card?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    card?.scrollIntoView({ behavior: 'auto', block: 'start' });
 
     const btnId = focusKey === 'uprise_d3_60k' ? 'supp-d3' : `supp-${focusKey}`;
     const btn = document.getElementById(btnId);
@@ -80,7 +82,8 @@ export function computeDayProgress() {
     const done = isTrainingComplete();
     tasks.push({
       id: 'training',
-      label: state.currentPlan.run_type && state.runLog?.done && !done ? 'Run (incomplete)' : label,
+      label: state.currentPlan.run_type && state.runLog?.done && !done ? 'Run (incomplete)' :
+        (state.currentPlan.workout_plan && state.workoutLog?.done && !done ? 'Workout (incomplete)' : label),
       done,
       action: 'training',
     });
@@ -136,9 +139,55 @@ export function computeDebriefReadiness() {
   };
 }
 
-function navigateToTask(action, focusKey) {
+function computeCoachNext() {
+  if (isViewingFuture()) return null;
+
+  const readiness = computeDebriefReadiness();
+  if (readiness.ready) {
+    return {
+      text: 'All logged — open Debrief and copy for coach review',
+      action: 'debrief',
+    };
+  }
+
+  const foodIssues = state.foodIssues || [];
+  if (foodIssues.length) {
+    const issue = foodIssues[0];
+    return {
+      text: issue.message,
+      action: 'meals',
+      focusSlot: issue.slot,
+    };
+  }
+
+  const next = readiness.tasks.find((t) => !t.done);
+  if (!next) return null;
+
+  const hints = {
+    vitals: 'Log morning weight and sleep first',
+    training: next.label === 'Run' || next.label === 'Workout'
+      ? `Log ${next.label.toLowerCase()} — km, pace, RPE, knee`
+      : `${next.label} — finish required fields before marking done`,
+    meals: 'Log each meal slot on the Food tab',
+    supplements: 'Toggle supplements taken today',
+  };
+
+  return {
+    text: hints[next.id] || `Complete: ${next.label}`,
+    action: next.action,
+    focusKey: next.focusKey,
+    focusSlot: next.focusSlot,
+  };
+}
+
+function navigateToTask(action, focusKey, focusSlot) {
   if (action === 'meals') {
-    document.querySelector('.nav-tab[data-tab="food"]')?.click();
+    focusFoodSlot(focusSlot || null);
+    return;
+  }
+
+  if (action === 'debrief') {
+    document.querySelector('.nav-tab[data-tab="debrief"]')?.click();
     return;
   }
 
@@ -152,13 +201,32 @@ function navigateToTask(action, focusKey) {
   requestAnimationFrame(() => {
     if (action === 'vitals') {
       expandVitalsCard();
-      document.getElementById('vitals-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('vitals-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
     } else if (action === 'training') {
-      document.getElementById('training-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
     } else if (action === 'supplements') {
-      document.getElementById('supplements-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('supplements-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
   });
+}
+
+function renderCoachNext() {
+  const root = document.getElementById('coach-next');
+  const textEl = document.getElementById('coach-next-text');
+  const btn = document.getElementById('coach-next-btn');
+  if (!root || !textEl || !btn) return;
+
+  const next = computeCoachNext();
+  if (!next) {
+    root.classList.add('hidden');
+    return;
+  }
+
+  root.classList.remove('hidden');
+  textEl.textContent = next.text;
+  btn.dataset.action = next.action;
+  btn.dataset.focusKey = next.focusKey || '';
+  btn.dataset.focusSlot = next.focusSlot || '';
 }
 
 export function updateDayProgress() {
@@ -186,13 +254,22 @@ export function updateDayProgress() {
       <span class="progress-chip-label">${task.label}</span>
     </button>
   `).join('');
+
+  renderCoachNext();
 }
 
 export function initDayProgress() {
   document.getElementById('day-progress-chips')?.addEventListener('click', (e) => {
     const chip = e.target.closest('[data-action]');
     if (!chip) return;
-    navigateToTask(chip.dataset.action, chip.dataset.focusKey || null);
+    navigateToTask(chip.dataset.action, chip.dataset.focusKey || null, chip.dataset.focusSlot || null);
   });
+
+  document.getElementById('coach-next-btn')?.addEventListener('click', () => {
+    const btn = document.getElementById('coach-next-btn');
+    if (!btn) return;
+    navigateToTask(btn.dataset.action, btn.dataset.focusKey || null, btn.dataset.focusSlot || null);
+  });
+
   updateDayProgress();
 }

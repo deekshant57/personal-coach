@@ -10,7 +10,7 @@ import {
 } from './plan-templates.js';
 import { loadSession, initAuthListeners, signIn, signUp, signOut, getProfile } from './auth.js';
 import { initToday, loadTodayData } from './today.js';
-import { initFood, loadFoodData } from './food.js';
+import { initFood, loadFoodData, invalidateFoodLogsCache } from './food.js';
 import { initWeek, loadWeekView, syncWeekViewMonday } from './week.js';
 import { initDebrief, refreshDebrief, refreshDebriefIfActive } from './debrief.js';
 import { initProgress, loadProgressView, loadBodyCompForDate } from './progress.js';
@@ -27,6 +27,7 @@ export const state = {
   currentDate: new Date(),
   currentPlan: null,
   foodLogs: {},      // { slotName: { items: [...], customText, totalProtein, totalCalories } }
+  foodIssues: [],    // coach alerts for unresolved custom foods / notes-only meals
   vitals: null,
   runLog: null,
   workoutLog: null,
@@ -135,6 +136,26 @@ export function showSavedToast() {
 }
 
 // ── Tab Routing ──────────────────────────────────────────────
+function getActiveTab() {
+  return document.querySelector('.nav-tab.active')?.dataset.tab || 'today';
+}
+
+function flushAutosavesInBackground() {
+  flushAllAutosaves().catch((err) => console.error('autosave flush:', err));
+}
+
+/** Map vertical mouse wheel to horizontal scroll on chip/slot rows (desktop). */
+function setupHorizontalWheelScroll() {
+  const selector = '.day-progress-chips, .meal-slots';
+  document.addEventListener('wheel', (e) => {
+    const el = e.target.closest(selector);
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY;
+  }, { passive: false });
+}
+
 function updateTabChrome(activeTab) {
   const isProgress = activeTab === 'progress';
   document.querySelector('.app-sticky-header')?.classList.toggle('header--progress', isProgress);
@@ -143,8 +164,8 @@ function updateTabChrome(activeTab) {
 function setupTabs() {
   const tabs = document.querySelectorAll('.nav-tab');
   tabs.forEach(tab => {
-    tab.addEventListener('click', async () => {
-      await flushAllAutosaves();
+    tab.addEventListener('click', () => {
+      flushAutosavesInBackground();
 
       // Deactivate all
       tabs.forEach(t => t.classList.remove('active'));
@@ -157,6 +178,7 @@ function setupTabs() {
       updateTabChrome(tabName);
 
       // Refresh data on tab switch
+      if (tabName === 'today') loadTodayData();
       if (tabName === 'food') loadFoodData();
       if (tabName === 'week') loadWeekView();
       if (tabName === 'progress') loadProgressView();
@@ -191,16 +213,25 @@ function setupDateNav() {
 
 async function onDateChange() {
   invalidateWeekStatsCache();
+  invalidateFoodLogsCache();
   clearSaveState();
   setContentLoading(true);
   try {
     updateDateDisplay();
+    const activeTab = getActiveTab();
     await loadPlan();
-    await loadTodayData();
-    await loadBodyCompForDate(getToday());
-    await loadFoodData();
+    const loads = [loadTodayData()];
+    if (activeTab === 'progress') {
+      loads.push(loadBodyCompForDate(getToday()));
+    }
+    await Promise.all(loads);
+
     syncWeekViewMonday();
-    await loadWeekView();
+    if (activeTab === 'food') {
+      await loadFoodData();
+    } else if (activeTab === 'week') {
+      await loadWeekView();
+    }
     updatePreviewMode();
   } finally {
     setContentLoading(false);
@@ -208,12 +239,14 @@ async function onDateChange() {
   }
 }
 
-function setContentLoading(loading) {
+function setContentLoading(loading, { overlay = false } = {}) {
   document.querySelector('.app-container')?.classList.toggle('is-content-loading', loading);
   document.getElementById('plan-card')?.classList.toggle('is-loading', loading);
   document.getElementById('date-prev')?.classList.toggle('is-loading', loading);
   document.getElementById('date-next')?.classList.toggle('is-loading', loading);
-  setOverlayLoading('content-loading-overlay', loading);
+  if (overlay) {
+    setOverlayLoading('content-loading-overlay', loading);
+  }
 
   if (loading) {
     const directive = document.getElementById('plan-directive');
@@ -442,11 +475,11 @@ async function enterApp(session) {
   document.getElementById('user-display').textContent =
     profile?.display_name || active.user.email;
   hideAuth();
-  setContentLoading(true);
+  setContentLoading(true, { overlay: true });
   try {
     await bootApp();
   } finally {
-    setContentLoading(false);
+    setContentLoading(false, { overlay: true });
   }
 }
 
@@ -462,6 +495,7 @@ async function bootApp() {
   setupDateNav();
   initSaveState();
   setupAutosaveLifecycle();
+  setupHorizontalWheelScroll();
   updateDateDisplay();
   await loadPlan();
   initToday();
@@ -501,11 +535,11 @@ async function init() {
       document.getElementById('user-display').textContent =
         profile?.display_name || session.user.email;
       hideAuth();
-      setContentLoading(true);
+      setContentLoading(true, { overlay: true });
       try {
         await bootApp();
       } finally {
-        setContentLoading(false);
+        setContentLoading(false, { overlay: true });
       }
     },
     () => {
