@@ -1150,6 +1150,19 @@ textarea.form-input {
   flex: 1 1 100%;
 }
 
+.workout-set-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workout-set-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .workout-set-pills {
   display: flex;
   flex-wrap: wrap;
@@ -1179,6 +1192,10 @@ textarea.form-input {
   border-color: var(--accent-green);
   background: rgba(74, 222, 128, 0.15);
   color: var(--accent-green);
+}
+
+.workout-set-stepper {
+  flex: 0 0 auto;
 }
 
 .workout-set-steppers {

@@ -575,6 +575,8 @@ async function loadTrainingLog() {
     } else if (plan.workout_plan) {
       const log = await fetchWorkoutLog(getToday());
       state.workoutLog = log;
+      const listEl = document.getElementById('workout-exercise-list');
+      if (listEl) listEl._userInteracted = false;
     }
   } finally {
     trainingAutosaveSuspended = false;

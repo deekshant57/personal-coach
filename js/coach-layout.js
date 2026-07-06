@@ -143,6 +143,11 @@ export function updateSectionCompression() {
     return;
   }
 
+  // Past-day edit mode: keep cards expanded while the user is correcting logs.
+  if (isViewingPast() && coachEditMode) {
+    return;
+  }
+
   if (isVitalsComplete()) {
     setCardCollapsed('vitals-card', true);
   }
@@ -231,6 +236,9 @@ export function resetCoachEditModeForDate() {
 export function enableCoachEditMode() {
   coachEditMode = true;
   applyCoachReadOnlyMode();
+  if (isTrainingRequired()) {
+    setCardCollapsed('training-card', false);
+  }
   updateSectionCompression();
 }
 

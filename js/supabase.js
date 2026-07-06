@@ -215,6 +215,19 @@ export async function fetchAllRunLogs() {
 }
 
 // ── Workout Logs ─────────────────────────────────────────────
+function normalizeWorkoutLogRow(data) {
+  if (!data) return null;
+  const exercises = data.exercises_json;
+  if (typeof exercises === 'string') {
+    try {
+      data.exercises_json = JSON.parse(exercises);
+    } catch {
+      data.exercises_json = null;
+    }
+  }
+  return data;
+}
+
 export async function fetchWorkoutLog(date) {
   if (!supabase || !uid()) return null;
   const { data, error } = await supabase
@@ -224,7 +237,7 @@ export async function fetchWorkoutLog(date) {
     .eq('date', date)
     .maybeSingle();
   if (error) { console.error('fetchWorkoutLog:', error); return null; }
-  return data;
+  return normalizeWorkoutLogRow(data);
 }
 
 export async function upsertWorkoutLog(date, log) {

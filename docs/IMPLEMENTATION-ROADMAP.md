@@ -143,7 +143,7 @@ Ship all 13 quick wins above.
 
 ---
 
-### Sprint 6 (Week 5): Gap Return + Polish
+### Sprint 6 (Week 5): Gap Return + Polish — **COMPLETE (06 Jul 2026)**
 
 **Gap return UX (Bible S18.2):**
 
@@ -160,13 +160,13 @@ Ship all 13 quick wins above.
 - [x] Bottom nav `role="navigation"` + `aria-label` on tabs
 - [x] Context-adaptive copy (placeholders, labels, hints) — Sprint 1 + ongoing
 
-**Edge case testing checklist:**
+**Edge case testing checklist** (verified 06 Jul 2026 via `js/sprint-6-checklist.test.mjs` + code trace):
 
-- [ ] Return after 7-day gap — no shame copy, events reset
-- [ ] Perfect on-plan day — zero observations
-- [ ] Export with 90% data — succeeds with warning
-- [ ] Rest day — recovery block + tomorrow preview visible
-- [ ] Monday — weekly review + waist field, block chip shows new week if updated
+- [x] Return after 7-day gap — no shame copy, events reset
+- [x] Perfect on-plan day — zero observations (when event registry empty; see note below)
+- [x] Export with 90% data — succeeds with warning
+- [x] Rest day — recovery block + tomorrow preview visible
+- [x] Monday — weekly review + waist field, block chip shows new week if updated
 
 **Key files:** All. `js/app.js`, `js/meaningful-events.js`, plus polish pass.
 

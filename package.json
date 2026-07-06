@@ -1,0 +1,21 @@
+{
+  "name": "personal-coach-app",
+  "version": "1.0.0",
+  "description": "Half-marathon coaching system + daily logging PWA.",
+  "main": "sw.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node --test js/*.test.mjs",
+    "test:gap-browser": "node scripts/gap-return-walkthrough.mjs",
+    "test:app-browser": "node scripts/full-app-walkthrough.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}

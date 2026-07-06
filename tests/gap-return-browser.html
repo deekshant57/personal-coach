@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gap return browser harness</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    body { padding: 16px; max-width: 480px; margin: 0 auto; background: var(--bg); }
+    .harness-status { font-family: monospace; font-size: 12px; margin-top: 16px; color: var(--text-muted); }
+    .harness-actions { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+    .harness-actions button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1 style="font-size:16px;margin:0 0 12px;">Gap return harness</h1>
+  <p class="text-muted" style="font-size:13px;margin:0 0 12px;">Uses real <code>gap-return.js</code> + app styles. No Supabase.</p>
+
+  <div class="gap-return-banner hidden" id="gap-return-banner" role="status" aria-live="polite"></div>
+
+  <div class="harness-actions">
+    <button type="button" id="btn-7day">Simulate 7-day gap</button>
+    <button type="button" id="btn-14day">Simulate 14-day gap</button>
+    <button type="button" id="btn-no-gap">Simulate no gap</button>
+    <button type="button" id="btn-dismiss">Click dismiss (if visible)</button>
+  </div>
+
+  <pre class="harness-status" id="harness-status">Ready.</pre>
+
+  <script type="module">
+    import { computeLoggingGap, renderGapReturnBanner, dismissGapBanner } from '../js/gap-return.js';
+
+    const TODAY = new Date(2026, 6, 6); // Mon 6 Jul 2026 — fixture
+    const statusEl = document.getElementById('harness-status');
+
+    function log(msg) {
+      statusEl.textContent = msg;
+    }
+
+    function renderGapScenario({ lastLoggedIso, today = TODAY }) {
+      const activity = lastLoggedIso ? new Set([lastLoggedIso]) : new Set();
+      const gap = computeLoggingGap(activity, today);
+      if (gap.gapDays < 5) {
+        renderGapReturnBanner(null);
+        return { gap, visible: false, text: '' };
+      }
+      const dismissed = localStorage.getItem('gap_return_dismissed_for') === (gap.lastLoggedDate || '__none__');
+      if (dismissed) {
+        renderGapReturnBanner(null);
+        return { gap, visible: false, text: '', dismissed: true };
+      }
+      renderGapReturnBanner(gap);
+      const banner = document.getElementById('gap-return-banner');
+      const visible = !banner.classList.contains('hidden');
+      const text = banner.textContent.trim();
+      return { gap, visible, text, dismissed: false };
+    }
+
+    function simulateGap({ lastLoggedIso, label, clearDismiss = true }) {
+      if (clearDismiss) localStorage.removeItem('gap_return_dismissed_for');
+      const result = renderGapScenario({ lastLoggedIso });
+      log(`${label}\ngapDays=${result.gap.gapDays} lastLogged=${result.gap.lastLoggedDate ?? 'none'}\nbannerVisible=${result.visible}\ndismissed=${result.dismissed}\nbannerText=${JSON.stringify(result.text)}`);
+      return result;
+    }
+
+    document.getElementById('btn-7day').addEventListener('click', () => {
+      simulateGap({ lastLoggedIso: '2026-06-28', label: '7-day gap (last log Sun 28 Jun)', clearDismiss: true });
+    });
+
+    document.getElementById('btn-14day').addEventListener('click', () => {
+      simulateGap({ lastLoggedIso: '2026-06-20', label: '14-day gap (last log 20 Jun)' });
+    });
+
+    document.getElementById('btn-no-gap').addEventListener('click', () => {
+      const yesterday = new Date(TODAY);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const iso = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+      simulateGap({ lastLoggedIso: iso, label: 'No gap (logged yesterday)', clearDismiss: false });
+    });
+
+    document.getElementById('btn-dismiss').addEventListener('click', () => {
+      const btn = document.getElementById('gap-return-dismiss');
+      if (btn) btn.click();
+      else dismissGapBanner('2026-06-28');
+      const banner = document.getElementById('gap-return-banner');
+      log(`Dismiss clicked.\nbannerVisible=${!banner.classList.contains('hidden')}`);
+    });
+
+    // Auto-run 7-day scenario on load for Playwright
+    window.__gapHarness = { simulateGap, renderGapScenario, TODAY };
+    simulateGap({ lastLoggedIso: '2026-06-28', label: 'AUTO: 7-day gap on load', clearDismiss: true });
+  </script>
+</body>
+</html>

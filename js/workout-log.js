@@ -6,33 +6,72 @@ function normalizeName(name) {
   return (name || '').trim().toLowerCase();
 }
 
+function canonicalName(name) {
+  return normalizeName(name).replace(/[^a-z0-9]+/g, '');
+}
+
+function normalizeSavedExercises(savedExercises) {
+  if (!savedExercises) return [];
+  if (Array.isArray(savedExercises)) return savedExercises;
+  if (typeof savedExercises === 'string') {
+    try {
+      const parsed = JSON.parse(savedExercises);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function copySavedSetIntoPlanSet(planSet, savedSet) {
+  if (!savedSet) return { ...planSet };
+  return {
+    ...planSet,
+    done: !!savedSet.done,
+    reps: savedSet.reps ?? planSet.reps,
+    durationSec: savedSet.durationSec ?? planSet.durationSec,
+  };
+}
+
 export function mergePlanWithSavedExercises(planDetail, savedExercises) {
   const planned = parseWorkoutExercises(planDetail);
-  if (!savedExercises?.length) return planned;
+  const savedRows = normalizeSavedExercises(savedExercises);
+  if (!savedRows.length) return planned;
 
-  const savedByName = new Map(
-    savedExercises.map((ex) => [normalizeName(ex.name), ex]),
-  );
+  const savedByExactName = new Map();
+  const savedByCanonicalName = new Map();
+  savedRows.forEach((ex, idx) => {
+    const exact = normalizeName(ex?.name);
+    const canonical = canonicalName(ex?.name);
+    if (exact && !savedByExactName.has(exact)) savedByExactName.set(exact, idx);
+    if (canonical && !savedByCanonicalName.has(canonical)) savedByCanonicalName.set(canonical, idx);
+  });
 
-  return planned.map((planEx) => {
-    const saved = savedByName.get(normalizeName(planEx.name));
-    if (!saved) return planEx;
+  const consumedSavedIndexes = new Set();
+
+  return planned.map((planEx, planIdx) => {
+    const exact = normalizeName(planEx.name);
+    const canonical = canonicalName(planEx.name);
+    const candidateIndexes = [
+      savedByExactName.get(exact),
+      savedByCanonicalName.get(canonical),
+      planIdx,
+    ];
+    const savedIdx = candidateIndexes.find((i) => Number.isInteger(i) && !consumedSavedIndexes.has(i));
+    const savedEx = Number.isInteger(savedIdx) ? savedRows[savedIdx] : null;
+    if (Number.isInteger(savedIdx)) consumedSavedIndexes.add(savedIdx);
+    if (!savedEx) return planEx;
 
     const sets = planEx.sets.map((planSet, i) => {
-      const savedSet = saved.sets?.[i];
-      if (!savedSet) return { ...planSet };
-      return {
-        ...planSet,
-        done: !!savedSet.done,
-        reps: savedSet.reps ?? planSet.reps,
-        durationSec: savedSet.durationSec ?? planSet.durationSec,
-      };
+      const savedSet = savedEx.sets?.[i];
+      return copySavedSetIntoPlanSet(planSet, savedSet);
     });
 
     return {
       ...planEx,
       sets,
-      skipped: !!saved.skipped,
+      skipped: !!savedEx.skipped,
     };
   });
 }
@@ -55,10 +94,9 @@ function escapeHtml(text) {
 function renderSetPill(exercise, set, index) {
   const label = setLabel(exercise, set, index);
   const done = !!set.done;
-  const active = !done && exercise.type !== 'simple';
   return `
     <button type="button"
-      class="workout-set-pill${done ? ' done' : ''}${active ? ' active' : ''}"
+      class="workout-set-pill${done ? ' done' : ''}"
       data-set-index="${index}"
       aria-pressed="${done}">
       ${done ? '✓' : label}
@@ -68,11 +106,24 @@ function renderSetPill(exercise, set, index) {
 function renderSetStepper(exercise, set, index) {
   if (exercise.type === 'timed' || exercise.type === 'simple') return '';
   const reps = set.reps ?? '';
+  const hidden = exercise.type === 'reps' || exercise.type === 'max' ? '' : ' hidden';
   return `
-    <div class="food-item-stepper workout-set-stepper hidden" data-set-index="${index}">
+    <div class="food-item-stepper workout-set-stepper${hidden}" data-set-index="${index}">
       <button type="button" class="stepper-btn workout-rep-minus" aria-label="Fewer reps">−</button>
       <span class="stepper-qty workout-rep-qty">${reps === '' ? '—' : reps}</span>
       <button type="button" class="stepper-btn workout-rep-plus" aria-label="More reps">+</button>
+    </div>`;
+}
+
+function renderSetRow(exercise, set, index) {
+  const stepper = renderSetStepper(exercise, set, index);
+  if (!stepper) {
+    return `<div class="workout-set-row">${renderSetPill(exercise, set, index)}</div>`;
+  }
+  return `
+    <div class="workout-set-row">
+      ${renderSetPill(exercise, set, index)}
+      ${stepper}
     </div>`;
 }
 
@@ -95,33 +146,29 @@ function renderExerciseCard(exercise, index) {
       </div>`;
   }
 
-  let pills, steppers;
+  let setRows;
   if (exercise.perSide) {
-    // Group per-side sets by round: show one pill per round (L+R together)
     const rounds = [];
     for (let i = 0; i < exercise.sets.length; i += 2) {
       const lSet = exercise.sets[i];
       const rSet = exercise.sets[i + 1];
       const bothDone = lSet?.done && rSet?.done;
       const label = `${lSet?.round || Math.floor(i / 2) + 1} L+R`;
+      const stepper = renderSetStepper(exercise, exercise.sets[i], i);
       rounds.push(`
-        <button type="button"
-          class="workout-set-pill${bothDone ? ' done' : ''}${!bothDone && exercise.type !== 'simple' ? ' active' : ''}"
-          data-set-index="${i}"
-          aria-pressed="${bothDone}">
-          ${bothDone ? '✓' : label}
-        </button>`);
+        <div class="workout-set-row">
+          <button type="button"
+            class="workout-set-pill${bothDone ? ' done' : ''}"
+            data-set-index="${i}"
+            aria-pressed="${bothDone}">
+            ${bothDone ? '✓' : label}
+          </button>
+          ${stepper}
+        </div>`);
     }
-    pills = rounds.join('');
-    // Only show one stepper per round (for the L set, shared reps)
-    steppers = [];
-    for (let i = 0; i < exercise.sets.length; i += 2) {
-      steppers.push(renderSetStepper(exercise, exercise.sets[i], i));
-    }
-    steppers = steppers.join('');
+    setRows = rounds.join('');
   } else {
-    pills = (exercise.sets || []).map((set, i) => renderSetPill(exercise, set, i)).join('');
-    steppers = (exercise.sets || []).map((set, i) => renderSetStepper(exercise, set, i)).join('');
+    setRows = (exercise.sets || []).map((set, i) => renderSetRow(exercise, set, i)).join('');
   }
 
   return `
@@ -131,14 +178,23 @@ function renderExerciseCard(exercise, index) {
         ${target}
         ${note}
       </div>
-      <div class="workout-set-pills">${pills}</div>
-      <div class="workout-set-steppers">${steppers}</div>
+      <div class="workout-set-rows">${setRows}</div>
     </div>`;
 }
 
-export function renderWorkoutExerciseList(plan, savedLog, container) {
+export function renderWorkoutExerciseList(plan, savedLog, container, { force = false } = {}) {
   const el = container || document.getElementById('workout-exercise-list');
   if (!el) return;
+
+  const planDetail = plan?.workout_detail || '';
+  const savedKey = JSON.stringify(normalizeSavedExercises(savedLog?.exercises_json));
+
+  if (!force && el._userInteracted && el.dataset.planDetail === planDetail) {
+    return;
+  }
+  if (!force && el.dataset.planDetail === planDetail && el.dataset.savedKey === savedKey && el._workoutExercises?.length) {
+    return;
+  }
 
   const exercises = mergePlanWithSavedExercises(
     plan?.workout_detail,
@@ -147,12 +203,17 @@ export function renderWorkoutExerciseList(plan, savedLog, container) {
 
   if (!exercises.length) {
     el.innerHTML = '<p class="text-muted workout-empty-hint">No exercises parsed from today\'s plan.</p>';
+    el._workoutExercises = [];
+    el.dataset.planDetail = planDetail;
+    el.dataset.savedKey = savedKey;
     return;
   }
 
   el.innerHTML = exercises.map(renderExerciseCard).join('');
   el._workoutExercises = exercises;
-  el.dataset.planDetail = plan?.workout_detail || '';
+  el._userInteracted = false;
+  el.dataset.planDetail = planDetail;
+  el.dataset.savedKey = savedKey;
   syncWorkoutSteppersFromState(el);
 }
 
@@ -167,25 +228,21 @@ function syncWorkoutSteppersFromState(container) {
     if (!card || exercise.type === 'simple') return;
 
     if (exercise.perSide) {
-      // Per-side: one pill per round (L+R grouped)
       for (let i = 0; i < exercise.sets.length; i += 2) {
         const lSet = exercise.sets[i];
         const rSet = exercise.sets[i + 1];
-        const pill = card.querySelector(`.workout-set-pill[data-set-index="${i}"]`);
-        const stepper = card.querySelector(`.workout-set-stepper[data-set-index="${i}"]`);
+        const row = card.querySelector(`.workout-set-row .workout-set-pill[data-set-index="${i}"]`)?.closest('.workout-set-row');
+        const pill = row?.querySelector('.workout-set-pill');
+        const stepper = row?.querySelector('.workout-set-stepper');
         if (!pill) continue;
 
         const bothDone = lSet?.done && rSet?.done;
-        const isActive = exercise._activeSetIndex === i && !bothDone;
         const label = `${lSet?.round || Math.floor(i / 2) + 1} L+R`;
         pill.classList.toggle('done', bothDone);
-        pill.classList.toggle('active', isActive);
         pill.textContent = bothDone ? '✓' : label;
         pill.setAttribute('aria-pressed', String(bothDone));
 
         if (stepper) {
-          const showStepper = bothDone || isActive;
-          stepper.classList.toggle('hidden', !showStepper);
           const qty = stepper.querySelector('.workout-rep-qty');
           if (qty) qty.textContent = lSet.reps == null ? '—' : String(lSet.reps);
         }
@@ -196,15 +253,11 @@ function syncWorkoutSteppersFromState(container) {
         const stepper = card.querySelector(`.workout-set-stepper[data-set-index="${setIdx}"]`);
         if (!pill) return;
 
-        const isActive = exercise._activeSetIndex === setIdx && !set.done;
         pill.classList.toggle('done', !!set.done);
-        pill.classList.toggle('active', isActive);
         pill.textContent = set.done ? '✓' : setLabel(exercise, set, setIdx);
         pill.setAttribute('aria-pressed', String(!!set.done));
 
         if (stepper) {
-          const showStepper = set.done || isActive;
-          stepper.classList.toggle('hidden', !showStepper);
           const qty = stepper.querySelector('.workout-rep-qty');
           if (qty) qty.textContent = set.reps == null ? '—' : String(set.reps);
         }
@@ -220,14 +273,6 @@ function updateSetReps(exercise, setIndex, delta) {
   set.reps = next === 0 && exercise.type === 'max' ? null : next;
 }
 
-function canMarkSetDone(exercise, set) {
-  if (exercise.type === 'timed') return true;
-  if (exercise.type === 'reps' || exercise.type === 'max') {
-    return set.reps != null && set.reps > 0;
-  }
-  return false;
-}
-
 /** For perSide exercises, find the partner set (same round, opposite side). */
 function findPartnerSetIndex(exercise, setIdx) {
   if (!exercise.perSide) return -1;
@@ -239,51 +284,51 @@ function findPartnerSetIndex(exercise, setIdx) {
   );
 }
 
+function ensureSetRepsForDone(exercise, set) {
+  if (exercise.type === 'reps' && set.reps == null) {
+    set.reps = exercise.targetReps;
+  }
+  if (exercise.type === 'max' && (set.reps == null || set.reps <= 0)) {
+    set.reps = 1;
+  }
+}
+
+function markSetDone(exercise, setIdx, done) {
+  const set = exercise.sets[setIdx];
+  if (!set) return;
+  if (done) {
+    ensureSetRepsForDone(exercise, set);
+    set.done = true;
+    const partner = findPartnerSetIndex(exercise, setIdx);
+    if (partner !== -1) {
+      const ps = exercise.sets[partner];
+      ensureSetRepsForDone(exercise, ps);
+      ps.done = true;
+      if (ps.reps == null && set.reps != null) ps.reps = set.reps;
+    }
+  } else {
+    set.done = false;
+    const partner = findPartnerSetIndex(exercise, setIdx);
+    if (partner !== -1) exercise.sets[partner].done = false;
+  }
+}
+
 function handleSetPillClick(container, exIdx, setIdx) {
   const exercises = getExercisesFromContainer(container);
   const exercise = exercises[exIdx];
   const set = exercise?.sets?.[setIdx];
   if (!exercise || !set) return;
 
-  if (exercise.type === 'timed') {
-    const newDone = !set.done;
-    set.done = newDone;
-    // Per-side: toggle partner too
-    const partner = findPartnerSetIndex(exercise, setIdx);
-    if (partner !== -1) exercise.sets[partner].done = newDone;
-    exercise._activeSetIndex = null;
+  if (exercise.perSide) {
+    const lSet = exercise.sets[setIdx];
+    const rSet = exercise.sets[setIdx + 1];
+    const bothDone = lSet?.done && rSet?.done;
+    markSetDone(exercise, setIdx, !bothDone);
     syncWorkoutSteppersFromState(container);
     return;
   }
 
-  if (set.done) {
-    set.done = false;
-    // Per-side: undo partner too
-    const partner = findPartnerSetIndex(exercise, setIdx);
-    if (partner !== -1) exercise.sets[partner].done = false;
-    exercise._activeSetIndex = setIdx;
-    syncWorkoutSteppersFromState(container);
-    return;
-  }
-
-  if (exercise._activeSetIndex === setIdx && canMarkSetDone(exercise, set)) {
-    set.done = true;
-    // Per-side: mark partner done too (copy reps)
-    const partner = findPartnerSetIndex(exercise, setIdx);
-    if (partner !== -1) {
-      const ps = exercise.sets[partner];
-      ps.done = true;
-      if (ps.reps == null && set.reps != null) ps.reps = set.reps;
-    }
-    exercise._activeSetIndex = null;
-    syncWorkoutSteppersFromState(container);
-    return;
-  }
-
-  if (exercise.type === 'reps' && set.reps == null) {
-    set.reps = exercise.targetReps;
-  }
-  exercise._activeSetIndex = setIdx;
+  markSetDone(exercise, setIdx, !set.done);
   syncWorkoutSteppersFromState(container);
 }
 
@@ -431,6 +476,6 @@ export function isWorkoutLogComplete(log) {
 export function resetWorkoutExerciseList(plan) {
   const el = document.getElementById('workout-exercise-list');
   if (!el) return;
-  renderWorkoutExerciseList(plan, null, el);
-  el.dataset.planDetail = plan?.workout_detail || '';
+  el._userInteracted = false;
+  renderWorkoutExerciseList(plan, null, el, { force: true });
 }
