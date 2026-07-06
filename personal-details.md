@@ -12,8 +12,8 @@ Primary Goal:
 
 Secondary Goals:
 
-* Lose 7-8 kg body fat
-* Reach 70-71 kg body weight
+* Lose 4-6 kg body fat (revised Jul 2026 — realistic for HM prep)
+* Reach 73-74 kg body weight by race day
 * Improve blood markers
 * Regain lost muscle through muscle memory
 * Reduce waist by 2-4 inches
@@ -323,6 +323,8 @@ Fat floor:
 
 Recalculate TDEE when weekly km crosses 25, 35, 45 (see `weekly-plan-and-nutrition.mdc`).
 
+These are the current anchors (as of Jun 2026 at ~78 kg). Recalculate when weekly km crosses volume thresholds or body comp scans indicate a BF% band change.
+
 Pre-long-run (Friday dinner):
 Carb-forward — +1 chapati or small poha; not a light dinner
 
@@ -425,13 +427,13 @@ Algae Omega-3:
 # September 2026 Targets
 
 Weight:
-70-71 kg
+73-74 kg (revised Jul 2026 — was 70-71; more realistic for muscle preservation during HM build)
 
 Body Fat:
 18-19%
 
 Fat Loss:
-7-8 kg
+4-6 kg from restart (~78.5 kg)
 
 Muscle Gain:
 1-2 kg regained lean mass

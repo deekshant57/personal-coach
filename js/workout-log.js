@@ -1,5 +1,6 @@
 // Workout log — structured per-set logging (P14)
 import { parseWorkoutExercises, formatWorkoutSummary } from './plan-templates.js';
+import { readRpeFromSlider } from './run-log.js';
 
 function normalizeName(name) {
   return (name || '').trim().toLowerCase();
@@ -375,7 +376,7 @@ export function collectWorkoutLogFromForm() {
     done: document.getElementById('training-done-btn').classList.contains('done'),
     exercises_json: exercises.length ? exercises : null,
     what_i_did,
-    rpe: parseInt(document.getElementById('input-workout-rpe').value, 10) || null,
+    rpe: readRpeFromSlider('input-workout-rpe'),
     notes: document.getElementById('input-workout-notes').value || null,
   };
 }
@@ -412,7 +413,7 @@ export function validateWorkoutLogForDone(log) {
   }
 
   const rpe = Number(log.rpe);
-  if (!rpe || rpe < 1 || rpe > 10) errors.push('Set RPE before marking done');
+  if (!rpe || rpe < 1 || rpe > 10) errors.push('RPE not set');
 
   const fallbackText = document.getElementById('input-workout-what')?.value?.trim() || '';
   if (!workoutLogHasLoggedWork(log, { fallbackText })) {

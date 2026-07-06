@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coach-v19';
+const CACHE_NAME = 'coach-v21';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,8 @@ const ASSETS = [
   './js/plan-merge.js',
   './js/supabase.js',
   './js/today.js',
+  './js/block-context.js',
+  './js/coach-layout.js',
   './js/workout-log.js',
   './js/run-log.js',
   './js/food.js',

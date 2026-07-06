@@ -9,12 +9,14 @@ Integrated coaching system for the **Vedanta Zinc City Half Marathon (6 Sep 2026
 | File | Purpose |
 |------|---------|
 | `personal-details.md` | Athlete profile — metrics, history, blood work, lifestyle |
+| `coach/coaching-log.md` | Coaching decision history — read before every session, append after weekly debriefs |
+| `coach/current-block.md` | Active training block — goal, priorities, phase, race timeline |
 | `coach/week-plans.py` | Coach-authored `WEEK_PLANS` — sync to Supabase via `seed-plans.py` |
 | `seed-plans.py` | Push week plans → Supabase `daily_plans` |
 | `scripts/import-runs.py` | Parse GPX / Strava export → JSON + print fields for app |
 | `docs/RUN-IMPORT.md` | GPX import guide |
 | `coach-debriefs.sql` | Supabase table for archived weekly coach reports |
-| `.cursor/rules/*.mdc` | Coach persona, debrief protocol, weekly plans |
+| `.cursor/rules/*.mdc` | Coach persona, debrief protocol, nutrition rules |
 | `js/` | PWA — daily logging, debrief paste, week/progress views |
 
 ## Daily workflow
@@ -24,15 +26,16 @@ Integrated coaching system for the **Vedanta Zinc City Half Marathon (6 Sep 2026
 3. Optional: GPX → `imports/runs/` → `python3 scripts/import-runs.py --folder`
 4. Log km / pace / RPE / knee / meals / supplements in the **app**
 5. **Debrief tab** → copy paste → Cursor: `End of day tracker upload — DD MMM,YY`
-6. Coach returns 5-section debrief
+6. Coach returns 4-section debrief
 
 ## Monday workflow
 
 1. Weigh in → log weight + waist in app vitals
 2. Debrief tab (Monday) → copy paste with prior-week rollups
 3. Cursor: `Monday — weekly debrief — DD MMM,YY`
-4. Coach returns 8-section debrief + Week N+1 plan → update `coach/week-plans.py` → `python3 seed-plans.py`
-5. **save weekly debrief** skill → `coach_debriefs` (Week tab)
+4. Coach returns 9-section debrief + Week N+1 plan → update `coach/week-plans.py` → `python3 seed-plans.py`
+5. Coach appends decisions to `coach/coaching-log.md` (Section 9)
+6. **save weekly debrief** skill → `coach_debriefs` (Week tab)
 
 ## After plan changes
 
@@ -47,4 +50,21 @@ Food in app by portions. Coach estimates protein/calories in debrief.
 
 ## Race timeline
 
-~10 weeks from late June 2026. Long-run target: **18–20 km**. Weight target: **70–71 kg**.
+~10 weeks from late June 2026. Long-run target: **18–20 km**. Weight target: **73–74 kg** (revised Jul 2026).
+
+## Artifact relationships
+
+| Artifact | Role |
+|----------|------|
+| `end-of-day-debrief.mdc` | Daily debrief — 4 sections |
+| `weekly-debrief.mdc` | Weekly debrief — 9 sections (retrospective + plan + note + log update) |
+| `weekly-plan-and-nutrition.mdc` | Nutrition coaching rules + reference tables |
+| `body-comp.mdc` | Body composition scan interpretation |
+| `resolve-custom-food-macros` skill | Manual — patch custom food P/kcal in `food_logs` |
+| `save-weekly-debrief` skill | Manual — archive full report to `coach_debriefs` |
+| App Debrief tab | Generates input paste for daily or Monday metrics |
+| App Week tab | Reads `coach_debriefs` for the week covered (read-only) |
+
+Coach responses are archived via `save-weekly-debrief` when invoked after Monday debrief. Not auto-saved.
+
+Weekly debrief is **not** the `resolve-custom-food-macros` skill. That skill only patches `food_logs` for custom items with missing macros.

@@ -1,5 +1,5 @@
 // Food tab — tap grid, meal slots, protein calculation
-import { FOOD_ITEMS, SLOT_LABELS, formatFoodLabel, formatUnitDisplay, sumItemsMacros } from './data.js';
+import { FOOD_ITEMS, SLOT_LABELS, formatFoodLabel, sumItemsMacros } from './data.js';
 import {
   resolveLogItems,
   itemFromNotesOnly,
@@ -11,7 +11,7 @@ import {
   macrosFromResolvedLog,
 } from './food-macros.js';
 import { autoResolveFoodLogsForDate } from './food-resolve.js';
-import { state, getToday, getCurrentMealSlots, showToast, isViewingFuture } from './app.js';
+import { state, getToday, getCurrentMealSlots, showToast, showConfirm, isViewingFuture, formatDate } from './app.js';
 import { upsertFoodLog, fetchFoodLogs, deleteFoodLog } from './supabase.js';
 import { loadMealsSummary } from './today.js';
 import { setOverlayLoading } from './spinner.js';
@@ -37,6 +37,35 @@ let editingCustomId = null;
 let foodAutosaveSuspended = false;
 
 let foodLogsCache = { date: null, logs: null };
+let yesterdayLogsCache = { forDate: null, logs: null };
+
+const FOOD_HINT_DISMISSED_KEY = 'food_hint_dismissed';
+const SAME_AS_DISMISSED_PREFIX = 'same_as_dismissed';
+
+function dismissFoodGridHint() {
+  try {
+    localStorage.setItem(FOOD_HINT_DISMISSED_KEY, '1');
+  } catch {
+    /* private browsing */
+  }
+  document.getElementById('food-grid-hint')?.classList.add('hidden');
+}
+
+function syncFoodGridHintVisibility() {
+  const hint = document.getElementById('food-grid-hint');
+  if (!hint) return;
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem(FOOD_HINT_DISMISSED_KEY) === '1';
+  } catch {
+    dismissed = false;
+  }
+  hint.classList.toggle('hidden', dismissed);
+  if (!dismissed) {
+    const q = (document.getElementById('food-search')?.value || '').trim();
+    if (!q) hint.textContent = 'Tap ADD, then use − / + on the item';
+  }
+}
 
 export function invalidateFoodLogsCache() {
   foodLogsCache = { date: null, logs: null };
@@ -67,6 +96,8 @@ export function initFood() {
   setupDirtySlotGuard();
   setupNotesPersistence();
   setupFoodSearch();
+  setupSameAsYesterday();
+  setupClearSlot();
   document.getElementById('next-meal')?.addEventListener('click', () => goToNextMeal());
   registerAutosaveFlush({ food: flushFoodAutosaves });
 }
@@ -113,6 +144,10 @@ async function persistFoodSlot(slot, { silent = true } = {}) {
     const totalCalories = resolvedItems.reduce((s, i) => s + i.calories * i.qty, 0);
     const ok = await upsertFoodLog(date, slot, resolvedItems, trimmedNotes || null, totalProtein, totalCalories);
     if (!ok) return false;
+
+    if (resolvedItems.length > 0 || trimmedNotes) {
+      dismissFoodGridHint();
+    }
 
     invalidateFoodLogsCache();
     slotItems[slot] = resolvedItems;
@@ -167,7 +202,7 @@ export async function loadFoodData() {
   const previewBanner = document.getElementById('food-preview-banner');
   const planPreview = document.getElementById('food-plan-preview');
   const loggingIds = [
-    'meal-slots', 'meal-hint', 'food-search-wrap', 'food-grid-hint', 'food-grid',
+    'meal-slots', 'meal-hint', 'same-as-yesterday', 'food-search-wrap', 'food-grid-hint', 'food-grid',
     'food-notes-group', 'meal-summary', 'food-sticky-footer',
   ];
 
@@ -185,6 +220,7 @@ export async function loadFoodData() {
   previewBanner?.classList.add('hidden');
   planPreview?.classList.add('hidden');
   loggingIds.forEach((id) => document.getElementById(id)?.classList.remove('hidden'));
+  syncFoodGridHintVisibility();
 
   const searchEl = document.getElementById('food-search');
   if (searchEl) searchEl.value = '';
@@ -328,6 +364,7 @@ function updateSlotPillStates() {
 
 function updateFoodFooter() {
   const items = slotItems[activeSlot] || [];
+  const notes = (slotNotes[activeSlot] || '').trim();
   const totalP = items.reduce((s, i) => s + i.protein * i.qty, 0);
   const totalC = items.reduce((s, i) => s + i.calories * i.qty, 0);
   const totalEl = document.getElementById('food-slot-total');
@@ -339,6 +376,11 @@ function updateFoodFooter() {
   const nextSlot = getFirstUnfilledSlot({ fallbackToFirst: false });
   if (nextBtn) {
     nextBtn.classList.toggle('hidden', !nextSlot || nextSlot === activeSlot);
+  }
+
+  const clearBtn = document.getElementById('clear-slot');
+  if (clearBtn) {
+    clearBtn.classList.toggle('hidden', items.length === 0 && !notes);
   }
 }
 
@@ -445,6 +487,146 @@ function renderSlotState() {
   updateFoodFooter();
   renderFoodCoachBanner();
   applyFoodSearchFilter();
+  renderSameAsYesterday();
+}
+
+// ── Same as yesterday ────────────────────────────────────────
+function getYesterdayIso() {
+  const d = new Date(state.currentDate);
+  d.setDate(d.getDate() - 1);
+  return formatDate(d);
+}
+
+function isSameAsDismissed(date, slot) {
+  try {
+    return localStorage.getItem(`${SAME_AS_DISMISSED_PREFIX}:${date}:${slot}`) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function dismissSameAsBanner(date, slot) {
+  try {
+    localStorage.setItem(`${SAME_AS_DISMISSED_PREFIX}:${date}:${slot}`, '1');
+  } catch {
+    /* private browsing */
+  }
+}
+
+async function getYesterdayLogs() {
+  const today = getToday();
+  if (yesterdayLogsCache.forDate === today) {
+    return yesterdayLogsCache.logs;
+  }
+  const logs = await fetchFoodLogsForDate(getYesterdayIso());
+  yesterdayLogsCache = { forDate: today, logs: logs || [] };
+  return yesterdayLogsCache.logs;
+}
+
+async function renderSameAsYesterday() {
+  const banner = document.getElementById('same-as-yesterday');
+  if (!banner || isViewingFuture()) {
+    banner?.classList.add('hidden');
+    return;
+  }
+
+  const items = slotItems[activeSlot] || [];
+  const notes = (slotNotes[activeSlot] || '').trim();
+  if (items.length > 0 || notes) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  if (isSameAsDismissed(getToday(), activeSlot)) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  const logs = await getYesterdayLogs();
+  const yesterdayLog = logs.find((l) => l.meal_slot === activeSlot);
+  if (!yesterdayLog) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  const { items: yItems } = macrosFromResolvedLog(yesterdayLog);
+  const yNotes = (yesterdayLog.custom_text || '').trim();
+  if (yItems.length === 0 && !yNotes) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  const slotLabel = (SLOT_LABELS[activeSlot] || activeSlot).toLowerCase();
+  document.getElementById('same-as-label').textContent = `Yesterday's ${slotLabel}:`;
+  const names = yItems.map((i) => formatFoodLabel(i, i.qty || 1)).join(', ');
+  document.getElementById('same-as-items').textContent = names || yNotes;
+
+  banner.dataset.yesterdayItems = JSON.stringify(yItems);
+  banner.dataset.yesterdayNotes = yNotes;
+  banner.classList.remove('hidden');
+}
+
+function applySameAsYesterday() {
+  const banner = document.getElementById('same-as-yesterday');
+  if (!banner) return;
+
+  const yItems = JSON.parse(banner.dataset.yesterdayItems || '[]');
+  const yNotes = banner.dataset.yesterdayNotes || '';
+  slotItems[activeSlot] = JSON.parse(JSON.stringify(yItems));
+  slotNotes[activeSlot] = yNotes;
+  document.getElementById('food-notes').value = yNotes;
+  banner.classList.add('hidden');
+  notifyFoodChanged();
+  showToast('Copied from yesterday');
+}
+
+function setupSameAsYesterday() {
+  document.getElementById('same-as-use')?.addEventListener('click', () => {
+    applySameAsYesterday();
+  });
+  document.getElementById('same-as-dismiss')?.addEventListener('click', () => {
+    dismissSameAsBanner(getToday(), activeSlot);
+    document.getElementById('same-as-yesterday')?.classList.add('hidden');
+  });
+}
+
+// ── Clear slot ───────────────────────────────────────────────
+function setupClearSlot() {
+  document.getElementById('clear-slot')?.addEventListener('click', () => {
+    clearActiveSlot();
+  });
+}
+
+async function clearActiveSlot() {
+  const items = slotItems[activeSlot] || [];
+  const notes = (slotNotes[activeSlot] || '').trim();
+  if (items.length === 0 && !notes) return;
+
+  const label = SLOT_LABELS[activeSlot] || activeSlot;
+  const ok = await showConfirm(`Remove all items from ${label}?`, {
+    title: 'Clear meal slot',
+    okLabel: 'Clear',
+    danger: true,
+  });
+  if (!ok) return;
+
+  cancelAutosave(foodSlotKey(getToday(), activeSlot));
+  slotItems[activeSlot] = [];
+  slotNotes[activeSlot] = '';
+  document.getElementById('food-notes').value = '';
+
+  if (savedSnapshots[activeSlot]) {
+    await deleteFoodLog(getToday(), activeSlot);
+    invalidateFoodLogsCache();
+    delete savedSnapshots[activeSlot];
+    filledSlots.delete(activeSlot);
+  }
+
+  updateSlotPillStates();
+  renderSlotState();
+  updateTotalProtein();
+  await loadMealsSummary();
+  showToast(`${label} cleared`);
 }
 
 // ── Food Grid ────────────────────────────────────────────────
@@ -457,10 +639,11 @@ function renderFoodGrid() {
     el.className = 'food-item';
     el.dataset.id = item.id;
     el.innerHTML = `
-      <span class="food-item-emoji">${item.emoji}</span>
-      <span class="food-item-name">${item.name}</span>
+      <span class="food-item-header">
+        <span class="food-item-emoji">${item.emoji}</span>
+        <span class="food-item-name">${item.name}</span>
+      </span>
       <span class="food-item-protein">${item.protein}g P · ${item.calories} kcal</span>
-      <span class="food-item-unit">per ${formatUnitDisplay(item.unit)}</span>
       <button type="button" class="food-item-add">ADD</button>
       <div class="food-item-stepper hidden">
         <button type="button" class="stepper-btn stepper-minus" aria-label="Remove one ${item.name}">−</button>
@@ -487,8 +670,10 @@ function renderFoodGrid() {
   customEl.type = 'button';
   customEl.className = 'food-item custom';
   customEl.innerHTML = `
-    <span class="food-item-emoji">+</span>
-    <span class="food-item-name">Custom</span>
+    <span class="food-item-header">
+      <span class="food-item-emoji">+</span>
+      <span class="food-item-name">Custom</span>
+    </span>
     <span class="food-item-protein">Add item</span>
   `;
   customEl.addEventListener('click', () => {
@@ -678,9 +863,8 @@ export function updateProteinBar(total, calories = null) {
 
   const calEl = document.getElementById('calorie-current');
   if (calEl) {
-    const showCal = calories != null && calories > 0;
-    calEl.textContent = showCal ? `~${Math.round(calories).toLocaleString()} kcal` : '';
-    calEl.classList.toggle('hidden', !showCal);
+    const kcal = Math.round(calories || 0);
+    calEl.textContent = kcal > 0 ? `~${kcal.toLocaleString()} kcal` : '~0 kcal';
   }
 
   const isLow = pct < 60;

@@ -16,7 +16,11 @@ import { initDebrief, refreshDebrief, refreshDebriefIfActive } from './debrief.j
 import { initProgress, loadProgressView, loadBodyCompForDate } from './progress.js';
 import { initDayProgress, updateDayProgress } from './day-progress.js';
 import { initSupplements } from './supplements.js';
-import { loadingInlineHtml, setButtonLoading, setOverlayLoading } from './spinner.js';
+import { setupCoachLayout, resetCoachEditModeForDate } from './coach-layout.js';
+import { setupObservationCoach } from './observation-coach.js';
+import { setButtonLoading, setOverlayLoading, skeletonPlanHtml } from './spinner.js';
+import { setupModalFocusTraps } from './modal-focus.js';
+import { setupGapReturn, checkAndRenderGapReturn } from './gap-return.js';
 import { flushAllAutosaves, setupAutosaveLifecycle } from './auto-save.js';
 import { invalidateWeekStatsCache } from './week-stats.js';
 import { initSaveState, clearSaveState } from './save-state.js';
@@ -135,9 +139,53 @@ export function showSavedToast() {
   showToast('Saved', { variant: 'saved' });
 }
 
+// ── Confirm Modal ────────────────────────────────────────────
+let confirmResolve = null;
+
+function closeConfirmModal(result) {
+  document.getElementById('confirm-modal')?.classList.remove('show');
+  confirmResolve?.(result);
+  confirmResolve = null;
+}
+
+export function setupConfirmModal() {
+  document.getElementById('confirm-modal-ok')?.addEventListener('click', () => {
+    closeConfirmModal(true);
+  });
+  document.getElementById('confirm-modal-cancel')?.addEventListener('click', () => {
+    closeConfirmModal(false);
+  });
+  document.getElementById('confirm-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'confirm-modal') closeConfirmModal(false);
+  });
+}
+
+export function showConfirm(message, {
+  title = 'Confirm',
+  okLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  danger = false,
+} = {}) {
+  return new Promise((resolve) => {
+    confirmResolve = resolve;
+    const titleEl = document.getElementById('confirm-modal-title');
+    const msgEl = document.getElementById('confirm-modal-message');
+    const okBtn = document.getElementById('confirm-modal-ok');
+    const cancelBtn = document.getElementById('confirm-modal-cancel');
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (okBtn) {
+      okBtn.textContent = okLabel;
+      okBtn.className = danger ? 'btn btn-danger' : 'btn btn-primary';
+    }
+    if (cancelBtn) cancelBtn.textContent = cancelLabel;
+    document.getElementById('confirm-modal')?.classList.add('show');
+  });
+}
+
 // ── Tab Routing ──────────────────────────────────────────────
 function getActiveTab() {
-  return document.querySelector('.nav-tab.active')?.dataset.tab || 'today';
+  return document.querySelector('.nav-tab.active')?.dataset.tab || 'coach';
 }
 
 function flushAutosavesInBackground() {
@@ -178,11 +226,10 @@ function setupTabs() {
       updateTabChrome(tabName);
 
       // Refresh data on tab switch
-      if (tabName === 'today') loadTodayData();
+      if (tabName === 'coach') loadTodayData();
       if (tabName === 'food') loadFoodData();
       if (tabName === 'week') loadWeekView();
       if (tabName === 'progress') loadProgressView();
-      if (tabName === 'debrief') refreshDebrief();
     });
   });
 }
@@ -215,6 +262,7 @@ async function onDateChange() {
   invalidateWeekStatsCache();
   invalidateFoodLogsCache();
   clearSaveState();
+  resetCoachEditModeForDate();
   setContentLoading(true);
   try {
     updateDateDisplay();
@@ -233,6 +281,8 @@ async function onDateChange() {
       await loadWeekView();
     }
     updatePreviewMode();
+    refreshDebrief();
+    await checkAndRenderGapReturn({ viewingToday: isViewingToday() });
   } finally {
     setContentLoading(false);
     updateDateDisplay();
@@ -250,7 +300,7 @@ function setContentLoading(loading, { overlay = false } = {}) {
 
   if (loading) {
     const directive = document.getElementById('plan-directive');
-    if (directive) directive.innerHTML = loadingInlineHtml('Loading plan…');
+    if (directive) directive.innerHTML = skeletonPlanHtml();
     const summary = document.getElementById('plan-training-summary');
     if (summary) summary.textContent = '';
   }
@@ -261,7 +311,7 @@ async function openDayFromWeek(dateStr) {
   const [year, month, day] = dateStr.split('-').map(Number);
   state.currentDate = new Date(year, month - 1, day);
   await onDateChange();
-  document.querySelector('.nav-tab[data-tab="today"]')?.click();
+  document.querySelector('.nav-tab[data-tab="coach"]')?.click();
 }
 
 function updateDateDisplay() {
@@ -270,9 +320,12 @@ function updateDateDisplay() {
   const offTodayBar = document.getElementById('date-off-today-bar');
   const hintEl = document.getElementById('date-off-today-hint');
   const nextBtn = document.getElementById('date-next');
-  const planTitle = document.getElementById('plan-card-title');
 
-  document.getElementById('date-display').textContent = formatDayDisplay(state.currentDate);
+  const dateEl = document.getElementById('date-display');
+  if (dateEl) {
+    dateEl.textContent = formatDayDisplay(state.currentDate);
+    dateEl.dataset.iso = formatDate(state.currentDate);
+  }
   offTodayBar?.classList.toggle('hidden', viewingToday);
   nextBtn.disabled = !canGoNextDay();
 
@@ -281,18 +334,6 @@ function updateDateDisplay() {
       hintEl.textContent = 'Preview — log on the day';
     } else if (isViewingPast()) {
       hintEl.textContent = 'Viewing a past day';
-    }
-  }
-
-  if (planTitle) {
-    if (viewingToday) {
-      planTitle.textContent = "Today's Plan";
-    } else if (isViewingTomorrow()) {
-      planTitle.textContent = "Tomorrow's Plan";
-    } else if (viewingFuture) {
-      planTitle.textContent = 'Upcoming Plan';
-    } else {
-      planTitle.textContent = 'Plan';
     }
   }
 }
@@ -493,12 +534,17 @@ async function bootApp() {
   booted = true;
   setupTabs();
   setupDateNav();
+  setupConfirmModal();
+  setupModalFocusTraps();
+  setupGapReturn();
   initSaveState();
   setupAutosaveLifecycle();
   setupHorizontalWheelScroll();
   updateDateDisplay();
   await loadPlan();
   initToday();
+  setupCoachLayout();
+  setupObservationCoach();
   initFood();
   initWeek(openDayFromWeek);
   initProgress();
@@ -506,6 +552,7 @@ async function bootApp() {
   initDayProgress();
   await loadTodayData();
   updatePreviewMode();
+  await checkAndRenderGapReturn({ viewingToday: isViewingToday() });
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }

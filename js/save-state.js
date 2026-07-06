@@ -1,11 +1,17 @@
 // Global save status — saving indicator + persistent error banner with retry (P8)
 import { showSavedToast } from './app.js';
 import { SLOT_LABELS } from './data.js';
+import { clearGapDismissOnLog } from './gap-return.js';
 
 const pending = new Set();
 const failures = new Map(); // key -> { label, retry }
 
 let toastAfterBatch = false;
+let postSaveCallback = null;
+
+export function setPostSaveCallback(fn) {
+  postSaveCallback = fn;
+}
 
 export function initSaveState() {
   document.getElementById('save-error-retry')?.addEventListener('click', () => {
@@ -81,6 +87,10 @@ export async function trackSave(key, label, fn, { toastOnSuccess = true } = {}) 
       });
       toastAfterBatch = false;
       return false;
+    }
+    postSaveCallback?.();
+    if (['vitals', 'notes', 'supplements'].includes(key) || key.startsWith('food:') || key.startsWith('training:')) {
+      clearGapDismissOnLog();
     }
     return true;
   } catch (err) {

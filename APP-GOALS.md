@@ -29,7 +29,7 @@ Morning → log vitals → follow plan → log training + food → generate debr
 | **Location** | Udaipur — Indian veg diet, park runs, bodyweight until ~Jul 2026 |
 | **When used** | Morning (vitals), post-workout (training), after each meal (food), night (debrief) |
 | **Race** | Vedanta Zinc City Half Marathon — 6 Sep 2026, 5:00 AM |
-| **Body goal** | 70–71 kg, knees intact, 18–20 km long run in training |
+| **Body goal** | 73–74 kg by race day, knees intact, 18–20 km long run in training |
 
 ---
 

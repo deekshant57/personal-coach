@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -44,7 +44,7 @@
   </div>
 
   <!-- Toast notification -->
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="alert"></div>
 
   <div class="content-loading-overlay" id="content-loading-overlay" aria-hidden="true">
     <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
@@ -71,7 +71,7 @@
           <span class="current" id="protein-current">0g</span>
           <span class="macro-targets">
             <span class="target" id="protein-target">/ 148g protein</span>
-            <span id="calorie-current" class="calorie-current hidden"></span>
+            <span id="calorie-current" class="calorie-current"></span>
           </span>
         </div>
         <div class="protein-bar">
@@ -83,14 +83,16 @@
         <button type="button" class="date-nav-btn" id="date-prev" aria-label="Previous day">&larr;</button>
         <div class="date-header-center">
           <div class="date-text" id="date-display"></div>
+          <div class="block-context-chip" id="block-context-chip"></div>
           <div class="date-sub" id="date-day-type"></div>
         </div>
         <button type="button" class="date-nav-btn" id="date-next" aria-label="Next day">&rarr;</button>
       </div>
       <div class="date-off-today-bar hidden" id="date-off-today-bar">
-        <span class="date-off-today-hint">Viewing a past day</span>
+        <span class="date-off-today-hint" id="date-off-today-hint">Viewing a past day</span>
         <button type="button" class="date-goto-today-btn" id="date-today-btn">Go to today</button>
       </div>
+      <div class="gap-return-banner hidden" id="gap-return-banner" role="status" aria-live="polite"></div>
 
       <div class="day-progress" id="day-progress">
         <div class="coach-next hidden" id="coach-next">
@@ -106,12 +108,20 @@
     </div>
 
     <!-- ════════════════════════════════════════════════════════
-         TAB: TODAY
+         TAB: COACH
          ════════════════════════════════════════════════════════ -->
-    <div class="tab-content active" id="tab-today">
+    <div class="tab-content active" id="tab-coach">
+      <div class="coach-past-edit-bar hidden" id="coach-past-edit-bar">
+        <span class="coach-past-edit-label">Viewing a logged day</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="coach-past-edit-btn">Edit</button>
+      </div>
+
+      <div class="coach-observation-block hidden" id="coach-observation-block" role="status" aria-live="polite"></div>
+
+      <div class="coach-sections" id="coach-sections">
 
       <!-- Card: Morning Vitals -->
-      <div class="card" id="vitals-card">
+      <div class="card coach-collapsible-card" id="vitals-card" data-coach-section="vitals">
         <div class="card-header">
           <span class="card-title">Morning Vitals</span>
           <button type="button" class="card-collapse-btn" id="vitals-collapse" aria-label="Collapse vitals" aria-expanded="true">
@@ -137,7 +147,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Cigs</label>
-              <input type="number" class="form-input" id="input-cigs" inputmode="numeric" placeholder="3">
+              <input type="number" class="form-input" id="input-cigs" inputmode="numeric" min="0" placeholder="3">
             </div>
           </div>
           <!-- Monday only: waist -->
@@ -154,7 +164,7 @@
       </div>
 
       <!-- Card: Today's Plan -->
-      <div class="card" id="plan-card">
+      <div class="card" id="plan-card" data-coach-section="plan">
         <div class="card-header">
           <span class="card-title" id="plan-card-title">Today's Plan</span>
         </div>
@@ -168,12 +178,24 @@
         </div>
       </div>
 
+      <!-- Card: Recovery today (rest days) -->
+      <div class="card hidden" id="recovery-card" data-coach-section="recovery">
+        <div class="card-header">
+          <span class="card-title">Recovery today</span>
+        </div>
+        <div class="card-body" id="recovery-content"></div>
+      </div>
+
       <!-- Card: Training Log (run/workout day only) -->
-      <div class="card hidden" id="training-card">
+      <div class="card hidden coach-collapsible-card" id="training-card" data-coach-section="training">
         <div class="card-header">
           <span class="card-title" id="training-title">Training Log</span>
+          <span class="card-summary-inline" id="training-summary-line"></span>
+          <button type="button" class="card-collapse-btn" id="training-collapse" aria-label="Collapse training" aria-expanded="true">
+            <span class="card-chevron" aria-hidden="true"></span>
+          </button>
         </div>
-        <div class="card-body">
+        <div class="card-body" id="training-body">
           <!-- Run fields (visible on run days) -->
           <div class="hidden" id="run-fields">
             <p class="training-planned-hint" id="run-planned-hint"></p>
@@ -194,15 +216,15 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Cadence</label>
-                <input type="number" class="form-input" id="input-run-cadence" inputmode="numeric" placeholder="150">
+                <input type="text" class="form-input" id="input-run-cadence" inputmode="numeric" placeholder="150">
                 <p class="form-hint hidden" id="run-cadence-hint">Below 150 — target 150–155</p>
               </div>
             </div>
             <div class="form-group mb-12">
               <label class="form-label">RPE (1-10)</label>
               <div class="rpe-slider-container">
-                <input type="range" class="rpe-slider" id="input-run-rpe" min="1" max="10" value="5">
-                <span class="rpe-value" id="run-rpe-value">5</span>
+                <input type="range" class="rpe-slider" id="input-run-rpe" min="1" max="10" value="5" aria-valuetext="not set">
+                <span class="rpe-value" id="run-rpe-value">—</span>
               </div>
             </div>
             <div class="form-group mb-12">
@@ -234,8 +256,8 @@
             <div class="form-group mb-12">
               <label class="form-label">RPE (1-10)</label>
               <div class="rpe-slider-container">
-                <input type="range" class="rpe-slider" id="input-workout-rpe" min="1" max="10" value="5">
-                <span class="rpe-value" id="workout-rpe-value">5</span>
+                <input type="range" class="rpe-slider" id="input-workout-rpe" min="1" max="10" value="5" aria-valuetext="not set">
+                <span class="rpe-value" id="workout-rpe-value">—</span>
               </div>
             </div>
             <div class="form-group">
@@ -254,11 +276,15 @@
       </div>
 
       <!-- Card: Meals Summary -->
-      <div class="card" id="meals-summary-card">
+      <div class="card coach-collapsible-card" id="meals-summary-card" data-coach-section="meals">
         <div class="card-header">
           <span class="card-title">Meals Logged</span>
+          <span class="card-summary-inline" id="meals-summary-line"></span>
+          <button type="button" class="card-collapse-btn" id="meals-collapse" aria-label="Collapse meals" aria-expanded="true">
+            <span class="card-chevron" aria-hidden="true"></span>
+          </button>
         </div>
-        <div class="card-body">
+        <div class="card-body" id="meals-body">
           <div class="meals-coach-alerts hidden" id="meals-coach-alerts"></div>
           <div id="meals-summary-list" class="text-muted">No meals logged yet</div>
           <div class="meals-day-total hidden" id="meals-day-total">
@@ -270,14 +296,17 @@
       </div>
 
       <!-- Card: Supplements -->
-      <div class="card" id="supplements-card">
+      <div class="card coach-collapsible-card" id="supplements-card" data-coach-section="supplements">
         <div class="card-header">
           <span class="card-title">Supplements</span>
-          <span class="card-summary supplements-summary" id="supplements-summary">Not logged</span>
+          <span class="card-summary-inline supplements-summary" id="supplements-summary"></span>
+          <button type="button" class="card-collapse-btn" id="supplements-collapse" aria-label="Collapse supplements" aria-expanded="true">
+            <span class="card-chevron" aria-hidden="true"></span>
+          </button>
         </div>
-        <div class="card-body">
+        <div class="card-body" id="supplements-body">
           <p class="form-hint mb-12" id="supplements-d3-hint"></p>
-          <div class="supp-toggle-list">
+          <div class="supp-toggle-list coach-supp-inline">
             <button type="button" class="supp-toggle toggle-btn" id="supp-supradyn" data-key="supradyn" data-supp-focus="supradyn">
               <span class="toggle-circle"></span>
               <span class="supp-toggle-text">
@@ -321,17 +350,60 @@
         </div>
       </div>
 
-      <!-- Card: Notes / Deviations -->
-      <div class="card" id="notes-card">
+      <!-- Card: Notes -->
+      <div class="card coach-collapsible-card" id="notes-card" data-coach-section="notes">
         <div class="card-header">
-          <span class="card-title">Notes / Deviations</span>
+          <span class="card-title">Notes</span>
+          <span class="card-summary-inline" id="notes-summary-line"></span>
+          <button type="button" class="card-collapse-btn" id="notes-collapse" aria-label="Collapse notes" aria-expanded="true">
+            <span class="card-chevron" aria-hidden="true"></span>
+          </button>
         </div>
-        <div class="card-body">
-          <textarea class="form-input" id="input-notes" placeholder="Anything that deviated from the plan..."></textarea>
+        <div class="card-body" id="notes-body">
+          <textarea class="form-input" id="input-notes" placeholder="How did the session feel?"></textarea>
           <button class="btn btn-secondary mt-12" id="save-notes">Save Notes</button>
         </div>
       </div>
 
+      <!-- Monday weekly review (prior-week rollups) -->
+      <div class="card hidden" id="monday-review-card" data-coach-section="monday">
+        <div class="card-header">
+          <span class="card-title">Monday check-in</span>
+        </div>
+        <div class="card-body" id="monday-review-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <!-- Card: Day log export (evening debrief) -->
+      <div class="card" id="coach-debrief-export-card" data-coach-section="debrief">
+        <div class="card-header">
+          <span class="card-title">Day log</span>
+        </div>
+        <div class="card-body">
+          <p class="text-secondary tab-intro mb-12">Copy today's log into Cursor for coaching feedback.</p>
+          <p class="debrief-future-note hidden" id="debrief-future-note">Day log export is not available for future dates.</p>
+          <div class="debrief-preflight" id="debrief-preflight">
+            <div class="debrief-preflight-header">
+              <span class="debrief-preflight-title">Logging checklist</span>
+              <span class="debrief-preflight-status" id="debrief-preflight-status">Checking…</span>
+            </div>
+            <ul class="debrief-preflight-list" id="debrief-preflight-list"></ul>
+          </div>
+          <p class="debrief-incomplete-warning hidden" id="debrief-incomplete-warning"></p>
+          <details class="day-summary-details" id="day-summary-toggle">
+            <summary class="day-summary-label">Day summary</summary>
+            <p class="day-summary-content" id="day-summary-content">No facts logged yet today.</p>
+          </details>
+          <button type="button" class="btn btn-primary btn-large" id="copy-debrief">Copy Day Log</button>
+          <details class="debrief-preview-details mt-12">
+            <summary class="debrief-preview-label">Preview</summary>
+            <div class="debrief-preview" id="debrief-preview"></div>
+          </details>
+        </div>
+      </div>
+
+      </div><!-- /coach-sections -->
     </div>
 
     <!-- ════════════════════════════════════════════════════════
@@ -351,6 +423,18 @@
 
       <!-- Planned meal hint -->
       <div class="text-muted meal-hint" id="meal-hint"></div>
+
+      <!-- Same as yesterday shortcut -->
+      <div class="same-as-yesterday hidden" id="same-as-yesterday">
+        <div class="same-as-yesterday-content">
+          <span class="same-as-yesterday-label" id="same-as-label">Yesterday's lunch:</span>
+          <span class="same-as-yesterday-items" id="same-as-items"></span>
+        </div>
+        <div class="same-as-yesterday-actions">
+          <button type="button" class="btn btn-secondary" id="same-as-use">Use same</button>
+          <button type="button" class="btn btn-secondary same-as-dismiss" id="same-as-dismiss">Dismiss</button>
+        </div>
+      </div>
 
       <!-- Food search + grid -->
       <div class="food-search-wrap" id="food-search-wrap">
@@ -378,17 +462,21 @@
           <span class="food-footer-macros" id="food-slot-total">0g P · 0 kcal</span>
         </div>
         <div class="food-footer-actions">
+          <button type="button" class="btn btn-danger-outline btn-large hidden" id="clear-slot">Clear slot</button>
           <button type="button" class="btn btn-secondary btn-large hidden" id="next-meal">Next meal &rarr;</button>
         </div>
       </div>
     </div>
 
     <!-- ════════════════════════════════════════════════════════
-         TAB: WEEK
+         TAB: WEEK (Plan)
          ════════════════════════════════════════════════════════ -->
     <div class="tab-content" id="tab-week">
       <div class="tab-loading-overlay" id="week-loading-overlay" aria-hidden="true">
         <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
+      </div>
+      <div class="week-plan-header">
+        <span class="block-context-chip block-context-chip--plan" id="plan-block-context-chip"></span>
       </div>
       <div class="week-nav">
         <button type="button" class="week-nav-btn" id="week-prev" aria-label="Previous week">&larr;</button>
@@ -396,6 +484,7 @@
         <button type="button" class="week-nav-btn" id="week-next" aria-label="Next week">&rarr;</button>
       </div>
       <div class="week-mileage-summary hidden" id="week-mileage-summary"></div>
+      <div class="week-nutrition-summary hidden" id="week-nutrition-summary"></div>
       <div class="coach-debrief-card hidden" id="coach-debrief-card"></div>
       <div id="week-cards"></div>
     </div>
@@ -407,9 +496,45 @@
       <div class="tab-loading-overlay" id="progress-loading-overlay" aria-hidden="true">
         <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
       </div>
-      <h2 class="tab-title">Progress</h2>
+      <h2 class="tab-title">Trends</h2>
 
-      <div class="card" id="long-run-card">
+      <div class="trends-section hidden" id="active-signals-section">
+        <h3 class="trends-domain-title">Active signals</h3>
+        <div class="trends-card">
+          <div class="card-body" id="active-signals-content"></div>
+        </div>
+      </div>
+
+      <h3 class="trends-domain-title">Body</h3>
+      <div class="card trends-card" id="weight-trend-card">
+        <div class="card-header">
+          <span class="card-title">Weight</span>
+        </div>
+        <div class="card-body" id="weight-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="waist-trend-card">
+        <div class="card-header">
+          <span class="card-title">Waist</span>
+        </div>
+        <div class="card-body" id="waist-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <h3 class="trends-domain-title">Training</h3>
+      <div class="card trends-card" id="weekly-mileage-card">
+        <div class="card-header">
+          <span class="card-title">Weekly Mileage</span>
+        </div>
+        <div class="card-body" id="weekly-mileage-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="long-run-card">
         <div class="card-header">
           <span class="card-title">Long Run Progress</span>
         </div>
@@ -418,16 +543,73 @@
         </div>
       </div>
 
-      <div class="card" id="weight-trend-card">
+      <div class="card trends-card" id="cadence-trend-card">
         <div class="card-header">
-          <span class="card-title">Weight Trend</span>
+          <span class="card-title">Cadence</span>
         </div>
-        <div class="card-body" id="weight-trend-content">
+        <div class="card-body" id="cadence-trend-content">
           <p class="text-muted">Loading…</p>
         </div>
       </div>
 
-      <div class="card" id="supplement-adherence-card">
+      <h3 class="trends-domain-title">Recovery</h3>
+      <div class="card trends-card" id="sleep-trend-card">
+        <div class="card-header">
+          <span class="card-title">Sleep</span>
+        </div>
+        <div class="card-body" id="sleep-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="rpe-trend-card">
+        <div class="card-header">
+          <span class="card-title">RPE</span>
+        </div>
+        <div class="card-body" id="rpe-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="knee-timeline-card">
+        <div class="card-header">
+          <span class="card-title">Knee Status</span>
+        </div>
+        <div class="card-body" id="knee-timeline-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <h3 class="trends-domain-title">Nutrition</h3>
+      <div class="card trends-card" id="protein-compliance-card">
+        <div class="card-header">
+          <span class="card-title">Protein Compliance</span>
+        </div>
+        <div class="card-body" id="protein-compliance-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="calorie-compliance-card">
+        <div class="card-header">
+          <span class="card-title">Calorie Compliance</span>
+        </div>
+        <div class="card-body" id="calorie-compliance-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <h3 class="trends-domain-title">Habits</h3>
+      <div class="card trends-card" id="cigarettes-trend-card">
+        <div class="card-header">
+          <span class="card-title">Cigarettes</span>
+        </div>
+        <div class="card-body" id="cigarettes-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="supplement-adherence-card">
         <div class="card-header">
           <span class="card-title">Supplement Adherence</span>
         </div>
@@ -436,7 +618,7 @@
         </div>
       </div>
 
-      <h3 class="tab-section-title">Body Composition</h3>
+      <h3 class="trends-domain-title">Body Composition</h3>
       <p class="text-secondary tab-intro mb-12">Machine scans — InBody, Karada Scan, etc. Log right after your visit.</p>
 
       <div id="scan-due-banner"></div>
@@ -523,66 +705,49 @@
       </div>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════
-         TAB: DEBRIEF
-         ════════════════════════════════════════════════════════ -->
-    <div class="tab-content" id="tab-debrief">
-      <h2 class="tab-title">End of Day Debrief</h2>
-      <p class="text-secondary tab-intro mb-12">Copy your daily log into Cursor for coaching feedback.</p>
-
-      <p class="debrief-future-note hidden" id="debrief-future-note">Debrief is not available for future dates.</p>
-
-      <div class="debrief-preflight" id="debrief-preflight">
-        <div class="debrief-preflight-header">
-          <span class="debrief-preflight-title">Ready for debrief</span>
-          <span class="debrief-preflight-status" id="debrief-preflight-status">Checking…</span>
-        </div>
-        <ul class="debrief-preflight-list" id="debrief-preflight-list"></ul>
-      </div>
-
-      <button type="button" class="btn btn-primary btn-large" id="copy-debrief" disabled>Complete logging to copy</button>
-
-      <div class="debrief-preview-label">Preview</div>
-      <div class="debrief-preview" id="debrief-preview"></div>
-    </div>
-
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
        BOTTOM NAV
        ══════════════════════════════════════════════════════════ -->
-  <nav class="bottom-nav">
-    <button class="nav-tab active" data-tab="today">
+  <nav class="bottom-nav" role="navigation" aria-label="Main">
+    <button class="nav-tab active" data-tab="coach" aria-label="Coach">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
-      Today
+      Coach
     </button>
-    <button class="nav-tab" data-tab="food">
+    <button class="nav-tab" data-tab="food" aria-label="Food">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
       </svg>
       Food
     </button>
-    <button class="nav-tab" data-tab="week">
+    <button class="nav-tab" data-tab="week" aria-label="Week">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>
       </svg>
       Week
     </button>
-    <button class="nav-tab" data-tab="progress">
+    <button class="nav-tab" data-tab="progress" aria-label="Trends">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/>
       </svg>
       Progress
     </button>
-    <button class="nav-tab" data-tab="debrief">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-      </svg>
-      Debrief
-    </button>
   </nav>
+
+  <!-- Generic confirm -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal">
+      <div class="modal-title" id="confirm-modal-title">Confirm</div>
+      <p class="modal-message" id="confirm-modal-message"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="confirm-modal-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-modal-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Dirty slot guard (P5) -->
   <div class="modal-overlay" id="dirty-slot-modal">

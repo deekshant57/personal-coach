@@ -7,12 +7,13 @@ import {
   formatDayDisplayFromIso,
   getToday,
 } from './app.js';
-import { fetchWeekPlans, fetchCoachDebriefForWeek } from './supabase.js';
+import { fetchWeekPlans, fetchCoachDebriefForWeek, fetchWeekFoodLogs } from './supabase.js';
 import { renderDayBadge } from './data.js';
 import { buildCoachDebriefCardHtml, wireCoachDebriefCard } from './coach-debrief.js';
 import { resolvePlansForRange } from './plan-merge.js';
 import { extractWarmupCooldown, extractRunCues } from './plan-templates.js';
-import { loadingCenterHtml, setOverlayLoading } from './spinner.js';
+import { skeletonWeekCardsHtml, setOverlayLoading } from './spinner.js';
+import { formatBlockChip } from './block-context.js';
 import {
   getWeekStats,
   getPriorWeekRange,
@@ -120,28 +121,85 @@ function getDayCompletion(weekStats, date) {
   return weekStats?.dayCompletion?.find((d) => d.date === date) || null;
 }
 
-function renderCompletionBadges(dayStatus, plan) {
+function renderCompactDots(dayStatus, plan) {
   if (!dayStatus) return '';
 
-  const chips = [
-    { label: 'Vitals', done: dayStatus.vitals },
-  ];
+  const vitalsMark = dayStatus.vitals ? '✓' : '○';
+  const trainingMark = dayStatus.training === null ? '—' : (dayStatus.training ? '✓' : '○');
+  const mealsMark = dayStatus.meals ? '✓' : '○';
 
-  if (dayStatus.training !== null) {
-    chips.push({
-      label: plan.run_type ? 'Run' : 'Workout',
-      done: dayStatus.training,
-    });
+  const vitalsCls = dayStatus.vitals ? 'week-dot--done' : '';
+  const trainingCls = dayStatus.training === true ? 'week-dot--done' : dayStatus.training === null ? 'week-dot--na' : '';
+  const mealsCls = dayStatus.meals ? 'week-dot--done' : '';
+
+  return `<span class="week-completion-dots" aria-label="Completion">
+    <span class="week-dot ${vitalsCls}" title="Vitals">${vitalsMark}</span>
+    <span class="week-dot ${trainingCls}" title="${plan?.run_type ? 'Run' : plan?.workout_plan ? 'Workout' : 'Training'}">${trainingMark}</span>
+    <span class="week-dot ${mealsCls}" title="Meals">${mealsMark}</span>
+  </span>`;
+}
+
+function computeNutritionSummary(plans, foodLogs) {
+  const byDate = new Map();
+  for (const row of foodLogs || []) {
+    if (!row.date) continue;
+    const prev = byDate.get(row.date) || { protein: 0, calories: 0 };
+    prev.protein += Number(row.total_protein) || 0;
+    prev.calories += Number(row.total_calories) || 0;
+    byDate.set(row.date, prev);
   }
 
-  chips.push({ label: 'Meals', done: dayStatus.meals });
+  let daysWithFood = 0;
+  let totalProtein = 0;
+  let totalCalories = 0;
+  let daysOnTarget = 0;
 
-  return `<div class="week-card-completion">${chips.map((chip) => `
-      <span class="week-completion-chip${chip.done ? ' done' : ''}">
-        <span class="week-completion-mark" aria-hidden="true">${chip.done ? '✓' : '○'}</span>
-        <span>${chip.label}</span>
+  for (const plan of plans || []) {
+    const macros = byDate.get(plan.date);
+    if (!macros || (macros.protein === 0 && macros.calories === 0)) continue;
+    daysWithFood += 1;
+    totalProtein += macros.protein;
+    totalCalories += macros.calories;
+    const target = plan.protein_target ?? 140;
+    if (macros.protein >= target) daysOnTarget += 1;
+  }
+
+  return {
+    avgProtein: daysWithFood ? Math.round(totalProtein / daysWithFood) : null,
+    avgCalories: daysWithFood ? Math.round(totalCalories / daysWithFood) : null,
+    daysOnTarget,
+    daysWithFood,
+    daysInWeek: (plans || []).length,
+  };
+}
+
+function renderWeekNutritionSummary(plans, foodLogs) {
+  const el = document.getElementById('week-nutrition-summary');
+  if (!el) return;
+
+  const stats = computeNutritionSummary(plans, foodLogs);
+  if (!stats.daysWithFood) {
+    el.classList.add('hidden');
+    el.innerHTML = '';
+    return;
+  }
+
+  const pct = stats.daysInWeek
+    ? Math.round((stats.daysOnTarget / stats.daysInWeek) * 100)
+    : 0;
+
+  el.innerHTML = `
+    <div class="week-mileage-row">
+      <span class="week-mileage-label">Nutrition</span>
+      <span class="week-mileage-value">
+        avg <strong>${stats.avgProtein}g P</strong> · ~${stats.avgCalories.toLocaleString()} kcal
       </span>
-    `).join('')}</div>`;
+    </div>
+    <div class="week-mileage-meta">${stats.daysOnTarget}/${stats.daysInWeek} days on protein floor</div>
+    <div class="week-nutrition-bar" aria-hidden="true">
+      <span class="week-nutrition-bar-fill" style="width:${pct}%"></span>
+    </div>`;
+  el.classList.remove('hidden');
 }
 
 function renderCoachDebriefSection(debrief) {
@@ -166,6 +224,11 @@ export async function loadWeekView() {
 
   if (!weekViewMonday) syncWeekViewMonday();
 
+  const planChip = document.getElementById('plan-block-context-chip');
+  if (planChip) {
+    planChip.textContent = formatBlockChip(new Date(`${getToday()}T12:00:00`));
+  }
+
   const viewingDate = getToday();
   const actualToday = formatToday();
 
@@ -179,18 +242,20 @@ export async function loadWeekView() {
   if (labelEl) labelEl.textContent = getWeekLabel(monday);
 
   setWeekNavLoading(true);
-  container.innerHTML = loadingCenterHtml('Loading week…');
+  container.innerHTML = skeletonWeekCardsHtml();
   document.getElementById('week-mileage-summary')?.classList.add('hidden');
+  document.getElementById('week-nutrition-summary')?.classList.add('hidden');
   renderCoachDebriefSection(null);
 
   try {
     const range = { startIso: startDate, endIso: endDate };
     const priorRange = getPriorWeekRange(monday);
 
-    const [fetchedPlans, priorFetched, coachDebrief] = await Promise.all([
+    const [fetchedPlans, priorFetched, coachDebrief, foodLogs] = await Promise.all([
       fetchWeekPlans(startDate, endDate),
       fetchWeekPlans(priorRange.startIso, priorRange.endIso),
       fetchCoachDebriefForWeek(startDate),
+      fetchWeekFoodLogs(startDate, endDate),
     ]);
 
     const plans = resolvePlansForRange(startDate, endDate, fetchedPlans);
@@ -211,6 +276,7 @@ export async function loadWeekView() {
     }
 
     renderWeekMileageSummary(weekStats, priorWeekStats);
+    renderWeekNutritionSummary(plans, foodLogs);
     renderCoachDebriefSection(coachDebrief);
 
     plans.forEach((plan) => {
@@ -245,7 +311,7 @@ export async function loadWeekView() {
       }
       const detailText = detailParts.join('\n\n');
       const dayStatus = getDayCompletion(weekStats, plan.date);
-      const completionHtml = renderCompletionBadges(dayStatus, plan);
+      const dotsHtml = renderCompactDots(dayStatus, plan);
 
       const card = document.createElement('article');
       card.className = `week-card${isExpanded ? ' expanded' : ''}${isViewing ? ' viewing' : ''}${dayStatus?.complete ? ' complete' : ''}`;
@@ -259,9 +325,11 @@ export async function loadWeekView() {
           ${isActualToday ? '<span class="week-today-pill">Today</span>' : ''}
           ${renderDayBadge(plan.day_type, { small: true })}
         </span>
-        <span class="text-muted week-card-protein">${plan.protein_target || 145}g P</span>
+        <span class="week-card-header-right">
+          ${dotsHtml}
+          <span class="text-muted week-card-protein">${plan.protein_target || 145}g P</span>
+        </span>
       </button>
-      ${completionHtml}
       <div class="week-card-summary">${escapeHtml(summary)}</div>
       ${plan.meals_plan ? `<div class="week-card-meals">${escapeHtml(plan.meals_plan)}</div>` : ''}
       ${detailText ? `<div class="week-card-detail">${escapeHtml(detailText)}</div>` : ''}

@@ -1,7 +1,9 @@
 // Weight trend sparkline from daily vitals (P12)
 import { formatDayDisplayFromIso } from './week-stats.js';
 
-export const WEIGHT_GOAL_KG = 70.5;
+// Canonical target: personal-details.md §September 2026 Targets (73–74 kg)
+export const WEIGHT_GOAL_KG = 73.5;
+export const WEIGHT_GOAL_LABEL = '73–74 kg';
 export const WEIGHT_SPARKLINE_DAYS = 56;
 
 export function buildWeightSeries(vitalsRows) {
@@ -59,7 +61,7 @@ export function renderWeightSparkline(series, { goalKg = WEIGHT_GOAL_KG } = {}) 
       </div>
       <div class="weight-stat">
         <span class="weight-stat-label">Race goal</span>
-        <span class="weight-stat-value">70–71 kg</span>
+        <span class="weight-stat-value">${WEIGHT_GOAL_LABEL}</span>
       </div>
       <div class="weight-stat">
         <span class="weight-stat-label">Trend</span>

@@ -15,6 +15,7 @@ import {
 import { fetchSupplementLog, upsertSupplementLog, fetchSupplementLogsRange } from './supabase.js';
 import { updateDayProgress } from './day-progress.js';
 import { refreshDebriefIfActive } from './debrief.js';
+import { updateSectionCompression } from './coach-layout.js';
 import { trackSave } from './save-state.js';
 import { setButtonLoading } from './spinner.js';
 
@@ -23,6 +24,7 @@ const HISTORY_DAYS = 7;
 function syncSupplementStatus() {
   updateDayProgress();
   refreshDebriefIfActive();
+  updateSectionCompression();
 }
 
 function emptyLog() {

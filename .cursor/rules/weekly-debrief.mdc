@@ -1,26 +1,60 @@
 ---
-description: Monday weekly debrief protocol — mandatory 7-section structure before issuing next week's plan
+description: Monday weekly debrief protocol — 9-section structure with coaching log update
 alwaysApply: true
 ---
 
 # Weekly Debrief (Monday)
 
-When Deekshant sends `Monday — weekly debrief — DD MMM,YY` (or `Monday — weekly plan + metrics` with the same data), respond with **all 8 sections** — no shortcuts.
+When Deekshant sends `Monday — weekly debrief — DD MMM,YY` (or `Monday — weekly plan + metrics` with the same data), respond with **all 9 sections**.
 
-This is **not** the `resolve-custom-food-macros` skill. That skill only patches `food_logs` for custom items with missing macros. Weekly debrief is the integrated training + nutrition + recovery judgment for the week.
+**Lead with whatever matters most this week.** If knee pain escalated, that comes before the metrics table. If nutrition fell apart, that leads. The section numbering is a checklist of topics to address — every topic must be covered, but the order follows the coaching message, not the template.
 
 ## Before debriefing
 
+0. Read `coach/coaching-log.md` and `coach/current-block.md`
 1. Read Monday paste metrics and prior-week rollups (app fills longest run, avg sleep, knee, cigs from `week-stats.js` contract in `WEEK-STATS-SPEC.md`)
 2. Pull prior week's daily logs: runs, workouts, food, vitals — from app debrief paste or Supabase
 3. Compare **planned vs actual** mileage, sessions completed, protein/kcal patterns
 4. Read `personal-details.md` for race timeline, injury history, blood markers (triglycerides 227)
 5. **Weight:** ±0.5 kg = noise; **2+ week trends = signal** — never react to a single Monday weigh-in alone
 6. Check body comp scan if included — do not merge scan into Monday vitals (see `body-comp.mdc`)
+7. Identify meaningful events from the week: new patterns, progressions (improving trends), stagnations (expected change not happening), milestones reached. Name them explicitly.
+8. Review coaching log for previous decisions whose outcomes are now observable. Update outcomes and insights.
 
 ## Section 1 — WEEK SCORE
 
-Score /10: Training · Nutrition · Recovery · Adherence → composite + one-line verdict for the **week**, not today only.
+**Training** /10 · **Nutrition** /10 · **Adherence** /10 → composite + one-line verdict for the **week**.
+
+Score criteria:
+
+```
+Training — how well training matched the plan and served the block goal
+  9–10  All sessions completed as planned, RPE appropriate, key metrics progressing
+  7–8   Most sessions completed, minor adjustments, no setbacks
+  5–6   Meaningful sessions missed or quality compromised, but week still productive
+  3–4   Majority of training missed or significantly below plan
+  1–2   Essentially no productive training this week
+
+Nutrition — protein adherence and calorie discipline relative to the plan
+  9–10  Protein floor hit 6–7 days, calories within bracket, no TG-risk foods
+  7–8   Protein floor hit 5+ days, calories mostly on target, minor slips
+  5–6   Protein under target 3+ days, or calorie discipline inconsistent
+  3–4   Protein regularly missed, or significant calorie overruns/underruns
+  1–2   Nutrition largely untracked or severely off plan
+
+Adherence — overall plan commitment including sleep, supplements, NEAT
+  9–10  Plan followed with discipline across all domains
+  7–8   Plan mostly followed, minor gaps (missed supplement, one poor sleep night)
+  5–6   Multiple plan elements missed, but core training and nutrition maintained
+  3–4   Significant departure from plan across domains
+  1–2   Plan effectively abandoned this week
+```
+
+Use judgment for edge cases — the rubric is a calibration tool, not a formula.
+
+**Recovery** — not a score. State as:
+- **sufficient / marginal / insufficient** for **[Week N+1's first demanding session]**
+- Evidence: sleep trends, RPE trends, knee status, cumulative load, nutrition support
 
 ## Section 2 — METRICS & TRENDS
 
@@ -29,19 +63,20 @@ Score /10: Training · Nutrition · Recovery · Adherence → composite + one-li
 | Weight | Monday AM kg | vs prior Mondays — noise or signal |
 | Waist | in | direction over 2+ weeks if data exists |
 | Mileage | actual / planned km | 10% rule context for next week |
-| Long run | km + date | progression toward 18–20 km |
+| Long run | km + date | progression toward block target |
 | Avg sleep | h | floor 7h — impact on load |
 | Knee | worst status | cadence / volume link |
 | Cigs/day | avg | flag only if relevant to recovery or deviation |
 
-State what changed and **why it matters** for the next block.
+**Meaningful events:** Flag new patterns, progressions, stagnations, or milestones. State what each means for the current block goal, not just for next week.
 
 ## Section 3 — TRAINING REVIEW
 
-- Sessions: planned vs completed (runs, bodyweight, rest honored or not)
+- Sessions: planned vs completed (runs, bodyweight/gym, rest honored or not)
 - Long run: distance, pace, RPE, knee, cadence vs targets
-- Strength: volume, RPE, knee-friendly compliance (no squats/lunges on leg-freshness days until gym phase)
-- Load decision inputs: apply **10% weekly mileage rule** explicitly when setting next week's km
+- Strength: volume, RPE, knee-friendly compliance
+- Load decision inputs: apply **10% weekly mileage rule** when setting next week's km
+- How this week's training served (or didn't serve) the current block goal
 
 ## Section 4 — NUTRITION REVIEW
 
@@ -55,18 +90,25 @@ Coach-owned — **not tracked as C/F/P macros in the app**.
 
 Do **not** output a macro dashboard. Judge structure and adherence, not gram-level carb/fat targets.
 
-## Section 5 — DEVIATIONS & ROOT CAUSES
+## Section 5 — PLAN vs ACTUAL
 
 Week-level patterns only (day-level detail belongs in daily debriefs).
 
-Each item: planned vs actual · severity (Minor/Moderate/Critical) · mechanistic why it matters across the week.
+Each item where plan and execution differed:
+- Planned vs actual
+- Classify as:
+  - **Athlete decision** — deliberate departure. Record what was decided and why.
+  - **Unplanned miss** — root cause: choice vs external.
+- Why it matters mechanistically across the week
 
 ## Section 6 — LOAD & RECOVERY DECISION
 
-Explicit decisions for Week N+1:
+Explicit decisions for Week N+1. For each decision, state **confidence level** (high / moderate / low) and the **evidence** supporting it.
+
+When two priorities conflict, state which priority is being favored and why for this specific situation. Reference the current training block phase and how this week's decisions serve the block goal.
 
 - Next week total km and long-run distance (with 10% cap math)
-- Run / bodyweight / rest layout
+- Run / bodyweight or gym / rest layout
 - Sleep or stress constraints
 - Knee modifiers (reduce, hold, or progress)
 - Nutrition adjustments (protein anchor, calorie bracket, carb timing notes) — prose only
@@ -78,7 +120,7 @@ Explicit decisions for Week N+1:
 
 Structured table **Mon–Sun with dates on every row**. Each day includes:
 
-- Training type (Run / Bodyweight / Rest / Active Recovery)
+- Training type (Run / Bodyweight / Gym / Rest / Active Recovery)
 - Run: type, distance, pace, cadence cue, key instruction — or NA
 - Strength: exercises, sets, RPE — or NA
 - Meals: what to eat with portions
@@ -92,20 +134,22 @@ After issuing the plan:
 
 ## Section 8 — COACH'S NOTE
 
-One firm paragraph. No bullets. No hedging. Race timeline awareness (6 Sep 2026).
+One firm paragraph. No bullets. No hedging. Reference current training block phase and race timeline (6 Sep 2026).
 
----
+## Section 9 — COACHING LOG UPDATE
 
-## Relationship to other artifacts
+Append the following to `coach/coaching-log.md`:
 
-| Artifact | Role |
-|----------|------|
-| `end-of-day-debrief.mdc` | Daily — 5 sections, one day |
-| `weekly-debrief.mdc` (this file) | Weekly — 8 sections (retrospective + plan + note) |
-| `weekly-plan-and-nutrition.mdc` | Nutrition rules + plan table field spec |
-| `resolve-custom-food-macros` skill | Manual only — patch custom food P/kcal in `food_logs` |
-| `save-weekly-debrief` skill | Manual only — archive full report to `coach_debriefs` |
-| App Debrief tab | Generates **input paste** for daily or Monday metrics — not coach response |
-| App Week tab | Reads `coach_debriefs` for the week covered (read-only) |
+```
+### [Date] — Weekly Debrief
 
-Coach responses are archived via **`save-weekly-debrief`** when you invoke it after Monday debrief. Not auto-saved.
+**Block:** [current block name] · Week [N]
+**Context:** [key evidence that drove this week's decisions]
+**Decisions:**
+- [each recommendation — confidence: high/moderate/low]
+**Athlete response:** [to be filled by athlete — accepted / rejected / modified]
+**Previous decisions updated:**
+- [any outcomes or insights from prior log entries now observable]
+```
+
+Also update `coach/current-block.md` if: the week number has changed, the phase should transition, or priorities need re-evaluation based on this week's evidence.

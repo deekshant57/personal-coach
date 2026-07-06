@@ -7,6 +7,7 @@ import {
 } from './supplements-data.js';
 import { expandVitalsCard } from './vitals-ui.js';
 import { focusFoodSlot } from './food.js';
+import { scrollToDebriefExport } from './debrief.js';
 
 function isVitalsComplete() {
   const v = state.vitals;
@@ -56,7 +57,7 @@ function formatSupplementChipLabel(task) {
 }
 
 export function focusSupplementToggle(focusKey) {
-  document.querySelector('.nav-tab[data-tab="today"]')?.click();
+  document.querySelector('.nav-tab[data-tab="coach"]')?.click();
 
   requestAnimationFrame(() => {
     const card = document.getElementById('supplements-card');
@@ -145,7 +146,7 @@ function computeCoachNext() {
   const readiness = computeDebriefReadiness();
   if (readiness.ready) {
     return {
-      text: 'All logged — open Debrief and copy for coach review',
+      text: 'All logged — copy day log for coach review',
       action: 'debrief',
     };
   }
@@ -187,7 +188,8 @@ function navigateToTask(action, focusKey, focusSlot) {
   }
 
   if (action === 'debrief') {
-    document.querySelector('.nav-tab[data-tab="debrief"]')?.click();
+    document.querySelector('.nav-tab[data-tab="coach"]')?.click();
+    requestAnimationFrame(() => scrollToDebriefExport());
     return;
   }
 
@@ -196,7 +198,7 @@ function navigateToTask(action, focusKey, focusSlot) {
     return;
   }
 
-  document.querySelector('.nav-tab[data-tab="today"]')?.click();
+  document.querySelector('.nav-tab[data-tab="coach"]')?.click();
 
   requestAnimationFrame(() => {
     if (action === 'vitals') {

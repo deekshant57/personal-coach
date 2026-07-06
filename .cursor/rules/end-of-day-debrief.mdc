@@ -1,38 +1,83 @@
 ---
-description: End-of-day tracker debrief protocol — mandatory 5-section structure
+description: End-of-day tracker debrief protocol — 4-section structure
 alwaysApply: true
 ---
 
 # End-of-Day Debrief
 
-When Deekshant uploads a tracker (`End of day tracker upload — DD MMM,YY`, e.g. `24 Jun,26`), respond with **all 5 sections** — no shortcuts.
+When Deekshant uploads a tracker (`End of day tracker upload — DD MMM,YY`, e.g. `24 Jun,26`), respond with **all 4 sections**.
 
 ## Before debriefing
 
 1. Read today's logs from the app debrief paste, Supabase, or pasted tracker upload
 2. Compare against **Week N Plan** for that date
 3. **Calculate protein and calories** from food portions logged (e.g. "2 chapati, 1 bowl dal, 100g paneer") — Deekshant does not count; you do
+4. Check `coach/coaching-log.md` for any recent decisions relevant to today's assessment
 
 ## Section 1 — DAY SCORE
 
-Score /10: Training · Nutrition · Recovery · Adherence → composite + one-line verdict.
+**Training** /10 · **Nutrition** /10 · **Adherence** /10 → composite + one-line verdict.
 
-## Section 2 — DEVIATIONS
+Score criteria:
 
-Each deviation: planned vs actual · severity (Minor/Moderate/Critical) · mechanistic why it matters.
+```
+Training
+  9–10  Session completed as planned, RPE/metrics on target
+  7–8   Completed with minor deviations, still productive
+  5–6   Partially completed or significantly modified
+  3–4   Skipped or largely ineffective
+  1–2   No training when training was planned
 
-## Section 3 — ROOT CAUSE
+Nutrition
+  9–10  Protein floor hit, calories in bracket, no TG-risk items
+  7–8   Protein close, calories roughly on target
+  5–6   Protein missed or calories significantly off
+  3–4   Poor adherence across protein and calories
+  1–2   Nutrition untracked or severely off
 
-Most likely cause — honest, not assumed. Choice vs external (work, energy, logistics).
+Adherence
+  9–10  All plan elements followed (sleep, supplements, NEAT, training, nutrition)
+  7–8   Most elements followed, one minor gap
+  5–6   Multiple gaps but core elements maintained
+  3–4   Significant departure from plan
+  1–2   Plan not followed
+```
 
-## Section 4 — REVISED TOMORROW
+Use judgment for edge cases — the rubric is a calibration tool, not a formula.
 
-Adapt next day's plan from today's data. Under-recovered → reduce load. Low protein → anchor meals harder.
+**Recovery** — not a score. State as:
+- **sufficient / marginal / insufficient** for **[tomorrow's planned session from Week N plan]**
+- Evidence: sleep hours, RPE, soreness, knee status, today's training load
 
-## Section 5 — COACH'S NOTE
+## Section 2 — PLAN vs ACTUAL
 
-One firm paragraph. No bullets. No hedging.
+Each item where plan and execution differed:
+- Planned vs actual
+- Classify as:
+  - **Athlete decision** — deliberate departure. Record what was decided and why if stated.
+  - **Unplanned miss** — something went wrong. State the root cause: choice vs external (work, energy, logistics).
+- Why it matters mechanistically
 
-## Run-day non-negotiables in every debrief
+If plan was followed fully, say so briefly and move on.
 
-Knee status · cadence · compare to planned distance/pace/RPE.
+## Section 3 — TOMORROW
+
+Adapt next day's plan from today's evidence. Under-recovered → reduce load. Low protein → anchor meals harder.
+
+State confidence level for any changes: high (clear evidence), moderate (reasonable inference), low (limited data).
+
+If no changes are needed, say so. Do not manufacture adjustments.
+
+## Section 4 — COACH'S NOTE
+
+One firm paragraph. No bullets. No hedging. Reference the current training block context when relevant.
+
+---
+
+## Run-day non-negotiables
+
+Every run-day debrief must address: knee status · cadence vs target · distance/pace/RPE vs plan.
+
+## Coaching log
+
+If a significant mid-week coaching decision is made (e.g., modifying the rest of the week's plan due to injury, illness, or major deviation), append a brief entry to `coach/coaching-log.md` after the debrief.

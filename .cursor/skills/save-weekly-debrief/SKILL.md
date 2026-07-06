@@ -1,7 +1,7 @@
 ---
 name: save-weekly-debrief
 description: >-
-  Save a weekly coach debrief (8-section Cursor response) to Supabase coach_debriefs
+  Save a weekly coach debrief (9-section Cursor response) to Supabase coach_debriefs
   for read-only display on the app Week tab. Use ONLY when the user explicitly asks
   to save weekly debrief or run save-weekly-debrief.
 disable-model-invocation: true
@@ -13,14 +13,14 @@ Manual coach workflow. **Never auto-run.** Invoked only by name in Cursor after 
 
 ## What this solves
 
-- Weekly coach report (sections 1–8) lives in Cursor chat only unless saved
+- Weekly coach report (sections 1–9) lives in Cursor chat only unless saved
 - App Week tab can show the retrospective for a completed week
 - One canonical report per Monday check-in — UPSERT overwrites if re-saved
 
 ## Prerequisites
 
 1. Run `personal-coach-app/coach-debriefs.sql` in Supabase SQL Editor (once)
-2. Coach has returned the full 8-section weekly debrief (`weekly-debrief.mdc`)
+2. Coach has returned the full 9-section weekly debrief (`weekly-debrief.mdc`)
 3. `coach/week-plans.py` / `seed-plans.py` sync is separate — this skill does **not** write `daily_plans`
 
 ---
@@ -44,7 +44,7 @@ Manual coach workflow. **Never auto-run.** Invoked only by name in Cursor after 
 # e.g. reports/2026-06-29-weekly-debrief.md
 ```
 
-Paste the full Cursor response including all 8 sections.
+Paste the full Cursor response including all 9 sections.
 
 ### 2. Dry-run
 
@@ -104,11 +104,13 @@ Env: `SUPABASE_SERVICE_ROLE_KEY` (required), `SUPABASE_USER_ID` (optional), `SUP
 
 ## Scores JSON (best-effort)
 
-Script parses Section 1 for `Training · Nutrition · Recovery · Adherence` `/10` values into:
+Script parses Section 1 for `Training · Nutrition · Adherence` `/10` values into:
 
 ```json
-{ "training": 7, "nutrition": 8, "recovery": 6, "adherence": 9, "composite": 7.5 }
+{ "training": 7, "nutrition": 8, "adherence": 9, "composite": 8.0 }
 ```
+
+Recovery is no longer a numeric score — it is a contextual assessment (sufficient/marginal/insufficient). The `recovery` field will be `null`.
 
 Missing scores → `null` in DB. Not shown in app v1.
 
@@ -124,7 +126,7 @@ Before overwrite, existing row → `.cursor/skills/save-weekly-debrief/backups/{
 
 | Artifact | Role |
 |----------|------|
-| `weekly-debrief.mdc` | Coach **writes** the 8-section report |
+| `weekly-debrief.mdc` | Coach **writes** the 9-section report |
 | `save-weekly-debrief` (this skill) | **Archives** report to Supabase |
 | `resolve-custom-food-macros` | Unrelated — patches `food_logs` only |
 | App Week tab | **Reads** `coach_debriefs` for week covered |

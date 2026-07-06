@@ -1,4 +1,4 @@
-// Debrief tab — pre-flight checklist + single copy CTA (P3)
+// Debrief export — pre-flight checklist + copy CTA (lives on Coach tab)
 import { state, getToday, formatDayDisplayFromIso, isMonday, isViewingFuture, showToast } from './app.js';
 import { SLOT_LABELS, formatFoodLabel } from './data.js';
 import { computeDebriefReadiness } from './day-progress.js';
@@ -31,6 +31,11 @@ async function loadMondayCheckInLine({ force = false } = {}) {
   }
 }
 
+function valOrMissing(value, suffix = '') {
+  if (value == null || value === '') return 'not logged';
+  return `${value}${suffix}`;
+}
+
 function buildDebriefText() {
   const date = getToday();
   const dateLabel = formatDayDisplayFromIso(date);
@@ -49,7 +54,7 @@ function buildDebriefText() {
     text += `- **Done?** ${runLog.done ? 'Yes' : 'No'}\n`;
     if (runLog.done) {
       text += `- **Actual km / Time / Pace / Cadence / RPE / Knee:** `;
-      text += `${runLog.actual_km || '-'} km / ${runLog.time_display || '-'} / ${runLog.avg_pace || '-'} / ${runLog.cadence || '-'} / ${runLog.rpe || '-'} / ${runLog.knee_status || '-'}\n`;
+      text += `${valOrMissing(runLog.actual_km, ' km')} / ${valOrMissing(runLog.time_display)} / ${valOrMissing(runLog.avg_pace)} / ${valOrMissing(runLog.cadence)} / ${valOrMissing(runLog.rpe)} / ${valOrMissing(runLog.knee_status)}\n`;
     }
     if (runLog.notes) text += `- **Notes:** ${runLog.notes}\n`;
   } else if (plan?.run_type) {
@@ -65,7 +70,7 @@ function buildDebriefText() {
     text += `- **Planned:** ${plan.workout_plan}\n`;
     text += `- **Done?** ${workoutLog.done ? 'Yes' : 'No'}\n`;
     if (workoutLog.done && workoutLog.what_i_did) {
-      text += `- **What I Did / RPE:** ${workoutLog.what_i_did} / RPE ${workoutLog.rpe || '-'}\n`;
+      text += `- **What I Did / RPE:** ${workoutLog.what_i_did} / RPE ${valOrMissing(workoutLog.rpe)}\n`;
     }
     if (workoutLog.notes) text += `- **Notes:** ${workoutLog.notes}\n`;
   } else if (plan?.workout_plan) {
@@ -97,15 +102,19 @@ function buildDebriefText() {
     totalCalories += data.totalCalories || 0;
   }
 
-  text += `- **Protein:** ${Math.round(totalProtein)}g (calculated) / **Calories:** ~${Math.round(totalCalories)} kcal\n`;
-  text += `- **Sleep:** ${vitals.sleep_hours || '-'}h / **Cigs:** ${vitals.cigarettes ?? '-'} / **Weight:** ${vitals.weight_kg || '-'} kg\n`;
+  if (!Object.keys(foodLogs).length) {
+    text += `  (no meals logged)\n`;
+  }
+
+  text += `- **Protein:** ${totalProtein ? Math.round(totalProtein) : 'not logged'}g (calculated) / **Calories:** ${totalCalories ? `~${Math.round(totalCalories)}` : 'not logged'} kcal\n`;
+  text += `- **Sleep:** ${valOrMissing(vitals.sleep_hours, 'h')} / **Cigs:** ${valOrMissing(vitals.cigarettes)} / **Weight:** ${vitals.weight_kg != null ? `${vitals.weight_kg} kg` : 'not logged'}\n`;
 
   text += `\n## Supplements\n`;
   text += `- **Date:** ${dateLabel}\n`;
-  text += `- **Taken:** ${formatSupplementDebriefLine(state.supplementLog, date)}\n`;
+  text += `- **Taken:** ${state.supplementLog ? formatSupplementDebriefLine(state.supplementLog, date) : 'not logged'}\n`;
 
   const notes = document.getElementById('input-notes')?.value || vitals.notes || '';
-  text += `\n## Notes / Deviations\n`;
+  text += `\n## Notes\n`;
   text += notes ? notes + '\n' : '(none)\n';
 
   if (isMonday(state.currentDate)) {
@@ -140,17 +149,24 @@ function navigateToTask(action) {
     document.querySelector('.nav-tab[data-tab="food"]')?.click();
     return;
   }
-  document.querySelector('.nav-tab[data-tab="today"]')?.click();
+  document.querySelector('.nav-tab[data-tab="coach"]')?.click();
   requestAnimationFrame(() => {
     if (action === 'vitals') {
       expandVitalsCard();
-      document.getElementById('vitals-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      document.getElementById('vitals-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (action === 'training') {
-      document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      document.getElementById('training-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (action === 'supplements') {
-      document.getElementById('supplements-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      document.getElementById('supplements-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
+}
+
+function getIncompleteWarning(readiness) {
+  const missing = readiness.tasks.filter((t) => !t.done);
+  if (!missing.length) return '';
+  const labels = missing.map((t) => t.label).join(', ');
+  return `${missing.length} item${missing.length === 1 ? '' : 's'} not logged — ${labels}. Export anyway?`;
 }
 
 export async function refreshDebrief() {
@@ -160,25 +176,30 @@ export async function refreshDebrief() {
   const preview = document.getElementById('debrief-preview');
   const copyBtn = document.getElementById('copy-debrief');
   const futureNote = document.getElementById('debrief-future-note');
+  const warnEl = document.getElementById('debrief-incomplete-warning');
+  const exportCard = document.getElementById('coach-debrief-export-card');
 
   if (!preflight || !list || !copyBtn) return;
 
   if (isViewingFuture()) {
     preflight.classList.add('hidden');
-    preview.classList.add('hidden');
+    preview?.classList.add('hidden');
     copyBtn.disabled = true;
+    warnEl?.classList.add('hidden');
+    exportCard?.classList.add('hidden');
     if (futureNote) futureNote.classList.remove('hidden');
     return;
   }
 
+  exportCard?.classList.remove('hidden');
   if (futureNote) futureNote.classList.add('hidden');
   preflight.classList.remove('hidden');
 
   const { tasks, ready } = computeDebriefReadiness();
 
   status.textContent = ready
-    ? 'All logging complete — ready to copy'
-    : 'Finish logging before copying';
+    ? 'All logging complete'
+    : `${tasks.filter((t) => !t.done).length} item(s) still open`;
   status.classList.toggle('ready', ready);
 
   list.innerHTML = tasks.map((task) => `
@@ -189,6 +210,12 @@ export async function refreshDebrief() {
     </li>
   `).join('');
 
+  if (warnEl) {
+    const warn = getIncompleteWarning({ tasks, ready });
+    warnEl.textContent = warn;
+    warnEl.classList.toggle('hidden', !warn);
+  }
+
   if (isMonday(state.currentDate)) {
     mondayCheckInLine = null;
     preview.textContent = buildDebriefText();
@@ -197,17 +224,22 @@ export async function refreshDebrief() {
     mondayCheckInLine = null;
   }
 
-  preview.textContent = buildDebriefText();
-  preview.classList.remove('hidden');
+  if (preview) {
+    preview.textContent = buildDebriefText();
+    preview.classList.remove('hidden');
+  }
 
-  copyBtn.disabled = !ready;
-  copyBtn.textContent = ready ? 'Copy Debrief to Clipboard' : 'Complete logging to copy';
+  copyBtn.disabled = false;
+  copyBtn.textContent = 'Copy Day Log';
 }
 
 export function refreshDebriefIfActive() {
-  if (document.getElementById('tab-debrief')?.classList.contains('active')) {
-    refreshDebrief();
-  }
+  refreshDebrief();
+}
+
+export function scrollToDebriefExport() {
+  document.getElementById('coach-debrief-export-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  refreshDebrief();
 }
 
 export function initDebrief() {
@@ -219,8 +251,8 @@ export function initDebrief() {
 
   document.getElementById('copy-debrief')?.addEventListener('click', async () => {
     const copyBtn = document.getElementById('copy-debrief');
-    if (!computeDebriefReadiness().ready || copyBtn?.disabled) return;
-    const idleLabel = copyBtn.textContent.trim();
+    if (copyBtn?.disabled || isViewingFuture()) return;
+    const idleLabel = 'Copy Day Log';
     setButtonLoading(copyBtn, true, idleLabel);
     try {
       if (isMonday(state.currentDate)) {
@@ -229,12 +261,13 @@ export function initDebrief() {
       const text = buildDebriefText();
       await copyToClipboard(text);
       showToast('Copied — paste into Cursor');
+      copyBtn.textContent = 'Copied';
+      window.setTimeout(() => {
+        copyBtn.textContent = idleLabel;
+      }, 1500);
     } finally {
       setButtonLoading(copyBtn, false, idleLabel);
-      copyBtn.disabled = !computeDebriefReadiness().ready;
-      copyBtn.textContent = computeDebriefReadiness().ready
-        ? 'Copy Debrief to Clipboard'
-        : 'Complete logging to copy';
+      copyBtn.disabled = false;
     }
   });
 

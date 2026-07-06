@@ -1,4 +1,4 @@
-// Progress tab — body composition scan log + history
+// Trends tab — body composition + coaching-domain trends (Sprint 4)
 import {
   state,
   formatDate,
@@ -11,6 +11,9 @@ import {
   fetchAllRunLogs,
   fetchVitalsRange,
   fetchSupplementLogsRange,
+  fetchWeekFoodLogs,
+  fetchWeekPlans,
+  fetchWeekWorkoutLogs,
   upsertBodyCompScan,
   deleteBodyCompScan,
 } from './supabase.js';
@@ -25,26 +28,41 @@ import {
   getRaceCountdownDays,
 } from './week-stats.js';
 import {
-  buildWeightSeries,
-  renderWeightSparkline,
-  WEIGHT_SPARKLINE_DAYS,
-} from './weight-trend.js';
-import {
   renderSupplementAdherence,
   supplementAdherenceStartIso,
 } from './supplement-adherence.js';
+import {
+  detectMeaningfulEvents,
+  renderActiveSignals,
+} from './meaningful-events.js';
+import {
+  renderComplianceStrip,
+  renderKneeTimeline,
+  renderRpeDots,
+  renderWeeklyMileageChart,
+} from './sparkline.js';
+import {
+  lookbackStartIso,
+  complianceStartIso,
+  buildWeeklyMileage,
+  enrichWeeklyMileageWithPlans,
+  buildProteinCompliance,
+  buildCalorieCompliance,
+  buildRpeSessions,
+  renderWeightTrend,
+  renderSleepTrend,
+  renderCigaretteTrend,
+  renderCadenceTrend,
+  renderWaistTrend,
+  resolvePlansForCompliance,
+} from './trends-data.js';
 
 const SCAN_INTERVAL_WEEKS = 5;
 
 let editingScanId = null;
 let cachedRunLogs = [];
 let cachedVitals = [];
-
-function vitalsSparklineStartIso() {
-  const d = new Date();
-  d.setDate(d.getDate() - (WEIGHT_SPARKLINE_DAYS - 1));
-  return formatDate(d);
-}
+let cachedWorkoutLogs = [];
 
 export function initProgress() {
   document.getElementById('scan-form-toggle')?.addEventListener('click', toggleScanForm);
@@ -52,24 +70,86 @@ export function initProgress() {
   document.getElementById('cancel-scan')?.addEventListener('click', resetScanForm);
   document.getElementById('delete-scan')?.addEventListener('click', deleteCurrentScan);
   document.getElementById('scan-history')?.addEventListener('click', onHistoryClick);
+  document.getElementById('tab-progress')?.addEventListener('click', (e) => {
+    if (e.target.closest('.progress-retry-btn')) loadProgressView();
+  });
+}
+
+const PROGRESS_LOAD_ERROR_HTML = `
+  <p class="text-muted progress-load-error">
+    Couldn't load.
+    <button type="button" class="progress-retry-btn">Retry</button>
+  </p>`;
+
+const PROGRESS_CARD_IDS = [
+  'active-signals-content',
+  'weight-trend-content',
+  'waist-trend-content',
+  'weekly-mileage-content',
+  'long-run-content',
+  'cadence-trend-content',
+  'sleep-trend-content',
+  'rpe-trend-content',
+  'knee-timeline-content',
+  'protein-compliance-content',
+  'calorie-compliance-content',
+  'cigarettes-trend-content',
+  'supplement-adherence-content',
+  'latest-scan-content',
+];
+
+function renderProgressLoadError() {
+  PROGRESS_CARD_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = PROGRESS_LOAD_ERROR_HTML;
+  });
+  const banner = document.getElementById('scan-due-banner');
+  if (banner) banner.innerHTML = '';
+  const history = document.getElementById('scan-history');
+  if (history) history.innerHTML = '';
+  document.getElementById('active-signals-section')?.classList.add('hidden');
 }
 
 export async function loadProgressView() {
   setOverlayLoading('progress-loading-overlay', true);
   try {
     const endIso = formatDate(new Date());
-    const startIso = vitalsSparklineStartIso();
-    const [scans, runLogs, vitals, supplementLogs] = await Promise.all([
+    const startIso = lookbackStartIso();
+    const complianceStart = complianceStartIso(14);
+
+    const [
+      scans,
+      runLogs,
+      vitals,
+      supplementLogs,
+      foodLogs,
+      rawPlans,
+      workoutLogs,
+    ] = await Promise.all([
       fetchBodyCompScans(),
       fetchAllRunLogs(),
       fetchVitalsRange(startIso, endIso),
       fetchSupplementLogsRange(supplementAdherenceStartIso(), endIso),
+      fetchWeekFoodLogs(complianceStart, endIso),
+      fetchWeekPlans(complianceStart, endIso),
+      fetchWeekWorkoutLogs(startIso, endIso),
     ]);
+
     state.bodyCompScans = scans;
     cachedRunLogs = runLogs;
     cachedVitals = vitals;
-    renderProgressView();
+    cachedWorkoutLogs = workoutLogs;
+
+    const plans = await resolvePlansForCompliance(complianceStart, endIso, rawPlans);
+
+    detectMeaningfulEvents({ vitals, runLogs, today: endIso });
+    renderActiveSignals();
+
+    renderProgressView({ foodLogs, plans });
     renderSupplementAdherence(supplementLogs, endIso);
+  } catch (err) {
+    console.error('loadProgressView:', err);
+    renderProgressLoadError();
   } finally {
     setOverlayLoading('progress-loading-overlay', false);
   }
@@ -170,7 +250,7 @@ async function saveScan() {
       resetScanForm();
       document.getElementById('scan-form-body')?.classList.remove('open');
       document.getElementById('scan-form-toggle')?.classList.remove('open');
-      renderProgressView();
+      await loadProgressView();
       refreshDebriefIfActive();
       return true;
     });
@@ -191,7 +271,7 @@ async function deleteCurrentScan() {
   resetScanForm();
   document.getElementById('scan-form-body')?.classList.remove('open');
   document.getElementById('scan-form-toggle')?.classList.remove('open');
-  renderProgressView();
+  await loadProgressView();
   refreshDebriefIfActive();
   showToast('Scan deleted');
 }
@@ -219,7 +299,7 @@ async function onHistoryClick(e) {
     }
     state.bodyCompScans = await fetchBodyCompScans();
     resetScanForm();
-    renderProgressView();
+    await loadProgressView();
     refreshDebriefIfActive();
     showToast('Scan deleted');
   }
@@ -396,17 +476,39 @@ function renderLongRunProgress(runLogs) {
   `;
 }
 
-function renderWeightTrend() {
-  const el = document.getElementById('weight-trend-content');
+function renderWeeklyMileage(runLogs, plans) {
+  const el = document.getElementById('weekly-mileage-content');
   if (!el) return;
-  const series = buildWeightSeries(cachedVitals);
-  el.innerHTML = renderWeightSparkline(series);
+  const weeks = enrichWeeklyMileageWithPlans(buildWeeklyMileage(runLogs), plans);
+  el.innerHTML = renderWeeklyMileageChart(weeks);
 }
 
-function renderProgressView() {
+function renderComplianceSections(foodLogs, plans) {
+  const proteinEl = document.getElementById('protein-compliance-content');
+  const calorieEl = document.getElementById('calorie-compliance-content');
+  if (proteinEl) {
+    const days = buildProteinCompliance(foodLogs, plans);
+    proteinEl.innerHTML = renderComplianceStrip({ days, label: 'days on protein floor' });
+  }
+  if (calorieEl) {
+    const days = buildCalorieCompliance(foodLogs, plans);
+    calorieEl.innerHTML = renderComplianceStrip({ days, label: 'days in calorie range' });
+  }
+}
+
+function renderProgressView({ foodLogs = [], plans = [] } = {}) {
   const scans = state.bodyCompScans || [];
+
+  document.getElementById('weight-trend-content').innerHTML = renderWeightTrend(cachedVitals);
+  document.getElementById('waist-trend-content').innerHTML = renderWaistTrend(cachedVitals);
+  renderWeeklyMileage(cachedRunLogs, plans);
   renderLongRunProgress(cachedRunLogs);
-  renderWeightTrend();
+  document.getElementById('cadence-trend-content').innerHTML = renderCadenceTrend(cachedRunLogs);
+  document.getElementById('sleep-trend-content').innerHTML = renderSleepTrend(cachedVitals);
+  document.getElementById('rpe-trend-content').innerHTML = renderRpeDots(buildRpeSessions(cachedRunLogs, cachedWorkoutLogs));
+  document.getElementById('knee-timeline-content').innerHTML = renderKneeTimeline(cachedRunLogs);
+  document.getElementById('cigarettes-trend-content').innerHTML = renderCigaretteTrend(cachedVitals);
+  renderComplianceSections(foodLogs, plans);
   renderDueBanner(scans);
   renderLatestScan(scans);
   renderHistory(scans);

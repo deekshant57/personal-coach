@@ -156,7 +156,7 @@ export async function fetchWeekFoodLogs(startDate, endDate) {
   if (!supabase || !uid()) return [];
   const { data, error } = await supabase
     .from('food_logs')
-    .select('date, meal_slot, items, custom_text, total_protein')
+    .select('date, meal_slot, items, custom_text, total_protein, total_calories')
     .eq('user_id', uid())
     .gte('date', startDate)
     .lte('date', endDate)

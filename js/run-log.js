@@ -2,6 +2,9 @@
 
 const KNEE_VALUES = new Set(['Pain-free', 'Minor pressure', 'Discomfort', 'Pain']);
 
+let paceManuallyEdited = false;
+let ignorePaceInput = false;
+
 export function parseTimeToMinutes(timeStr) {
   if (!timeStr?.trim()) return null;
   const parts = timeStr.trim().split(':');
@@ -20,25 +23,82 @@ export function formatPace(minutesPerKm) {
   return `${min}:${String(sec).padStart(2, '0')}/km`;
 }
 
-export function calcAutoPace(km, timeStr, currentPace = '') {
-  if (String(currentPace || '').trim()) return null;
+export function calcAutoPace(km, timeStr) {
   const k = parseFloat(km);
   const mins = parseTimeToMinutes(timeStr);
   if (!(k > 0) || !mins) return null;
   return formatPace(mins / k);
 }
 
+export function resetPaceAutoState() {
+  paceManuallyEdited = false;
+}
+
+export function setupPaceManualTracking() {
+  const paceEl = document.getElementById('input-run-pace');
+  if (!paceEl) return;
+  paceEl.addEventListener('input', () => {
+    if (ignorePaceInput) return;
+    paceManuallyEdited = !!String(paceEl.value).trim();
+  });
+}
+
 export function applyAutoPaceToForm() {
+  if (paceManuallyEdited) return false;
   const paceEl = document.getElementById('input-run-pace');
   if (!paceEl) return false;
   const pace = calcAutoPace(
     document.getElementById('input-run-km')?.value,
     document.getElementById('input-run-time')?.value,
-    paceEl.value,
   );
   if (!pace) return false;
+  ignorePaceInput = true;
   paceEl.value = pace;
+  ignorePaceInput = false;
   return true;
+}
+
+export function setupRpeSlider(sliderId, displayId, onChange) {
+  const slider = document.getElementById(sliderId);
+  const display = document.getElementById(displayId);
+  if (!slider || !display) return;
+  slider.addEventListener('input', () => {
+    slider.dataset.rpeExplicit = '1';
+    slider.setAttribute('aria-valuetext', slider.value);
+    display.textContent = slider.value;
+    onChange?.();
+  });
+}
+
+export function setRpeFromSaved(sliderId, displayId, rpe) {
+  const slider = document.getElementById(sliderId);
+  const display = document.getElementById(displayId);
+  if (!slider || !display) return;
+  if (rpe != null && rpe >= 1 && rpe <= 10) {
+    slider.value = String(rpe);
+    slider.dataset.rpeExplicit = '1';
+    slider.setAttribute('aria-valuetext', String(rpe));
+    display.textContent = String(rpe);
+    return;
+  }
+  resetRpeSlider(sliderId, displayId);
+}
+
+export function resetRpeSlider(sliderId, displayId) {
+  const slider = document.getElementById(sliderId);
+  const display = document.getElementById(displayId);
+  if (!slider || !display) return;
+  slider.value = '5';
+  delete slider.dataset.rpeExplicit;
+  slider.setAttribute('aria-valuetext', 'not set');
+  display.textContent = '—';
+}
+
+export function readRpeFromSlider(sliderId) {
+  const slider = document.getElementById(sliderId);
+  if (!slider || slider.dataset.rpeExplicit !== '1') return null;
+  const n = parseInt(slider.value, 10);
+  return n >= 1 && n <= 10 ? n : null;
 }
 
 export function validateRunLogForDone(runLog) {
@@ -57,14 +117,14 @@ export function validateRunLogForDone(runLog) {
   }
 
   const cadence = Number(runLog.cadence);
-  if (!cadence || cadence < 120 || cadence > 200) {
-    errors.push('Enter cadence (120–200)');
+  if (!cadence || cadence < 1 || cadence > 250) {
+    errors.push('Enter cadence');
   } else if (cadence < 150) {
     warnings.push(`Cadence ${cadence} — target 150–155`);
   }
 
   const rpe = Number(runLog.rpe);
-  if (!rpe || rpe < 1 || rpe > 10) errors.push('Set RPE');
+  if (!rpe || rpe < 1 || rpe > 10) errors.push('RPE not set');
 
   return { valid: errors.length === 0, errors, warnings };
 }
@@ -78,6 +138,6 @@ export function updateCadenceHint(cadence) {
   const hint = document.getElementById('run-cadence-hint');
   if (!hint) return;
   const n = parseInt(cadence, 10);
-  const show = n >= 120 && n < 150;
+  const show = n > 0 && n < 150;
   hint.classList.toggle('hidden', !show);
 }

@@ -207,6 +207,116 @@ a {
   background: var(--bg-card-hover);
 }
 
+/* ── Gap return banner (Sprint 6) ───────────────────────────── */
+.gap-return-banner {
+  padding: 0 0 10px;
+}
+
+.gap-return-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.gap-return-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.gap-return-text {
+  color: var(--text);
+}
+
+.gap-return-last-logged {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gap-return-dismiss {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.gap-return-dismiss:active {
+  background: var(--bg-card-hover);
+}
+
+/* ── Skeleton loaders (Sprint 6) ───────────────────────────── */
+.skeleton-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.skeleton-bar {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 0%,
+    color-mix(in srgb, var(--border) 60%, var(--bg-card)) 50%,
+    var(--bg-card) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-week-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.skeleton-week-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-week-dots {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.skeleton-week-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar,
+  .skeleton-week-dots span {
+    animation: none;
+    background: var(--bg-card);
+  }
+}
+
 /* ── Day progress (P1) ─────────────────────────────────────── */
 .day-progress {
   padding: 0 0 10px;
@@ -1286,16 +1396,25 @@ textarea.form-input {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 2px;
-  padding: 10px 6px 8px;
+  gap: 4px;
+  padding: 8px 6px 6px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  min-height: 110px;
+  min-height: 80px;
   transition: border-color 0.15s, background 0.15s;
   position: relative;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.food-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
 }
 
 .food-item.has-qty {
@@ -1366,24 +1485,31 @@ textarea.form-input {
 }
 
 .food-item-emoji {
-  font-size: 24px;
+  font-size: 16px;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .food-item-name {
   font-size: 11px;
   font-weight: 500;
   color: var(--text-secondary);
-  text-align: center;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .food-item-protein {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
+  text-align: center;
+  line-height: 1.2;
 }
 
 .food-item-unit {
-  font-size: 10px;
-  color: var(--text-hint);
+  display: none;
 }
 
 .food-grid-hint {
@@ -1391,6 +1517,50 @@ textarea.form-input {
   color: var(--text-muted);
   padding: 0 0 4px;
   margin: 0;
+}
+
+/* ── Same as yesterday banner ──────────────────────────────── */
+.same-as-yesterday {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--accent-green) 8%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent-green) 25%, var(--border));
+  border-radius: var(--radius-sm);
+}
+
+.same-as-yesterday-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.same-as-yesterday-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.same-as-yesterday-items {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.same-as-yesterday-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.same-as-yesterday-actions .btn {
+  flex: 1;
+  min-height: 36px;
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.same-as-dismiss {
+  opacity: 0.8;
 }
 
 .food-search-wrap {
@@ -1462,6 +1632,8 @@ textarea.form-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  min-width: 0;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
@@ -1471,11 +1643,15 @@ textarea.form-input {
 .meals-day-total-label {
   color: var(--text-secondary);
   font-weight: 600;
+  min-width: 0;
 }
 
 .meals-day-total-macros {
   color: var(--accent-green);
   font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: right;
 }
 
 /* ── Meal Summary List ─────────────────────────────────────── */
@@ -1484,11 +1660,16 @@ textarea.form-input {
   border-top: 1px solid var(--border);
 }
 
+#meals-summary-list {
+  min-width: 0;
+}
+
 .meal-summary-item {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 8px;
+  min-width: 0;
   padding: 8px 0;
   font-size: 14px;
 }
@@ -1505,13 +1686,13 @@ textarea.form-input {
   font-size: 12px;
   color: var(--text-muted);
   line-height: 1.3;
+  min-width: 0;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .meal-summary-item--warn .protein {
   color: var(--accent-amber);
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .meal-summary-item .name {
@@ -1523,9 +1704,12 @@ textarea.form-input {
   white-space: nowrap;
 }
 
-.meal-summary-item .protein {
+.meal-summary-item > .protein {
   color: var(--accent-green);
   font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .meal-summary-item .remove-btn {
@@ -1586,12 +1770,24 @@ textarea.form-input {
   gap: 8px;
 }
 
-.meal-summary-item-main {
-  display: flex;
+.meal-summary-item-custom .meal-summary-item-main {
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
   width: 100%;
+}
+
+.meal-summary-item-custom .meal-summary-item-main .protein {
+  color: var(--accent-green);
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.meal-summary-item-custom.meal-summary-item--warn .meal-summary-item-main .protein {
+  color: var(--accent-amber);
 }
 
 .meal-summary-item-controls {
@@ -2059,6 +2255,276 @@ textarea.form-input {
   margin: 0;
 }
 
+/* ── Trends screen (Sprint 4) ──────────────────────────────── */
+.trends-domain-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 20px 0 8px;
+}
+
+.trends-domain-title:first-of-type {
+  margin-top: 4px;
+}
+
+.trends-card {
+  margin-bottom: 10px;
+}
+
+.trends-section {
+  margin-bottom: 8px;
+}
+
+.active-signal {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--accent-blue) 10%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 25%, var(--border));
+  margin-bottom: 8px;
+}
+
+.active-signal:last-child {
+  margin-bottom: 0;
+}
+
+.sparkline-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sparkline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sparkline-metric {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sparkline-latest {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+}
+
+.sparkline-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.sparkline-stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.sparkline-stat-value {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.sparkline-delta--good {
+  color: var(--accent-green);
+}
+
+.sparkline-delta--warn {
+  color: var(--accent-amber);
+}
+
+.sparkline-delta--neutral {
+  color: var(--text-muted);
+}
+
+.sparkline-wrap {
+  margin-bottom: 4px;
+}
+
+.sparkline {
+  width: 100%;
+  height: 64px;
+  display: block;
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+
+.sparkline-line {
+  fill: none;
+  stroke: var(--accent-blue);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.sparkline-target-line {
+  stroke: var(--text-hint);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+}
+
+.sparkline-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  gap: 8px;
+}
+
+.sparkline-target-label {
+  color: var(--text-hint);
+  text-align: center;
+  flex: 1;
+}
+
+.sparkline-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.compliance-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compliance-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.compliance-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.compliance-dot--hit {
+  background: var(--accent-green);
+}
+
+.compliance-dot--miss {
+  background: var(--border);
+  border: 1px solid var(--text-hint);
+}
+
+.compliance-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.knee-dots,
+.rpe-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.knee-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.knee-dot--ok { background: var(--accent-green); }
+.knee-dot--minor { background: #84cc16; }
+.knee-dot--warn { background: var(--accent-amber); }
+.knee-dot--pain { background: #f87171; }
+
+.rpe-dot {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+}
+
+.rpe-dot--low { background: var(--accent-green); }
+.rpe-dot--mid { background: var(--accent-amber); }
+.rpe-dot--high { background: #f87171; }
+
+.knee-timeline-summary,
+.rpe-timeline-summary {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.weekly-km-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weekly-km-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.weekly-km-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.weekly-km-bars {
+  position: relative;
+  height: 10px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.weekly-km-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.weekly-km-bar--planned {
+  background: color-mix(in srgb, var(--text-hint) 30%, transparent);
+  z-index: 0;
+}
+
+.weekly-km-bar--actual {
+  background: var(--accent-blue);
+  z-index: 1;
+  opacity: 0.9;
+}
+
+.weekly-km-value {
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .week-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -2365,6 +2831,219 @@ textarea.form-input {
   margin-bottom: 4px;
 }
 
+.debrief-incomplete-warning {
+  font-size: 13px;
+  color: var(--accent-amber);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.debrief-preview-details {
+  margin-top: 12px;
+}
+
+.debrief-preview-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ── Coach screen (Sprint 2) ─────────────────────────────── */
+.coach-sections {
+  display: flex;
+  flex-direction: column;
+}
+
+.block-context-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-green);
+  letter-spacing: 0.2px;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.block-context-chip--plan {
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* ── Coach observation (Sprint 5) ─────────────────────────── */
+.coach-observation-block {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent-green) 8%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent-green) 20%, var(--border));
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.25s ease-out 0.2s, transform 0.25s ease-out 0.2s;
+}
+
+.coach-observation-block.coach-observation--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.monday-review-intro {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.monday-review-line {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin: 0 0 6px;
+  word-break: break-word;
+}
+
+.monday-review-hint {
+  font-size: 12px;
+  margin: 0;
+}
+
+.day-summary-details {
+  margin-bottom: 12px;
+}
+
+.day-summary-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.day-summary-content {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.week-nutrition-summary {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.week-nutrition-bar {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.week-nutrition-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-green);
+  border-radius: 3px;
+}
+
+.week-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.week-completion-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.week-dot {
+  color: var(--text-hint);
+  min-width: 12px;
+  text-align: center;
+}
+
+.week-dot--done {
+  color: var(--accent-green);
+}
+
+.week-dot--na {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.coach-past-edit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.coach-past-edit-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.coach-readonly .coach-collapsible-card .card-body,
+.coach-readonly .coach-collapsible-card .vitals-body-panel {
+  pointer-events: none;
+}
+
+.coach-readonly input,
+.coach-readonly textarea,
+.coach-readonly select,
+.coach-readonly button:not(#coach-past-edit-btn):not(.card-collapse-btn):not(#copy-debrief) {
+  opacity: 0.85;
+}
+
+.card-summary-inline {
+  flex: 1;
+  min-width: 0;
+  margin: 0 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coach-collapsible-card .card-header {
+  gap: 4px;
+}
+
+.coach-collapsible-card.collapsed .card-body {
+  display: none;
+}
+
+.coach-collapsible-card.collapsed .card-chevron {
+  transform: rotate(-45deg);
+}
+
+.recovery-today-line {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+
+.recovery-today-line:last-child {
+  margin-bottom: 0;
+}
+
 .copy-success {
   color: var(--accent-green);
   font-weight: 600;
@@ -2488,6 +3167,10 @@ textarea.form-input {
 
 .food-footer-actions .btn {
   width: 100%;
+}
+
+.food-footer-actions .btn-danger-outline {
+  font-size: 14px;
 }
 
 #tab-food:not(.active) .food-sticky-footer {
@@ -2765,6 +3448,7 @@ textarea.form-input {
 .header--progress .protein-bar-container,
 .header--progress .date-header,
 .header--progress .date-off-today-bar,
+.header--progress .gap-return-banner,
 .header--progress .day-progress {
   display: none;
 }
@@ -2902,13 +3586,26 @@ textarea.form-input {
   padding: 0;
 }
 
-/* ── No motion — instant UI ──────────────────────────────────── */
-*,
-*::before,
-*::after {
-  animation: none !important;
-  transition: none !important;
-  scroll-behavior: auto !important;
+/* ── Reduced motion (accessibility) ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.progress-retry-btn {
+  background: none;
+  border: none;
+  color: var(--accent-green);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-size: inherit;
 }
 
 /* ── Responsive (tablet/desktop fallback) ──────────────────── */

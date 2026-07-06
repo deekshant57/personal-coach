@@ -3,7 +3,7 @@ import {
   extractWarmupCooldown,
   extractRunCues,
 } from './plan-templates.js';
-import { state, getToday, isMonday, isViewingFuture, showToast, formatDate } from './app.js';
+import { state, getToday, isMonday, isViewingFuture, isViewingPast, showToast, showConfirm, formatDate, getFallbackPlan } from './app.js';
 import { SLOT_LABELS, formatFoodLabel } from './data.js';
 import {
   macrosFromResolvedLog,
@@ -20,15 +20,26 @@ import {
 } from './supabase.js';
 import { loadSupplements, initSupplements, resetSupplementsForFuture, refreshSupplementHints } from './supplements.js';
 import { updateProteinBar, deleteMealSlot, fetchFoodLogsForDate, invalidateFoodLogsCache } from './food.js';
+import { syncMeaningfulEvents } from './meaningful-events.js';
 import { updateDayProgress } from './day-progress.js';
 import { refreshDebriefIfActive } from './debrief.js';
 import { invalidateWeekStatsCache } from './week-stats.js';
 import { trackSave } from './save-state.js';
 import {
   applyAutoPaceToForm,
+  resetPaceAutoState,
+  setupPaceManualTracking,
+  setupRpeSlider,
+  setRpeFromSaved,
+  resetRpeSlider,
+  readRpeFromSlider,
   updateCadenceHint,
   validateRunLogForDone,
 } from './run-log.js';
+import {
+  formatRestDayPlanTitle,
+  summarizePlanSession,
+} from './block-context.js';
 import {
   renderWorkoutExerciseList,
   setupWorkoutExerciseHandlers,
@@ -48,6 +59,10 @@ import {
 } from './auto-save.js';
 import { setButtonLoading } from './spinner.js';
 import { collapseVitalsCard, expandVitalsCard } from './vitals-ui.js';
+import {
+  layoutCoachScreen,
+  updateSectionCompression,
+} from './coach-layout.js';
 
 let trainingAutosaveSuspended = false;
 
@@ -59,6 +74,7 @@ function syncDayStatus() {
   invalidateWeekStatsCache();
   updateDayProgress();
   refreshDebriefIfActive();
+  updateSectionCompression();
 }
 
 // ── Init ─────────────────────────────────────────────────────
@@ -117,6 +133,11 @@ export async function loadTodayData() {
   waistRow.classList.toggle('hidden', !isMonday(state.currentDate));
 
   syncDayStatus();
+  layoutCoachScreen();
+
+  if (!future) {
+    syncMeaningfulEvents().catch((err) => console.error('syncMeaningfulEvents:', err));
+  }
 }
 
 // ── Vitals ───────────────────────────────────────────────────
@@ -199,10 +220,41 @@ function toggleVitalsCollapse() {
   }
 }
 
+function tomorrowIso(dateIso) {
+  const d = new Date(`${dateIso}T12:00:00`);
+  d.setDate(d.getDate() + 1);
+  return formatDate(d);
+}
+
+function isRestPlan(plan) {
+  return plan && !plan.run_type && !plan.workout_plan;
+}
+
+function updateNotesPlaceholders(plan) {
+  const notesEl = document.getElementById('input-notes');
+  if (notesEl) {
+    notesEl.placeholder = isRestPlan(plan)
+      ? 'How are you recovering?'
+      : 'How did the session feel?';
+  }
+  const runNotes = document.getElementById('input-run-notes');
+  if (runNotes) {
+    runNotes.placeholder = 'How did the session feel?';
+  }
+  const workoutNotes = document.getElementById('input-workout-notes');
+  if (workoutNotes) {
+    workoutNotes.placeholder = isRestPlan(plan)
+      ? 'How are you recovering?'
+      : 'Any issues or deviations?';
+  }
+}
+
 // ── Plan Card ────────────────────────────────────────────────
 function renderPlanCard() {
   const plan = state.currentPlan;
+  const titleEl = document.getElementById('plan-card-title');
   if (!plan) {
+    if (titleEl) titleEl.textContent = "Today's Plan";
     document.getElementById('plan-directive').textContent = 'No plan for this date';
     document.getElementById('plan-card')?.classList.remove('is-loading');
     document.getElementById('plan-training-summary').textContent = '';
@@ -210,6 +262,26 @@ function renderPlanCard() {
     document.getElementById('plan-meals-content').textContent = '';
     return;
   }
+
+  if (titleEl) {
+    if (isRestPlan(plan)) {
+      const nextPlan = getFallbackPlan(tomorrowIso(getToday()));
+      titleEl.textContent = formatRestDayPlanTitle(summarizePlanSession(nextPlan));
+    } else if (isViewingFuture()) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const viewing = new Date(state.currentDate);
+      viewing.setHours(0, 0, 0, 0);
+      tomorrow.setHours(0, 0, 0, 0);
+      titleEl.textContent = viewing.getTime() === tomorrow.getTime() ? "Tomorrow's Plan" : 'Upcoming Plan';
+    } else if (isViewingPast()) {
+      titleEl.textContent = 'Plan';
+    } else {
+      titleEl.textContent = "Today's Plan";
+    }
+  }
+
+  updateNotesPlaceholders(plan);
 
   document.getElementById('plan-directive').textContent = plan.directive || '';
   document.getElementById('plan-card')?.classList.remove('is-loading');
@@ -238,7 +310,11 @@ function renderPlanCard() {
   const warmupContent = document.getElementById('plan-warmup-content');
   warmupContent.textContent = warmup;
   warmupToggle.classList.toggle('hidden', !warmup);
-  if (!warmup) {
+  const hasTraining = !!(plan.run_type || plan.workout_plan);
+  if (hasTraining && warmup) {
+    warmupToggle.classList.add('open');
+    warmupContent.classList.add('open');
+  } else if (!warmup) {
     warmupToggle.classList.remove('open');
     warmupContent.classList.remove('open');
   }
@@ -258,6 +334,7 @@ function renderPlanCard() {
 
   refreshSupplementHints();
   updateDayProgress();
+  layoutCoachScreen();
 }
 
 function tryAutoPace() {
@@ -278,7 +355,10 @@ function workoutLogHasContent(log) {
 }
 
 function setDoneToggle(done) {
-  document.getElementById('training-done-btn').classList.toggle('done', done);
+  const btn = document.getElementById('training-done-btn');
+  btn.classList.toggle('done', done);
+  const label = btn.querySelector('.toggle-circle')?.nextElementSibling;
+  if (label) label.textContent = done ? 'Done' : 'Mark as Done';
 }
 
 function collectRunLogFromForm() {
@@ -289,7 +369,7 @@ function collectRunLogFromForm() {
     time_display: document.getElementById('input-run-time').value || null,
     avg_pace: document.getElementById('input-run-pace').value || null,
     cadence: parseInt(document.getElementById('input-run-cadence').value, 10) || null,
-    rpe: parseInt(document.getElementById('input-run-rpe').value, 10) || null,
+    rpe: readRpeFromSlider('input-run-rpe'),
     knee_status: kneeEl?.dataset.value || 'Pain-free',
     notes: document.getElementById('input-run-notes').value || null,
   };
@@ -393,12 +473,9 @@ function setupTrainingLog() {
     syncDayStatus();
   });
 
-  document.getElementById('input-run-rpe').addEventListener('input', (e) => {
-    document.getElementById('run-rpe-value').textContent = e.target.value;
-  });
-  document.getElementById('input-workout-rpe').addEventListener('input', (e) => {
-    document.getElementById('workout-rpe-value').textContent = e.target.value;
-  });
+  setupRpeSlider('input-run-rpe', 'run-rpe-value', scheduleTrainingAutosave);
+  setupRpeSlider('input-workout-rpe', 'workout-rpe-value', scheduleTrainingAutosave);
+  setupPaceManualTracking();
   document.getElementById('input-run-time').addEventListener('blur', tryAutoPace);
   document.getElementById('input-run-km').addEventListener('blur', tryAutoPace);
   document.getElementById('input-run-time').addEventListener('input', tryAutoPace);
@@ -448,8 +525,7 @@ function renderTrainingCard() {
     const log = state.workoutLog;
     if (log) {
       setDoneToggle(log.done);
-      document.getElementById('input-workout-rpe').value = log.rpe || 5;
-      document.getElementById('workout-rpe-value').textContent = log.rpe || 5;
+      setRpeFromSaved('input-workout-rpe', 'workout-rpe-value', log.rpe);
       document.getElementById('input-workout-notes').value = log.notes || '';
       const fallback = document.getElementById('workout-fallback-details');
       if (!log.exercises_json && log.what_i_did) {
@@ -479,13 +555,13 @@ async function loadTrainingLog() {
       state.runLog = log;
       if (log) {
         setDoneToggle(log.done);
+        resetPaceAutoState();
         document.getElementById('input-run-km').value = log.actual_km ?? '';
         document.getElementById('input-run-time').value = log.time_display || '';
         document.getElementById('input-run-pace').value = log.avg_pace || '';
         document.getElementById('input-run-cadence').value = log.cadence ?? '';
         updateCadenceHint(log.cadence);
-        document.getElementById('input-run-rpe').value = log.rpe || 5;
-        document.getElementById('run-rpe-value').textContent = log.rpe || 5;
+        setRpeFromSaved('input-run-rpe', 'run-rpe-value', log.rpe);
         if (log.knee_status) {
           document.querySelectorAll('#knee-segmented .segment').forEach(s => {
             s.classList.toggle('active', s.dataset.value === log.knee_status);
@@ -506,13 +582,13 @@ async function loadTrainingLog() {
 }
 
 function resetRunFields() {
+  resetPaceAutoState();
   document.getElementById('input-run-km').value = '';
   document.getElementById('input-run-time').value = '';
   document.getElementById('input-run-pace').value = '';
   document.getElementById('input-run-cadence').value = '';
   updateCadenceHint('');
-  document.getElementById('input-run-rpe').value = 5;
-  document.getElementById('run-rpe-value').textContent = '5';
+  resetRpeSlider('input-run-rpe', 'run-rpe-value');
   document.getElementById('input-run-notes').value = '';
   document.querySelectorAll('#knee-segmented .segment').forEach((s, i) => {
     s.classList.toggle('active', i === 0);
@@ -521,8 +597,7 @@ function resetRunFields() {
 
 function resetWorkoutFields() {
   document.getElementById('input-workout-what').value = '';
-  document.getElementById('input-workout-rpe').value = 5;
-  document.getElementById('workout-rpe-value').textContent = '5';
+  resetRpeSlider('input-workout-rpe', 'workout-rpe-value');
   document.getElementById('input-workout-notes').value = '';
   document.getElementById('workout-fallback-details')?.removeAttribute('open');
   if (state.currentPlan?.workout_plan) {
@@ -624,8 +699,15 @@ export async function loadMealsSummary() {
   list.querySelectorAll('.remove-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const slot = e.currentTarget.dataset.slot;
+      const label = SLOT_LABELS[slot] || slot;
+      const ok = await showConfirm(`Remove ${label} from today's log?`, {
+        title: 'Remove meal',
+        okLabel: 'Remove',
+        danger: true,
+      });
+      if (!ok) return;
       await deleteMealSlot(slot);
-      showToast(`${slot} removed`);
+      showToast(`${label} removed`);
       await loadMealsSummary();
     });
   });
