@@ -1,6 +1,6 @@
 // Global save status — saving indicator + persistent error banner with retry (P8)
 import { showSavedToast } from './app.js';
-import { SLOT_LABELS } from './data.js';
+import { formatSlotLabel } from './day-shift.js';
 import { clearGapDismissOnLog } from './gap-return.js';
 
 const pending = new Set();
@@ -22,7 +22,7 @@ export function initSaveState() {
 export function labelFromAutosaveKey(key) {
   if (key.startsWith('food:')) {
     const slot = key.split(':')[2];
-    return SLOT_LABELS[slot] || slot || 'Meal';
+    return formatSlotLabel(slot) || slot || 'Meal';
   }
   if (key.startsWith('training:')) return 'Training';
   if (key === 'vitals') return 'Vitals';

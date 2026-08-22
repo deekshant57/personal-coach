@@ -1,6 +1,7 @@
 // Debrief export — pre-flight checklist + copy CTA (lives on Coach tab)
 import { state, getToday, formatDayDisplayFromIso, isMonday, isViewingFuture, showToast } from './app.js';
-import { SLOT_LABELS, formatFoodLabel } from './data.js';
+import { formatFoodLabel } from './data.js';
+import { formatSlotLabel } from './day-shift.js';
 import { computeDebriefReadiness } from './day-progress.js';
 import { buildBodyCompDebriefSection } from './progress.js';
 import { getMondayCheckInLine } from './week-stats.js';
@@ -94,7 +95,7 @@ function buildDebriefText() {
     const data = foodLogs[slot];
     const items = data.items || [];
     const names = items.map((i) => formatFoodLabel(i, i.qty || 1).toLowerCase()).join(', ');
-    const label = SLOT_LABELS[slot] || slot;
+    const label = formatSlotLabel(slot);
     text += `  ${label}: ${names || data.customText || '(empty)'}`;
     if (data.customText && names) text += ` — ${data.customText}`;
     text += `\n`;

@@ -515,6 +515,8 @@
       <div class="meal-slots" id="meal-slots"></div>
       <div class="text-muted meal-hint" id="meal-hint"></div>
 
+      <div class="food-quick-chips hidden" id="food-quick-chips" aria-label="Recent foods"></div>
+
       <div class="same-as-yesterday hidden" id="same-as-yesterday">
         <div class="same-as-yesterday-content">
           <span class="same-as-yesterday-label" id="same-as-label">Yesterday's lunch:</span>
@@ -563,16 +565,11 @@
           <button type="button" class="btn btn-secondary btn-sm" id="food-add-sheet-close">Done</button>
         </div>
         <div class="food-search-wrap" id="food-search-wrap">
-          <input type="search" class="form-input food-search-input" id="food-search" placeholder="Search staples &amp; Your foods…" autocomplete="off" enterkeyhint="search">
+          <input type="search" class="form-input food-search-input" id="food-search" placeholder="Search all foods…" autocomplete="off" enterkeyhint="search">
           <div class="food-lookup-actions">
             <input type="text" class="form-input food-barcode-input" id="food-barcode" placeholder="Barcode" inputmode="numeric" autocomplete="off">
             <button type="button" class="btn btn-secondary btn-sm" id="food-barcode-go">Scan code</button>
           </div>
-        </div>
-        <div class="food-add-tabs" role="tablist">
-          <button type="button" class="food-add-tab active" role="tab" data-add-tab="recent" aria-selected="true">Recent</button>
-          <button type="button" class="food-add-tab" role="tab" data-add-tab="yours" aria-selected="false">Your foods</button>
-          <button type="button" class="food-add-tab" role="tab" data-add-tab="staples" aria-selected="false">Staples</button>
         </div>
         <div class="food-lookup-panel hidden" id="food-lookup-panel">
           <div class="food-lookup-head">
@@ -582,12 +579,13 @@
           <div class="food-lookup-results" id="food-lookup-results"></div>
           <p class="food-lookup-attr text-muted">Data from Open Food Facts (ODbL). Confirm macros before saving.</p>
         </div>
-        <p class="food-grid-hint" id="food-grid-hint">Tap ADD, then use − / + on the item</p>
+        <p class="food-grid-hint" id="food-grid-hint">Tap a food to add · use − / + for quantity</p>
         <div class="food-empty-actions hidden" id="food-empty-actions">
           <button type="button" class="btn btn-primary btn-large" id="food-empty-create">Create custom</button>
           <button type="button" class="btn btn-secondary btn-large" id="food-empty-lookup">Look up packaged</button>
         </div>
-        <div class="food-grid food-grid--sheet" id="food-grid"></div>
+        <div class="food-picker" id="food-picker"></div>
+        <button type="button" class="food-picker-create" id="food-picker-create">+ Create custom food</button>
       </div>
     </div>
 

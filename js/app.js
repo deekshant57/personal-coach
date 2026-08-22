@@ -527,7 +527,7 @@ async function bootApp() {
   updatePreviewMode();
   await checkAndRenderGapReturn({ viewingToday: isViewingToday() });
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(`sw.js?v=28`).catch(() => {});
+    navigator.serviceWorker.register(`sw.js?v=30`).catch(() => {});
   }
 }
 

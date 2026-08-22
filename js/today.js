@@ -4,7 +4,7 @@ import {
   extractRunCues,
 } from './plan-templates.js';
 import { state, getToday, isMonday, isViewingFuture, isViewingPast, showToast, showConfirm, formatDate, getFallbackPlan, getCurrentMealSlots } from './app.js';
-import { SLOT_LABELS, formatFoodLabel } from './data.js';
+import { formatFoodLabel } from './data.js';
 import {
   macrosFromResolvedLog,
   analyzeDayFoodLogs,
@@ -68,6 +68,8 @@ import {
   initDayShiftControls,
   updateDayShiftControls,
   markSessionCompleted,
+  formatSlotLabel,
+  slotLabelsForPlan,
 } from './day-shift.js';
 
 let trainingAutosaveSuspended = false;
@@ -689,7 +691,7 @@ export async function loadMealsSummary() {
     logs = resolvedLogs;
   }
 
-  state.foodIssues = analyzeDayFoodLogs(logs, SLOT_LABELS);
+  state.foodIssues = analyzeDayFoodLogs(logs, slotLabelsForPlan());
   renderMealsCoachAlerts(state.foodIssues);
 
   const list = document.getElementById('meals-summary-list');
@@ -700,7 +702,7 @@ export async function loadMealsSummary() {
     renderMealsCoachAlerts([]);
     const slots = getCurrentMealSlots();
     list.innerHTML = slots.map((slot) => {
-      const label = SLOT_LABELS[slot] || slot;
+      const label = formatSlotLabel(slot);
       return `<button type="button" class="diary-meal-row diary-meal-row--empty" data-open-slot="${slot}">
         <span class="diary-meal-row-label">${escapeHtml(label)}</span>
         <span class="diary-meal-row-cta">Log ${escapeHtml(label)} →</span>
@@ -720,7 +722,7 @@ export async function loadMealsSummary() {
   for (const log of logs) {
     const { items, protein, calories } = macrosFromResolvedLog(log);
     const slot = log.meal_slot;
-    const label = SLOT_LABELS[slot] || slot;
+    const label = formatSlotLabel(slot);
     const names = items.map((i) => formatFoodLabel(i, i.qty || 1)).join(', ');
     const noteText = (log.custom_text || '').trim();
     const hasUnresolved = items.some(needsMacroResolve);
@@ -742,7 +744,7 @@ export async function loadMealsSummary() {
 
   for (const slot of getCurrentMealSlots()) {
     if (loggedSlots.has(slot)) continue;
-    const label = SLOT_LABELS[slot] || slot;
+    const label = formatSlotLabel(slot);
     html += `<button type="button" class="diary-meal-row diary-meal-row--empty" data-open-slot="${slot}">
       <span class="diary-meal-row-label">${escapeHtml(label)}</span>
       <span class="diary-meal-row-cta">Log →</span>
@@ -755,7 +757,7 @@ export async function loadMealsSummary() {
   list.querySelectorAll('.remove-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const slot = e.currentTarget.dataset.slot;
-      const label = SLOT_LABELS[slot] || slot;
+      const label = formatSlotLabel(slot);
       const ok = await showConfirm(`Remove ${label} from today's log?`, {
         title: 'Remove meal',
         okLabel: 'Remove',

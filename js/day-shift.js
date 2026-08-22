@@ -1,5 +1,5 @@
 // Day-shift — move / skip / complete session + meal slot remap (Phase A)
-import { MEAL_SLOTS } from './data.js';
+import { MEAL_SLOTS, SLOT_LABELS } from './data.js';
 import { state, getToday, showToast, showConfirm } from './app.js';
 import {
   patchDailyPlan,
@@ -23,6 +23,47 @@ export function effectiveSlotScheme(plan) {
 
 export function slotsForPlan(plan) {
   return MEAL_SLOTS[effectiveSlotScheme(plan)] || MEAL_SLOTS.Rest;
+}
+
+/** True when planned vs actual session window differ (move / late log). */
+export function sessionWindowDiffers(plan = state.currentPlan) {
+  if (!plan || !isTrainingDayType(plan.day_type)) return false;
+  const actual = plan.actual_session_window;
+  const planned = plan.planned_session_window || 'morning';
+  if (!actual || actual === 'skipped') return false;
+  if (planned === 'flexible') return false;
+  return actual !== planned;
+}
+
+/** Display label for a meal slot — adds “(evening session)” on pre/post when shifted. */
+export function formatSlotLabel(slot, plan = state.currentPlan) {
+  const base = SLOT_LABELS[slot] || slot;
+  if (!plan || !sessionWindowDiffers(plan)) return base;
+
+  const actual = plan.actual_session_window;
+  const isPre = slot === 'pre-workout' || slot === 'pre-run';
+  const isPost = slot === 'post-workout' || slot === 'post-run';
+  if (!isPre && !isPost) return base;
+
+  const windowWord = actual === 'evening' ? 'evening' : actual === 'morning' ? 'morning' : actual;
+  return `${base} (${windowWord} session)`;
+}
+
+/** Slot label map for food analysis / debrief (keys unchanged). */
+export function slotLabelsForPlan(plan = state.currentPlan) {
+  const labels = { ...SLOT_LABELS };
+  for (const slot of slotsForPlan(plan)) {
+    labels[slot] = formatSlotLabel(slot, plan);
+  }
+  return labels;
+}
+
+/** One-line Food tab hint when session was moved. */
+export function sessionTimingHint(plan = state.currentPlan) {
+  if (!plan || !sessionWindowDiffers(plan)) return '';
+  const planned = plan.planned_session_window || 'morning';
+  const actual = plan.actual_session_window;
+  return `Planned ${planned} · training ${actual} — pre/post slots still apply.`;
 }
 
 /** Map training meal slots → rest-day slots (lossy for post-* → lunch merge). */
