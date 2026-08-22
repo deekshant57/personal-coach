@@ -1,9 +1,10 @@
-const CACHE_NAME = 'coach-v31';
+const CACHE_NAME = 'coach-v33';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './js/app.js',
+  './js/app-route.js',
   './js/auth.js',
   './js/athlete-profile.js',
   './js/setup.js',
@@ -20,6 +21,8 @@ const ASSETS = [
   './js/today.js',
   './js/block-context.js',
   './js/coach-layout.js',
+  './js/coach-note-today.js',
+  './js/coach-debrief.js',
   './js/workout-log.js',
   './js/run-log.js',
   './js/food.js',
@@ -30,6 +33,7 @@ const ASSETS = [
   './js/week-stats.js',
   './js/progress.js',
   './js/debrief.js',
+  './js/debrief-preview-format.js',
   './js/day-progress.js',
   './js/supplements.js',
   './js/supplements-data.js',
@@ -49,7 +53,6 @@ const ASSETS = [
   './js/trends-data.js',
   './js/sparkline.js',
   './js/weight-trend.js',
-  './js/coach-debrief.js',
   './manifest.json',
   './icons/runner.png',
   './icons/runner-sprite.png',

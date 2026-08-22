@@ -110,6 +110,113 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
+export function isExerciseComplete(exercise) {
+  if (!exercise || exercise.skipped) return false;
+  if (exercise.type === 'simple') return !!exercise.sets?.[0]?.done;
+
+  const sets = exercise.sets || [];
+  if (!sets.length) return false;
+
+  if (exercise.perSide) {
+    for (let i = 0; i < sets.length; i += 2) {
+      if (!sets[i]?.done || !sets[i + 1]?.done) return false;
+    }
+    return true;
+  }
+
+  return sets.every((s) => s.done);
+}
+
+function formatExerciseSummary(exercise) {
+  if (!exercise) return '';
+  if (exercise.skipped) return 'Skipped';
+  const summary = formatWorkoutSummary([exercise]);
+  if (summary) {
+    const prefix = `${exercise.name} `;
+    return summary.startsWith(prefix) ? summary.slice(prefix.length) : summary;
+  }
+  if (exercise.type === 'simple' && exercise.sets?.[0]?.done) return 'Done';
+  const doneCount = (exercise.sets || []).filter((s) => s.done).length;
+  if (doneCount > 0) return `${doneCount}/${exercise.sets.length} sets`;
+  return '';
+}
+
+function getExpandedExerciseIndexes(container) {
+  if (!container) return new Set();
+  return new Set(
+    [...container.querySelectorAll('.workout-exercise-card[data-user-expanded="1"]')]
+      .map((c) => parseInt(c.dataset.exerciseIndex, 10))
+      .filter((n) => !Number.isNaN(n)),
+  );
+}
+
+function shouldCollapseExercise(exercise, expandedIndexes, index) {
+  if (!isExerciseComplete(exercise)) return false;
+  return !expandedIndexes.has(index);
+}
+
+function renderExerciseTopBar(exercise, index, { collapsed, summary }) {
+  return `
+    <div class="workout-exercise-top">
+      <button type="button" class="workout-exercise-header-btn" aria-expanded="${collapsed ? 'false' : 'true'}">
+        <span class="workout-exercise-name">${escapeHtml(exercise.name)}</span>
+        ${summary ? `<span class="workout-exercise-summary">${escapeHtml(summary)}</span>` : ''}
+        <span class="workout-exercise-chevron" aria-hidden="true"></span>
+      </button>
+      <button type="button" class="workout-remove-ex" data-remove-exercise aria-label="Remove ${escapeHtml(exercise.name)}">×</button>
+    </div>`;
+}
+
+export function updateWorkoutProgress(container) {
+  const root = document.getElementById('workout-progress');
+  const labelEl = document.getElementById('workout-progress-label');
+  const fillEl = document.getElementById('workout-progress-fill');
+  if (!root || !labelEl || !fillEl) return;
+
+  const el = container || document.getElementById('workout-exercise-list');
+  const exercises = getExercisesFromContainer(el).filter((ex) => !ex.skipped);
+  if (!exercises.length) {
+    root.classList.add('hidden');
+    return;
+  }
+
+  const doneCount = exercises.filter(isExerciseComplete).length;
+  const total = exercises.length;
+  const pct = total ? Math.round((doneCount / total) * 100) : 0;
+
+  root.classList.remove('hidden');
+  labelEl.textContent = doneCount === total
+    ? `${doneCount} of ${total} exercises complete`
+    : `${doneCount} of ${total} exercises done`;
+  fillEl.style.width = `${pct}%`;
+}
+
+export function syncWorkoutCollapseState(container) {
+  const el = container || document.getElementById('workout-exercise-list');
+  if (!el) return;
+
+  updateWorkoutProgress(el);
+  const exercises = getExercisesFromContainer(el);
+  exercises.forEach((exercise, idx) => {
+    const card = el.querySelector(`[data-exercise-index="${idx}"]`);
+    if (!card) return;
+
+    const complete = isExerciseComplete(exercise);
+    const userExpanded = card.dataset.userExpanded === '1';
+    const collapsed = complete && !userExpanded;
+    const summary = complete ? formatExerciseSummary(exercise) : '';
+
+    card.classList.toggle('workout-exercise-card--complete', complete);
+    card.classList.toggle('collapsed', collapsed);
+
+    const summaryEl = card.querySelector('.workout-exercise-summary');
+    if (summaryEl) summaryEl.textContent = summary;
+
+    const headerBtn = card.querySelector('.workout-exercise-header-btn');
+    if (headerBtn) headerBtn.setAttribute('aria-expanded', String(!collapsed));
+  });
+}
+
 function renderSetPill(exercise, set, index) {
   const label = setLabel(exercise, set, index);
   const done = !!set.done;
@@ -165,7 +272,17 @@ function renderSetRow(exercise, set, index) {
     </div>`;
 }
 
-function renderExerciseCard(exercise, index) {
+function renderExerciseCard(exercise, index, { expandedIndexes = new Set() } = {}) {
+  const complete = isExerciseComplete(exercise);
+  const collapsed = shouldCollapseExercise(exercise, expandedIndexes, index);
+  const summary = complete ? formatExerciseSummary(exercise) : '';
+  const cardClasses = [
+    'workout-exercise-card',
+    exercise.skipped ? 'skipped' : '',
+    complete ? 'workout-exercise-card--complete' : '',
+    collapsed ? 'collapsed' : '',
+  ].filter(Boolean).join(' ');
+
   const note = exercise.note ? `<span class="workout-exercise-note">${escapeHtml(exercise.note)}</span>` : '';
   const target = exercise.target
     ? `<span class="workout-target-badge">Target: ${escapeHtml(exercise.target)}</span>`
@@ -177,15 +294,14 @@ function renderExerciseCard(exercise, index) {
   if (exercise.type === 'simple') {
     const done = exercise.sets?.[0]?.done;
     return `
-      <div class="workout-exercise-card${exercise.skipped ? ' skipped' : ''}" data-exercise-index="${index}">
-        <div class="workout-exercise-header">
-          <span class="workout-exercise-name">${escapeHtml(exercise.name)}</span>
-          <button type="button" class="workout-remove-ex" data-remove-exercise aria-label="Remove exercise">×</button>
+      <div class="${cardClasses}" data-exercise-index="${index}"${expandedIndexes.has(index) ? ' data-user-expanded="1"' : ''}>
+        ${renderExerciseTopBar(exercise, index, { collapsed, summary })}
+        <div class="workout-exercise-body">
+          ${last}
+          <button type="button" class="workout-simple-done${done ? ' done' : ''}" data-simple-toggle>
+            ${done ? '✓ Done' : 'Mark done'}
+          </button>
         </div>
-        ${last}
-        <button type="button" class="workout-simple-done${done ? ' done' : ''}" data-simple-toggle>
-          ${done ? '✓ Done' : 'Mark done'}
-        </button>
       </div>`;
   }
 
@@ -215,16 +331,17 @@ function renderExerciseCard(exercise, index) {
   }
 
   return `
-    <div class="workout-exercise-card${exercise.skipped ? ' skipped' : ''}" data-exercise-index="${index}">
-      <div class="workout-exercise-header">
-        <span class="workout-exercise-name">${escapeHtml(exercise.name)}</span>
-        ${target}
-        ${note}
-        <button type="button" class="workout-remove-ex" data-remove-exercise aria-label="Remove exercise">×</button>
+    <div class="${cardClasses}" data-exercise-index="${index}"${expandedIndexes.has(index) ? ' data-user-expanded="1"' : ''}>
+      ${renderExerciseTopBar(exercise, index, { collapsed, summary })}
+      <div class="workout-exercise-body">
+        <div class="workout-exercise-meta">
+          ${target}
+          ${note}
+        </div>
+        ${last}
+        <div class="workout-set-rows">${setRows}</div>
+        <button type="button" class="btn btn-secondary btn-sm workout-add-set" data-add-set>+ Set</button>
       </div>
-      ${last}
-      <div class="workout-set-rows">${setRows}</div>
-      <button type="button" class="btn btn-secondary btn-sm workout-add-set" data-add-set>+ Set</button>
     </div>`;
 }
 
@@ -309,10 +426,14 @@ function paintExerciseResults(container, query) {
 
 function rerenderExerciseList(container, onChange) {
   const exercises = getExercisesFromContainer(container);
-  container.innerHTML = exercises.map(renderExerciseCard).join('') + renderAddExercisePanel();
+  const expandedIndexes = getExpandedExerciseIndexes(container);
+  container.innerHTML = exercises
+    .map((ex, i) => renderExerciseCard(ex, i, { expandedIndexes }))
+    .join('') + renderAddExercisePanel();
   container._workoutExercises = exercises;
   paintExerciseResults(container, '');
   syncWorkoutSteppersFromState(container);
+  syncWorkoutCollapseState(container);
   onChange?.();
 }
 
@@ -351,7 +472,7 @@ export function renderWorkoutExerciseList(plan, savedLog, container, { force = f
         : '<p class="text-muted workout-empty-hint">No exercises parsed from today\'s plan.</p>';
       el._workoutExercises = [];
     } else {
-      el.innerHTML = list.map(renderExerciseCard).join('')
+      el.innerHTML = list.map((ex, i) => renderExerciseCard(ex, i)).join('')
         + (allowFreeAdd ? renderAddExercisePanel() : '');
       el._workoutExercises = list;
       if (allowFreeAdd) paintExerciseResults(el, '');
@@ -361,6 +482,7 @@ export function renderWorkoutExerciseList(plan, savedLog, container, { force = f
     el.dataset.savedKey = savedKey;
     el.dataset.allowFreeAdd = allowFreeAdd ? '1' : '0';
     syncWorkoutSteppersFromState(el);
+    syncWorkoutCollapseState(el);
   };
 
   finish(exercises);
@@ -372,10 +494,11 @@ export function renderWorkoutExerciseList(plan, savedLog, container, { force = f
     if (!attached.length && !allowFreeAdd) return;
     el._workoutExercises = attached;
     if (attached.length) {
-      el.innerHTML = attached.map(renderExerciseCard).join('')
+      el.innerHTML = attached.map((ex, i) => renderExerciseCard(ex, i)).join('')
         + (allowFreeAdd ? renderAddExercisePanel() : '');
       if (allowFreeAdd) paintExerciseResults(el, '');
       syncWorkoutSteppersFromState(el);
+      syncWorkoutCollapseState(el);
     }
   }).catch(() => {});
 }
@@ -432,6 +555,25 @@ export function setupWorkoutExerciseHandlers(container, onChange) {
 
     const card = e.target.closest('[data-exercise-index]');
     if (!card) return;
+
+    if (e.target.closest('.workout-exercise-header-btn')) {
+      el._userInteracted = true;
+      const exIdx = parseInt(card.dataset.exerciseIndex, 10);
+      const exercise = getExercisesFromContainer(el)[exIdx];
+      if (!exercise || !isExerciseComplete(exercise)) return;
+
+      const willCollapse = !card.classList.contains('collapsed');
+      card.classList.toggle('collapsed', willCollapse);
+      if (willCollapse) {
+        delete card.dataset.userExpanded;
+      } else {
+        card.dataset.userExpanded = '1';
+      }
+      card.querySelector('.workout-exercise-header-btn')
+        ?.setAttribute('aria-expanded', String(!willCollapse));
+      return;
+    }
+
     el._userInteracted = true;
     const exIdx = parseInt(card.dataset.exerciseIndex, 10);
 
@@ -468,6 +610,7 @@ export function setupWorkoutExerciseHandlers(container, onChange) {
         btn.classList.toggle('done', set.done);
         btn.textContent = set.done ? '✓ Done' : 'Mark done';
       }
+      syncWorkoutCollapseState(el);
       onChange?.();
       return;
     }
@@ -643,11 +786,13 @@ function handleSetPillClick(container, exIdx, setIdx) {
     const bothDone = lSet?.done && rSet?.done;
     markSetDone(exercise, setIdx, !bothDone);
     syncWorkoutSteppersFromState(container);
+    syncWorkoutCollapseState(container);
     return;
   }
 
   markSetDone(exercise, setIdx, !set.done);
   syncWorkoutSteppersFromState(container);
+  syncWorkoutCollapseState(container);
 }
 
 function handleRepStep(container, exIdx, setIdx, delta) {

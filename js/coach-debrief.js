@@ -71,6 +71,74 @@ export function formatDebriefWeekRange(startIso, endIso) {
   return `${formatDayDisplayFromIso(startIso)} – ${formatDayDisplayFromIso(endIso)}`;
 }
 
+/** First readable paragraph(s) for collapsed Today card. */
+export function extractDebriefExcerpt(markdown, maxLen = 280) {
+  const lines = String(markdown || '').split('\n');
+  const parts = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || /^#/.test(trimmed) || /^\|.+\|$/.test(trimmed)) continue;
+    const cleaned = trimmed
+      .replace(/^[-*]\s+/, '')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .trim();
+    if (!cleaned || cleaned === '---') continue;
+    parts.push(cleaned);
+    if (parts.join(' ').length >= maxLen) break;
+  }
+
+  let text = parts.join(' ').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  if (text.length > maxLen) return `${text.slice(0, maxLen - 1).trim()}…`;
+  return text;
+}
+
+export function buildCoachNoteTodayHtml(debrief) {
+  const range = formatDebriefWeekRange(debrief.week_covered_start, debrief.week_covered_end);
+  const savedOn = formatDayDisplayFromIso(debrief.debrief_monday);
+  const composite = debrief.scores?.composite;
+  const excerpt = extractDebriefExcerpt(debrief.markdown);
+
+  let meta = `Week ${range} · saved ${savedOn}`;
+  if (composite != null) meta += ` · ${composite}/10`;
+
+  return `
+    <button type="button" class="coach-note-header" id="coach-note-toggle" aria-expanded="false">
+      <span class="coach-note-header-text">
+        <span class="coach-note-label">Coach report</span>
+        <span class="coach-note-meta">${escapeHtml(meta)}</span>
+        ${excerpt ? `<span class="coach-note-excerpt">${escapeHtml(excerpt)}</span>` : ''}
+      </span>
+      <span class="coach-debrief-chevron" aria-hidden="true"></span>
+    </button>
+    <div class="coach-note-body hidden" id="coach-note-body">
+      <div class="coach-md">${renderCoachMarkdown(debrief.markdown)}</div>
+    </div>
+    <div class="coach-note-actions">
+      <button type="button" class="btn btn-secondary btn-sm" id="coach-note-plan-btn">Full report on Plan</button>
+    </div>
+  `;
+}
+
+export function wireCoachNoteToday(root, { onOpenPlan } = {}) {
+  const toggle = root.querySelector('#coach-note-toggle');
+  const body = root.querySelector('#coach-note-body');
+  toggle?.addEventListener('click', () => {
+    if (!body) return;
+    body.classList.toggle('hidden');
+    const expanded = !body.classList.contains('hidden');
+    toggle.setAttribute('aria-expanded', String(expanded));
+    root.classList.toggle('expanded', expanded);
+  });
+
+  root.querySelector('#coach-note-plan-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onOpenPlan?.();
+  });
+}
+
 export function buildCoachDebriefCardHtml(debrief) {
   const range = formatDebriefWeekRange(debrief.week_covered_start, debrief.week_covered_end);
   const savedOn = formatDayDisplayFromIso(debrief.debrief_monday);

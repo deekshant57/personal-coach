@@ -202,6 +202,8 @@
 
       <div class="coach-observation-block hidden" id="coach-observation-block" role="status" aria-live="polite"></div>
 
+      <div class="coach-note-card hidden" id="coach-note-card" aria-live="polite"></div>
+
       <div class="coach-sections diary-sections" id="coach-sections">
 
       <!-- Card: Morning Vitals -->
@@ -338,6 +340,14 @@
           <!-- Workout fields (visible on workout days) -->
           <div class="hidden" id="workout-fields">
             <p class="training-planned-hint" id="workout-planned-hint"></p>
+            <div class="workout-progress hidden" id="workout-progress" aria-live="polite">
+              <div class="workout-progress-row">
+                <span class="workout-progress-label" id="workout-progress-label">0 of 0 exercises</span>
+              </div>
+              <div class="workout-progress-bar" aria-hidden="true">
+                <span class="workout-progress-fill" id="workout-progress-fill" style="width: 0%"></span>
+              </div>
+            </div>
             <div id="workout-exercise-list" class="workout-exercise-list"></div>
             <details class="workout-fallback-details" id="workout-fallback-details">
               <summary>Log something else…</summary>
@@ -359,7 +369,7 @@
             </div>
           </div>
 
-          <div class="training-footer">
+          <div class="training-footer training-footer--sticky">
             <button type="button" class="toggle-btn" id="training-done-btn">
               <span class="toggle-circle"></span>
               <span>Mark as Done</span>

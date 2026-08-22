@@ -21,6 +21,11 @@ import { mergePlanWithFallback } from './plan-merge.js';
 import { ensureAthleteProfileReady, clearDbAthleteProfileCache } from './athlete-profile.js';
 import { initSetup, openSetup } from './setup.js';
 import { slotsForPlan, renderSessionStatusChip } from './day-shift.js';
+import {
+  parseAppRouteHash,
+  writeAppRoute,
+  isValidAppTab,
+} from './app-route.js';
 // ── App State ────────────────────────────────────────────────
 export const state = {
   currentDate: new Date(),
@@ -206,27 +211,68 @@ function updateTabChrome(activeTab) {
 }
 
 function setupTabs() {
-  const tabs = document.querySelectorAll('.nav-tab');
-  tabs.forEach(tab => {
+  document.querySelectorAll('.nav-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      flushAutosavesInBackground();
-
-      // Deactivate all
-      tabs.forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-      // Activate clicked
-      tab.classList.add('active');
-      const tabName = tab.dataset.tab;
-      document.getElementById(`tab-${tabName}`).classList.add('active');
-      updateTabChrome(tabName);
-
-      // Refresh data on tab switch
-      if (tabName === 'coach') loadTodayData();
-      if (tabName === 'food') loadFoodData();
-      if (tabName === 'week') loadWeekView();
-      if (tabName === 'progress') loadProgressView();
+      switchToTab(tab.dataset.tab);
     });
+  });
+}
+
+function syncAppRoute() {
+  writeAppRoute(getActiveTab(), state.currentDate, { todayIso: formatToday() });
+}
+
+function switchToTab(tabName, { skipRouteSync = false, skipFlush = false } = {}) {
+  if (!isValidAppTab(tabName)) return;
+
+  if (!skipFlush) flushAutosavesInBackground();
+
+  document.querySelectorAll('.nav-tab').forEach((t) => {
+    t.classList.toggle('active', t.dataset.tab === tabName);
+  });
+  document.querySelectorAll('.tab-content').forEach((c) => {
+    c.classList.toggle('active', c.id === `tab-${tabName}`);
+  });
+  updateTabChrome(tabName);
+
+  if (tabName === 'coach') loadTodayData();
+  if (tabName === 'food') loadFoodData();
+  if (tabName === 'week') loadWeekView();
+  if (tabName === 'progress') loadProgressView();
+
+  if (!skipRouteSync) syncAppRoute();
+}
+
+export { switchToTab };
+
+async function applyAppRouteFromHash() {
+  if (!booted) return;
+  const route = parseAppRouteHash();
+  let dateChanged = false;
+
+  if (route.date) {
+    const nextIso = formatDate(route.date);
+    const currentIso = formatDate(state.currentDate);
+    if (nextIso !== currentIso) {
+      state.currentDate = route.date;
+      dateChanged = true;
+    }
+  }
+
+  if (dateChanged) {
+    await onDateChange();
+  }
+
+  if (route.tab !== getActiveTab()) {
+    switchToTab(route.tab, { skipRouteSync: true });
+  }
+
+  syncAppRoute();
+}
+
+function setupAppRoute() {
+  window.addEventListener('hashchange', () => {
+    applyAppRouteFromHash().catch((err) => console.error('applyAppRouteFromHash:', err));
   });
 }
 
@@ -282,6 +328,7 @@ async function onDateChange() {
   } finally {
     setContentLoading(false);
     updateDateDisplay();
+    syncAppRoute();
   }
 }
 
@@ -307,7 +354,7 @@ async function openDayFromWeek(dateStr) {
   const [year, month, day] = dateStr.split('-').map(Number);
   state.currentDate = new Date(year, month - 1, day);
   await onDateChange();
-  document.querySelector('.nav-tab[data-tab="coach"]')?.click();
+  switchToTab('coach');
 }
 
 function updateDateDisplay() {
@@ -522,8 +569,15 @@ async function bootApp() {
     return;
   }
   booted = true;
+
+  const route = parseAppRouteHash();
+  if (route.date) {
+    state.currentDate = route.date;
+  }
+
   setupTabs();
   setupDateNav();
+  setupAppRoute();
   setupConfirmModal();
   setupModalFocusTraps();
   setupGapReturn();
@@ -543,8 +597,14 @@ async function bootApp() {
   await loadTodayData();
   updatePreviewMode();
   await checkAndRenderGapReturn({ viewingToday: isViewingToday() });
+
+  if (route.tab !== 'coach') {
+    switchToTab(route.tab, { skipRouteSync: true });
+  }
+  syncAppRoute();
+
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(`sw.js?v=30`).catch(() => {});
+    navigator.serviceWorker.register(`sw.js?v=33`).catch(() => {});
   }
 }
 

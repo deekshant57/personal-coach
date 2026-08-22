@@ -6,6 +6,7 @@ import { computeDebriefReadiness } from './day-progress.js';
 import { buildBodyCompDebriefSection } from './progress.js';
 import { getMondayCheckInLine } from './week-stats.js';
 import { formatSupplementDebriefLine } from './supplements-data.js';
+import { formatDebriefPreviewHtml } from './debrief-preview-format.js';
 import { setButtonLoading } from './spinner.js';
 import { expandVitalsCard } from './vitals-ui.js';
 
@@ -35,6 +36,13 @@ async function loadMondayCheckInLine({ force = false } = {}) {
 function valOrMissing(value, suffix = '') {
   if (value == null || value === '') return 'not logged';
   return `${value}${suffix}`;
+}
+
+function renderDebriefPreview(text) {
+  const preview = document.getElementById('debrief-preview');
+  if (!preview) return;
+  preview.innerHTML = formatDebriefPreviewHtml(text);
+  preview.classList.remove('hidden');
 }
 
 function buildDebriefText() {
@@ -219,16 +227,13 @@ export async function refreshDebrief() {
 
   if (isMonday(state.currentDate)) {
     mondayCheckInLine = null;
-    preview.textContent = buildDebriefText();
+    renderDebriefPreview(buildDebriefText());
     await loadMondayCheckInLine();
   } else {
     mondayCheckInLine = null;
   }
 
-  if (preview) {
-    preview.textContent = buildDebriefText();
-    preview.classList.remove('hidden');
-  }
+  renderDebriefPreview(buildDebriefText());
 
   copyBtn.disabled = false;
   copyBtn.textContent = 'Copy Day Log';

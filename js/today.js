@@ -3,7 +3,7 @@ import {
   extractWarmupCooldown,
   extractRunCues,
 } from './plan-templates.js';
-import { state, getToday, isMonday, isViewingFuture, isViewingPast, showToast, showConfirm, formatDate, getFallbackPlan, getCurrentMealSlots, reloadPlan } from './app.js';
+import { state, getToday, isMonday, isViewingFuture, isViewingPast, showToast, showConfirm, formatDate, getFallbackPlan, getCurrentMealSlots, reloadPlan, switchToTab } from './app.js';
 import { formatFoodLabel } from './data.js';
 import {
   macrosFromResolvedLog,
@@ -64,6 +64,7 @@ import {
   layoutCoachScreen,
   updateSectionCompression,
 } from './coach-layout.js';
+import { loadCoachNoteToday } from './coach-note-today.js';
 import {
   initDayShiftControls,
   updateDayShiftControls,
@@ -159,6 +160,11 @@ export async function loadTodayData() {
 
   if (!future) {
     syncMeaningfulEvents().catch((err) => console.error('syncMeaningfulEvents:', err));
+    loadCoachNoteToday({ onOpenPlan: () => switchToTab('week') }).catch((err) => {
+      console.error('loadCoachNoteToday:', err);
+    });
+  } else {
+    document.getElementById('coach-note-card')?.classList.add('hidden');
   }
 }
 

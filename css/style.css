@@ -1196,14 +1196,96 @@ textarea.form-input {
 }
 
 .workout-exercise-card {
-  padding: 12px;
+  padding: 0;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.workout-exercise-card.workout-exercise-card--complete {
+  border-color: color-mix(in srgb, var(--accent-green) 35%, var(--border));
 }
 
 .workout-exercise-card.skipped {
   opacity: 0.5;
+}
+
+.workout-exercise-top {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border-bottom: 1px solid transparent;
+}
+
+.workout-exercise-card:not(.collapsed) .workout-exercise-top {
+  border-bottom-color: var(--border);
+}
+
+.workout-exercise-header-btn {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 48px;
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+.workout-exercise-card--complete .workout-exercise-header-btn {
+  cursor: pointer;
+}
+
+.workout-exercise-chevron {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.workout-exercise-card:not(.collapsed) .workout-exercise-chevron {
+  transform: rotate(-135deg);
+}
+
+.workout-exercise-card:not(.workout-exercise-card--complete) .workout-exercise-chevron {
+  visibility: hidden;
+}
+
+.workout-exercise-summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-green);
+  flex: 1 1 100%;
+  padding-left: 0;
+}
+
+.workout-exercise-card.collapsed .workout-exercise-summary {
+  flex: 1 1 auto;
+  padding-left: 0;
+  text-align: right;
+}
+
+.workout-exercise-body {
+  padding: 12px;
+}
+
+.workout-exercise-card.collapsed .workout-exercise-body {
+  display: none;
+}
+
+.workout-exercise-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-bottom: 8px;
 }
 
 .workout-exercise-header {
@@ -1218,7 +1300,8 @@ textarea.form-input {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  flex: 1 1 100%;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .workout-target-badge {
@@ -1346,6 +1429,54 @@ textarea.form-input {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
+}
+
+.training-footer--sticky {
+  position: sticky;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 4px);
+  z-index: 5;
+  margin-top: 20px;
+  padding: 16px 0 8px;
+  background: linear-gradient(to bottom, transparent, var(--bg-card) 24%);
+}
+
+#training-card .training-footer--sticky {
+  margin-left: -14px;
+  margin-right: -14px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.workout-progress {
+  margin-bottom: 12px;
+}
+
+.workout-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.workout-progress-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.workout-progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.workout-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-green);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 
 /* ── Segmented Control (Knee Status) ──────────────────────── */
@@ -2274,6 +2405,80 @@ textarea.form-input {
   color: var(--text-muted);
 }
 
+/* ── Coach note (Today tab) ───────────────────────────────── */
+.coach-note-card {
+  background: color-mix(in srgb, var(--accent-blue) 8%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 28%, var(--border));
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.coach-note-card.expanded {
+  border-color: color-mix(in srgb, var(--accent-blue) 45%, var(--border));
+}
+
+.coach-note-loading {
+  padding: 14px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.coach-note-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.coach-note-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.coach-note-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  color: var(--accent-blue);
+}
+
+.coach-note-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.coach-note-excerpt {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.coach-note-body {
+  padding: 0 16px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.coach-note-body .coach-md {
+  padding-top: 12px;
+}
+
+.coach-note-actions {
+  padding: 0 16px 14px;
+}
+
 /* ── Coach debrief (Week tab) ─────────────────────────────── */
 .coach-debrief-card {
   background: var(--bg-card);
@@ -3112,14 +3317,77 @@ textarea.form-input {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 16px;
-  font-size: 13px;
-  font-family: 'SF Mono', 'Menlo', monospace;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: var(--text);
   max-height: 60vh;
   overflow-y: auto;
   margin: 0 0 16px;
+}
+
+.debrief-preview-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+  line-height: 1.35;
+}
+
+.debrief-preview-section {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  color: var(--accent-green);
+  margin: 16px 0 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.debrief-preview-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.debrief-preview-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.debrief-preview-list li {
+  padding: 4px 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.debrief-preview-meals li {
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.debrief-preview-key {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.debrief-preview-val {
+  color: var(--text-secondary);
+}
+
+.debrief-preview-line {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.debrief-preview-muted {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 #copy-debrief {
@@ -3952,7 +4220,10 @@ textarea.form-input {
 }
 
 .workout-remove-ex {
-  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+  width: 44px;
+  min-height: 44px;
   border: none;
   background: transparent;
   color: var(--text-muted);
