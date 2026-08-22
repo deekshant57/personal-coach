@@ -12,6 +12,7 @@ import {
 } from './observation-engine.js';
 import { getMondayCheckInLine } from './week-stats.js';
 import { setPostSaveCallback } from './save-state.js';
+import { updateDayProgress } from './day-progress.js';
 
 let mondayLineCache = null;
 
@@ -31,6 +32,7 @@ export function showObservationBlock(text) {
   block.textContent = text;
   block.classList.remove('hidden');
   block.classList.add('coach-observation--visible');
+  updateDayProgress();
 }
 
 export function hideObservationBlock() {
@@ -39,6 +41,7 @@ export function hideObservationBlock() {
   block.textContent = '';
   block.classList.add('hidden');
   block.classList.remove('coach-observation--visible');
+  updateDayProgress();
 }
 
 export function refreshCoachObservation({ fromPostSave = false } = {}) {

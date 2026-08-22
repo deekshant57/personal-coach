@@ -25,6 +25,7 @@ import { slotsForPlan, renderSessionStatusChip } from './day-shift.js';
 export const state = {
   currentDate: new Date(),
   currentPlan: null,
+  planFetchError: false,
   foodLogs: {},      // { slotName: { items: [...], customText, totalProtein, totalCalories } }
   foodIssues: [],    // coach alerts for unresolved custom foods / notes-only meals
   vitals: null,
@@ -344,19 +345,35 @@ function updatePreviewMode() {
 // ── Load Plan for Current Date ───────────────────────────────
 async function loadPlan() {
   const date = getToday();
-  const plan = await fetchDailyPlan(date);
-
-  if (plan) {
-    state.currentPlan = mergePlanWithFallback(plan, date);
-  } else {
-    state.currentPlan = getFallbackPlan(date);
+  state.planFetchError = false;
+  try {
+    const plan = await fetchDailyPlan(date);
+    if (plan) {
+      state.currentPlan = mergePlanWithFallback(plan, date);
+    } else {
+      state.currentPlan = getFallbackPlan(date);
+    }
+  } catch (err) {
+    console.error('loadPlan:', err);
+    state.planFetchError = true;
+    state.currentPlan = null;
   }
 
   updateDayTypeBadge();
 }
 
+export async function reloadPlan() {
+  await loadPlan();
+}
+
 function updateDayTypeBadge() {
   const el = document.getElementById('date-day-type');
+  if (state.planFetchError) {
+    el.textContent = 'Plan unavailable';
+    el.innerHTML = '';
+    renderSessionStatusChip(null);
+    return;
+  }
   if (!state.currentPlan) {
     el.textContent = 'No plan for this date';
     el.innerHTML = '';

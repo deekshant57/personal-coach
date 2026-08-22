@@ -226,6 +226,15 @@ function renderCoachNext() {
     return;
   }
 
+  const observationEl = document.getElementById('coach-observation-block');
+  const hasObservation = observationEl
+    && !observationEl.classList.contains('hidden')
+    && observationEl.textContent.trim();
+  if (hasObservation && next.action !== 'debrief') {
+    root.classList.add('hidden');
+    return;
+  }
+
   root.classList.remove('hidden');
   textEl.textContent = next.text;
   btn.dataset.action = next.action;

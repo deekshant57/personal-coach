@@ -54,7 +54,10 @@ export async function fetchDailyPlan(date) {
     .eq('user_id', uid())
     .eq('date', date)
     .maybeSingle();
-  if (error) { console.error('fetchDailyPlan:', error); return null; }
+  if (error) {
+    console.error('fetchDailyPlan:', error);
+    throw error;
+  }
   return data;
 }
 

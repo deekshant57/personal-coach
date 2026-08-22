@@ -1,4 +1,4 @@
-// Shared loading indicator helpers (static — no animation loop)
+// Shared loading indicator helpers
 
 export function spinnerHtml(size = '') {
   const sizeClass = size ? ` coach-loader--${size}` : '';

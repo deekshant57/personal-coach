@@ -756,7 +756,8 @@ function renderFoodCoachBanner() {
 
   const issue = showIssues[0];
   banner.classList.remove('hidden');
-  banner.innerHTML = `<strong>${escapeHtml(issue.label)}</strong> — ${escapeHtml(issue.message.replace(`${issue.label}: `, ''))}`;
+  banner.setAttribute('aria-label', 'Food data note');
+  banner.innerHTML = `<span class="food-data-banner-label">Data note</span><span>${escapeHtml(issue.label)} — ${escapeHtml(issue.message.replace(`${issue.label}: `, ''))}</span>`;
 }
 
 function renderSlotState() {

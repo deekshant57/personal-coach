@@ -3,7 +3,7 @@ import {
   extractWarmupCooldown,
   extractRunCues,
 } from './plan-templates.js';
-import { state, getToday, isMonday, isViewingFuture, isViewingPast, showToast, showConfirm, formatDate, getFallbackPlan, getCurrentMealSlots } from './app.js';
+import { state, getToday, isMonday, isViewingFuture, isViewingPast, showToast, showConfirm, formatDate, getFallbackPlan, getCurrentMealSlots, reloadPlan } from './app.js';
 import { formatFoodLabel } from './data.js';
 import {
   macrosFromResolvedLog,
@@ -21,9 +21,10 @@ import {
 import { loadSupplements, initSupplements, resetSupplementsForFuture, refreshSupplementHints } from './supplements.js';
 import { updateProteinBar, deleteMealSlot, fetchFoodLogsForDate, invalidateFoodLogsCache, loadFoodData, focusFoodSlot } from './food.js';
 import { syncMeaningfulEvents } from './meaningful-events.js';
-import { updateDayProgress } from './day-progress.js';
+import { updateDayProgress, computeDayProgress } from './day-progress.js';
 import { refreshDebriefIfActive } from './debrief.js';
 import { invalidateWeekStatsCache } from './week-stats.js';
+import { setButtonLoading, skeletonPlanHtml } from './spinner.js';
 import { trackSave } from './save-state.js';
 import {
   applyAutoPaceToForm,
@@ -58,7 +59,6 @@ import {
   registerAutosaveFlush,
   hasPendingAutosave,
 } from './auto-save.js';
-import { setButtonLoading } from './spinner.js';
 import { collapseVitalsCard, expandVitalsCard } from './vitals-ui.js';
 import {
   layoutCoachScreen,
@@ -275,6 +275,26 @@ function updateNotesPlaceholders(plan) {
 function renderPlanCard() {
   const plan = state.currentPlan;
   const titleEl = document.getElementById('plan-card-title');
+  const directiveEl = document.getElementById('plan-directive');
+
+  if (state.planFetchError) {
+    if (titleEl) titleEl.textContent = "Today's Plan";
+    if (directiveEl) {
+      directiveEl.innerHTML = 'Could not load plan — check connection and <button type="button" class="progress-retry-btn" id="plan-retry-btn">retry</button>.';
+      document.getElementById('plan-retry-btn')?.addEventListener('click', async () => {
+        directiveEl.innerHTML = skeletonPlanHtml();
+        await reloadPlan();
+        await loadTodayData();
+      }, { once: true });
+    }
+    document.getElementById('plan-card')?.classList.remove('is-loading');
+    document.getElementById('plan-training-summary').textContent = '';
+    document.getElementById('plan-warmup-content').textContent = '';
+    document.getElementById('plan-meals-content').textContent = '';
+    updateDayShiftControls(null);
+    return;
+  }
+
   if (!plan) {
     if (titleEl) titleEl.textContent = "Today's Plan";
     document.getElementById('plan-directive').textContent = 'No plan for this date';
@@ -710,6 +730,7 @@ export async function loadMealsSummary() {
     }).join('');
     updateProteinBar(0, 0);
     updateMealsDayTotal(0, 0);
+    document.getElementById('go-to-food')?.classList.remove('hidden');
     syncDayStatus();
     return;
   }
@@ -783,6 +804,11 @@ export async function loadMealsSummary() {
 
   updateProteinBar(totalProtein, totalCalories);
   updateMealsDayTotal(totalProtein, totalCalories);
+
+  const goToFood = document.getElementById('go-to-food');
+  const mealsComplete = computeDayProgress().tasks.find((t) => t.id === 'meals')?.done;
+  goToFood?.classList.toggle('hidden', !!mealsComplete);
+
   syncDayStatus();
 }
 
