@@ -125,15 +125,16 @@ a {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 8px 10px;
+  padding: 8px 6px;
   border-radius: var(--radius-sm);
   transition: color 0.2s;
   color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
   min-width: 56px;
   flex: 1;
-  max-width: 80px;
+  max-width: 96px;
 }
 
 .nav-tab.active {
@@ -686,17 +687,64 @@ a {
   pointer-events: none;
 }
 
-/* ── Sticky App Header (protein + date) ─────────────────────── */
+/* ── Sticky App Header (macro spine + date) ─────────────────── */
 .app-sticky-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
   margin: 0 -16px;
   padding: 0 16px;
   border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
+.macro-spine {
+  padding: 10px 0 8px;
+}
+
+.macro-spine-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.macro-spine-protein {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.macro-spine-current {
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--accent-green);
+  letter-spacing: -0.02em;
+}
+
+.macro-spine-target {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.macro-spine-kcal {
+  color: var(--text-muted);
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.macro-spine-row.warning .macro-spine-current {
+  color: var(--accent-amber);
+}
+
+/* Legacy aliases kept for any leftover selectors */
 .protein-bar-container {
   padding: 12px 0 8px;
 }
@@ -741,17 +789,17 @@ a {
 
 .protein-bar {
   width: 100%;
-  height: 8px;
+  height: 4px;
   background: var(--border);
-  border-radius: 4px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .protein-bar-fill {
   height: 100%;
   background: var(--accent-green);
-  border-radius: 4px;
-  transition: width 0.4s ease;
+  border-radius: 2px;
+  transition: width 0.35s ease;
 }
 
 .protein-bar-fill.warning {
@@ -2545,10 +2593,10 @@ textarea.form-input {
 .week-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
   margin-bottom: 8px;
-  transition: all 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .week-card.viewing {
@@ -2643,10 +2691,12 @@ textarea.form-input {
   transform: rotate(45deg);
 }
 
-.week-card-protein {
+.week-card-protein,
+.week-card-macros {
   font-size: 12px;
   flex-shrink: 0;
   margin-left: 8px;
+  font-variant-numeric: tabular-nums;
 }
 
 .week-open-day-btn {
@@ -3462,6 +3512,7 @@ textarea.form-input {
 }
 
 /* ── Progress tab (body composition) ─────────────────────────── */
+.header--progress .macro-spine,
 .header--progress .protein-bar-container,
 .header--progress .date-header,
 .header--progress .date-off-today-bar,
@@ -3623,6 +3674,717 @@ textarea.form-input {
   padding: 0;
   text-decoration: underline;
   font-size: inherit;
+}
+
+.workout-weighted-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.workout-kg-wrap,
+.workout-reps-wrap {
+  position: relative;
+  flex: 1;
+  margin: 0;
+}
+
+.workout-kg-input,
+.workout-reps-input {
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  min-height: 36px;
+}
+
+.workout-input-suffix {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.workout-kg-input {
+  padding-right: 28px;
+}
+
+.workout-set-x {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.workout-last-perf {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.workout-remove-ex {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.workout-exercise-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.workout-add-set {
+  margin-top: 8px;
+}
+
+.gym-add-panel {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+}
+
+.gym-add-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.gym-exercise-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.gym-exercise-option {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  background: var(--surface, transparent);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.gym-exercise-option:active {
+  opacity: 0.85;
+}
+
+.gym-custom-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.gym-custom-row .form-input {
+  flex: 1;
+}
+
+.protein-hit-rates {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.protein-hit-rate {
+  flex: 1;
+  text-align: center;
+}
+
+.protein-hit-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.protein-hit-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.lift-progress-row {
+  margin-bottom: 16px;
+}
+
+.lift-progress-row:last-child {
+  margin-bottom: 0;
+}
+
+.lift-progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.lift-progress-name {
+  font-weight: 600;
+}
+
+.lift-progress-latest {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.lift-progress-delta {
+  font-size: 0.75rem;
+  margin: 0 0 8px;
+}
+
+.lift-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 64px;
+}
+
+.lift-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 2px;
+}
+
+.lift-bar {
+  width: 100%;
+  max-width: 28px;
+  background: var(--accent, #60a5fa);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+}
+
+.lift-bar-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.food-lookup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.food-barcode-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.food-lookup-panel {
+  margin: 8px 0 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-2, rgba(255,255,255,0.04));
+}
+
+.food-lookup-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.food-lookup-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.food-lookup-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.food-lookup-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.food-lookup-macros {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.food-lookup-attr {
+  font-size: 0.7rem;
+  margin: 8px 0 0;
+}
+
+.food-section-label {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 8px 0 4px;
+}
+
+.food-library-section {
+  grid-column: 1 / -1;
+}
+
+.food-grid--nested {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.food-item--library {
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+.custom-save-library-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.food-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+
+.food-empty-actions.hidden {
+  display: none !important;
+}
+
+/* ── Setup wizard (Phase A) ────────────────────────────────── */
+.setup-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 310;
+  background: var(--bg);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 16px 48px;
+}
+
+.setup-screen.show {
+  display: block;
+}
+
+.setup-card {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.setup-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.setup-lead {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0 0 24px;
+  line-height: 1.4;
+}
+
+.setup-section {
+  margin-bottom: 24px;
+}
+
+.setup-section-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.setup-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.setup-error {
+  color: var(--danger, #ef4444);
+  font-size: 0.9rem;
+  min-height: 1.2em;
+  margin: 0 0 12px;
+}
+
+.setup-week-template {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setup-day-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.setup-day-row .setup-day-label {
+  grid-column: 2 / -1;
+}
+
+.setup-day-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.session-status-chip {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.session-status-chip.hidden {
+  display: none;
+}
+
+.day-shift-controls {
+  margin: 0 0 16px;
+  padding: 12px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+  border-radius: 10px;
+}
+
+.day-shift-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.day-shift-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.day-shift-actions .btn-sm {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
+
+/* ── Diary home + Food add sheet (APP-UI) ───────────────────── */
+.diary-home-label {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 4px 0 14px;
+  color: var(--text);
+}
+
+.diary-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.diary-sections > .card,
+.diary-sections .card {
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 14px;
+}
+
+.diary-sections > .card:last-child {
+  border-bottom: none !important;
+}
+
+.diary-sections .card-header {
+  min-height: 52px;
+  padding: 12px 0;
+  align-items: center;
+}
+
+.diary-sections .card-title {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.diary-sections .card-body {
+  padding: 0 0 14px;
+}
+
+.diary-sections .coach-collapsible-card.collapsed .card-body {
+  display: none;
+}
+
+.diary-meal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.diary-meal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.diary-meal-row:last-child {
+  border-bottom: none;
+}
+
+.diary-meal-row .meal-summary-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.diary-meal-row .name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.diary-meal-items {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diary-meal-row--empty {
+  justify-content: space-between;
+}
+
+.diary-meal-row-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.diary-meal-row-cta {
+  color: var(--accent-blue);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.food-diary-block {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--bg-card);
+}
+
+.food-diary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.food-diary-title {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.bottom-nav {
+  background: rgba(17, 17, 17, 0.92);
+}
+
+.nav-tab {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.macro-spine {
+  padding: 12px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.macro-spine-row {
+  font-size: 13px;
+}
+
+.macro-spine-current {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.food-add-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.food-add-sheet.open {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.food-add-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  border: none;
+  width: 100%;
+  height: 100%;
+}
+
+.food-add-sheet.open .food-add-sheet-backdrop {
+  opacity: 1;
+}
+
+.food-add-sheet-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: min(88dvh, 720px);
+  background: var(--bg-card);
+  border-radius: 16px 16px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  padding: 8px 16px calc(16px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transform: translateY(110%);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.food-add-sheet.open .food-add-sheet-panel {
+  transform: translateY(0);
+}
+
+.food-add-sheet-grab {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-light);
+  margin: 4px auto 2px;
+}
+
+.food-add-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.food-add-sheet-title {
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.food-add-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.food-add-tab {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.food-add-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent-green);
+}
+
+.food-grid--sheet {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 8px;
+}
+
+.food-sheet-empty {
+  padding: 16px 4px;
+  font-size: 13px;
+}
+
+body.food-sheet-open {
+  overflow: hidden;
+}
+
+.coach-collapsible-card.collapsed {
+  transition: opacity 0.2s ease;
+}
+
+.coach-collapsible-card .card-body {
+  transition: max-height 0.28s ease, opacity 0.2s ease;
+}
+
+.progress-section-empty {
+  padding: 12px 0;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 /* ── Responsive (tablet/desktop fallback) ──────────────────── */

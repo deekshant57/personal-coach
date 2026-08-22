@@ -14,9 +14,10 @@ Secondary Goals:
 
 * Lose 4-6 kg body fat (revised Jul 2026 — realistic for HM prep)
 * Reach 73-74 kg body weight by race day
+* Reach ~26–28% BF by race day (revised 23 Jul 2026 after InBody — was 18–19%)
 * Improve blood markers
-* Regain lost muscle through muscle memory
-* Reduce waist by 2-4 inches
+* Preserve / regain muscle (SMM ≥ 29.4 kg; toward 30+ kg)
+* Reduce waist / WHR (from 1.02) and visceral fat (from 11)
 * Build athletic physique rather than bodybuilder physique
 
 Target Look:
@@ -59,23 +60,70 @@ Age:
 32
 
 Height:
-177 cm
+176 cm (confirmed) · InBody 23 Jul 2026 was entered as 175 cm — use 176 cm on next scan
 
 Current Weight:
-78.55 kg
+76.8 kg (InBody 23 Jul 2026) · scale trend ~76.5–76.8 kg
 
-Estimated Body Fat:
-27-30%
+Body Fat:
+31.9% · 24.5 kg fat mass (InBody 23 Jul 2026)
 
-Estimated Waist:
-33-34 inches (actual measurement pending)
+Skeletal Muscle Mass:
+29.4 kg (floor of normal — protect; do not cut below protein floor)
+
+Visceral Fat Level:
+11 (high — trunk fat priority)
+
+Waist-Hip Ratio:
+1.02 (abdominal obesity; reduce trunk fat)
+
+BMR (InBody):
+1,590 kcal
+
+InBody Score:
+60 / 100
 
 Body Type:
-Detrained runner with previous lifting experience
+Detrained runner with previous lifting experience — “C-shape” (high fat relative to muscle)
 
 ---
 
 # Historical Body Composition
+
+## July 2026 InBody (23 Jul — Fitworld Gym / All Time Fitness)
+
+Weight:
+76.8 kg
+
+Skeletal Muscle Mass:
+29.4 kg
+
+Body Fat Mass:
+24.5 kg
+
+Percent Body Fat:
+31.9%
+
+BMI:
+24.8
+
+Visceral Fat Level:
+11
+
+Waist-Hip Ratio:
+1.02
+
+BMR:
+1,590 kcal
+
+InBody recommended intake:
+2,267 kcal/day (≈ maintenance for their model — not the cut target)
+
+InBody “ideal” weight:
+68.2 kg — **rejected for HM block** (too aggressive; see September targets)
+
+Delta vs Dec 2024:
++2.0 kg weight · −1.5 kg SMM · +~5.4 pp BF% · classic detraining recomposition (wrong direction)
 
 ## December 2024 InBody
 
@@ -306,14 +354,17 @@ Typical Fasting Foods:
 
 ## Calorie & deficit anchors
 
+BMR (InBody 23 Jul 2026):
+1,590 kcal
+
 Maintenance (est.):
-~2,450 kcal/day (desk job + 3–4 runs + bodyweight; recalculate from weight trend)
+~2,250–2,350 kcal/day (desk job + 3–4 runs + gym; InBody “recommended” 2,267 ≈ mid-maintenance)
 
 Deficit target:
-15–18% (~400–450 kcal below maintenance)
+15–18% (~350–400 kcal below maintenance) — protect SMM at 29.4 kg floor
 
-Run-day intake:
-~2,050 kcal · 150g+ protein · 55g+ fat
+Run / gym-day intake:
+~2,050–2,150 kcal · 150g+ protein · 55g+ fat — do not dip below ~2,050 on training days
 
 Rest/recovery intake:
 ~1,900 kcal · 150g protein
@@ -321,9 +372,12 @@ Rest/recovery intake:
 Fat floor:
 55–65 g/day — do not cut eggs/paneer to go lower
 
+Protein floor (hard):
+150g preferred · 140g absolute minimum — soft tissue protein at bottom of InBody normal range
+
 Recalculate TDEE when weekly km crosses 25, 35, 45 (see `weekly-plan-and-nutrition.mdc`).
 
-These are the current anchors (as of Jun 2026 at ~78 kg). Recalculate when weekly km crosses volume thresholds or body comp scans indicate a BF% band change.
+Anchors revised 23 Jul 2026 after InBody. Do not raise intake to InBody’s 2,267 during the cut — that is maintenance, not deficit.
 
 Pre-long-run (Friday dinner):
 Carb-forward — +1 chapati or small poha; not a light dinner
@@ -427,19 +481,19 @@ Algae Omega-3:
 # September 2026 Targets
 
 Weight:
-73-74 kg (revised Jul 2026 — was 70-71; more realistic for muscle preservation during HM build)
+73-74 kg (revised Jul 2026 — was 70-71; confirmed after InBody 23 Jul — ignore machine “ideal” 68.2 kg)
 
 Body Fat:
-18-19%
+~26–28% race day (revised 23 Jul 2026 — was 18–19%; unrealistic from 31.9% baseline in ~6 weeks)
 
 Fat Loss:
-4-6 kg from restart (~78.5 kg)
+4–6 kg fat mass from InBody baseline (24.5 kg → ~18.5–20.5 kg) · trunk / visceral priority
 
-Muscle Gain:
-1-2 kg regained lean mass
+Muscle:
+Preserve SMM ≥ 29.4 kg · regain toward 30+ kg if possible (~0.5–1 kg realistic pre-race; +1–2 kg is post-race)
 
-Waist:
-2-4 inches reduction
+Waist / WHR:
+Reduce WHR from 1.02 toward ≤0.95 · visceral fat level from 11 toward ≤9
 
 Running:
 18-20 km long run completed in training
@@ -449,6 +503,9 @@ Finish Half Marathon strongly
 
 Blood Markers:
 Improve triglycerides significantly (this was may be due to high consumption of alcohol in previous months)
+
+Post-race recomposition (not this block):
+Continue toward lower BF% and higher SMM; InBody’s −14 kg fat / +5.6 kg muscle is a multi-month project after 6 Sep
 
 ---
 
@@ -504,7 +561,7 @@ Sep 7–20:
 Maintenance ~2,200–2,400 kcal/day — no deficit. Running volume drops; do not keep cut calories.
 
 Sep 21+:
-Reassess body comp scan → lean bulk or hold maintenance based on BF% (target was 18–19%).
+Reassess body comp scan → lean bulk or hold maintenance based on BF% (post-race target toward lower-20s / mid-teens over months — not the race-day ~26–28%).
 
 Reverse diet if needed:
 +100–150 kcal/week only if weight keeps dropping after race week.

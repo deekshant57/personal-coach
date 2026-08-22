@@ -43,6 +43,86 @@
     </div>
   </div>
 
+  <!-- Setup wizard (Phase A) -->
+  <div class="setup-screen" id="setup-screen">
+    <div class="setup-card">
+      <h2 class="setup-title" id="setup-title">Set up your plan</h2>
+      <p class="setup-lead">Targets and a week template first — then logging makes sense.</p>
+
+      <section class="setup-section">
+        <h3 class="setup-section-title">You</h3>
+        <div class="form-group">
+          <label class="form-label" for="setup-display-name">Name</label>
+          <input type="text" class="form-input" id="setup-display-name" autocomplete="name" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="setup-goal">Primary goal</label>
+            <select class="form-input" id="setup-goal">
+              <option value="general">General fitness</option>
+              <option value="fat_loss">Fat loss</option>
+              <option value="recomp">Recomp</option>
+              <option value="strength">Strength</option>
+              <option value="endurance">Endurance</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setup-diet">Diet</label>
+            <select class="form-input" id="setup-diet">
+              <option value="veg">Vegetarian</option>
+              <option value="eggetarian">Eggetarian</option>
+              <option value="non_veg">Non-veg</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="setup-weight">Starting weight (kg)</label>
+          <input type="number" class="form-input" id="setup-weight" inputmode="decimal" step="0.1" placeholder="70">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="setup-injuries">Injuries / notes (optional)</label>
+          <input type="text" class="form-input" id="setup-injuries" placeholder="e.g. left knee">
+        </div>
+      </section>
+
+      <section class="setup-section">
+        <h3 class="setup-section-title">Nutrition targets</h3>
+        <div class="form-group">
+          <label class="form-label" for="setup-protein">Daily protein (g)</label>
+          <input type="number" class="form-input" id="setup-protein" inputmode="numeric" min="40" value="120">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="setup-cal-training">Training day kcal</label>
+            <input type="number" class="form-input" id="setup-cal-training" inputmode="numeric" min="800" value="2000">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setup-cal-rest">Rest day kcal</label>
+            <input type="number" class="form-input" id="setup-cal-rest" inputmode="numeric" min="800" value="1800">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="setup-session-window">Default session time</label>
+          <select class="form-input" id="setup-session-window">
+            <option value="morning">Morning</option>
+            <option value="evening">Evening</option>
+            <option value="flexible">Flexible</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="setup-section">
+        <h3 class="setup-section-title">Week template</h3>
+        <p class="setup-hint">Seeds the next 14 days. Existing coach plans are left alone.</p>
+        <div class="setup-week-template" id="setup-week-template"></div>
+      </section>
+
+      <p class="setup-error" id="setup-error"></p>
+      <button type="button" class="btn btn-primary btn-large" id="setup-submit">Save &amp; continue</button>
+      <button type="button" class="auth-toggle" id="setup-skip">Skip for now</button>
+    </div>
+  </div>
+
   <!-- Toast notification -->
   <div class="toast" id="toast" role="alert"></div>
 
@@ -57,6 +137,7 @@
       <div class="user-bar">
         <span class="user-display" id="user-display"></span>
         <div class="user-bar-actions">
+          <button type="button" class="sign-out-btn" id="edit-setup-btn" title="Edit targets and week template">Setup</button>
           <span class="save-state-indicator hidden" id="save-state-indicator" role="status" aria-live="polite">Saving…</span>
           <button type="button" class="sign-out-btn" id="sign-out-btn">Log out</button>
         </div>
@@ -66,15 +147,15 @@
         <p class="save-error-message" id="save-error-message"></p>
         <button type="button" class="save-error-retry" id="save-error-retry">Retry</button>
       </div>
-      <div class="protein-bar-container">
-        <div class="protein-bar-label" id="protein-label">
-          <span class="current" id="protein-current">0g</span>
-          <span class="macro-targets">
-            <span class="target" id="protein-target">/ 148g protein</span>
-            <span id="calorie-current" class="calorie-current"></span>
+      <div class="macro-spine" id="macro-spine" aria-live="polite">
+        <div class="macro-spine-row" id="protein-label">
+          <span class="macro-spine-protein">
+            <span class="macro-spine-current" id="protein-current">0g</span>
+            <span class="macro-spine-target" id="protein-target">/ 148g P</span>
           </span>
+          <span class="macro-spine-kcal" id="calorie-current">0 / — kcal</span>
         </div>
-        <div class="protein-bar">
+        <div class="protein-bar" aria-hidden="true">
           <div class="protein-bar-fill" id="protein-fill" style="width: 0%"></div>
         </div>
       </div>
@@ -85,6 +166,7 @@
           <div class="date-text" id="date-display"></div>
           <div class="block-context-chip" id="block-context-chip"></div>
           <div class="date-sub" id="date-day-type"></div>
+          <div class="session-status-chip hidden" id="session-status-chip"></div>
         </div>
         <button type="button" class="date-nav-btn" id="date-next" aria-label="Next day">&rarr;</button>
       </div>
@@ -97,7 +179,7 @@
       <div class="day-progress" id="day-progress">
         <div class="coach-next hidden" id="coach-next">
           <div class="coach-next-copy">
-            <span class="coach-next-label">Coach says</span>
+            <span class="coach-next-label">Next</span>
             <span class="coach-next-text" id="coach-next-text"></span>
           </div>
           <button type="button" class="coach-next-btn" id="coach-next-btn">Go</button>
@@ -108,9 +190,11 @@
     </div>
 
     <!-- ════════════════════════════════════════════════════════
-         TAB: COACH
+         TAB: TODAY (diary home)
          ════════════════════════════════════════════════════════ -->
     <div class="tab-content active" id="tab-coach">
+      <div class="diary-home" id="diary-home">
+      <div class="diary-home-label">Diary</div>
       <div class="coach-past-edit-bar hidden" id="coach-past-edit-bar">
         <span class="coach-past-edit-label">Viewing a logged day</span>
         <button type="button" class="btn btn-secondary btn-sm" id="coach-past-edit-btn">Edit</button>
@@ -118,7 +202,7 @@
 
       <div class="coach-observation-block hidden" id="coach-observation-block" role="status" aria-live="polite"></div>
 
-      <div class="coach-sections" id="coach-sections">
+      <div class="coach-sections diary-sections" id="coach-sections">
 
       <!-- Card: Morning Vitals -->
       <div class="card coach-collapsible-card" id="vitals-card" data-coach-section="vitals">
@@ -171,6 +255,15 @@
         <div class="card-body">
           <div class="directive" id="plan-directive">Loading plan...</div>
           <div id="plan-training-summary" class="mb-12"></div>
+          <div class="day-shift-controls hidden" id="day-shift-controls">
+            <p class="day-shift-label">Session timing</p>
+            <div class="day-shift-actions">
+              <button type="button" class="btn btn-secondary btn-sm" id="day-shift-evening">Move to evening</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="day-shift-morning">Move to morning</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="day-shift-skip">Skip session</button>
+              <button type="button" class="btn btn-secondary btn-sm hidden" id="day-shift-reset">Reset schedule</button>
+            </div>
+          </div>
           <div class="collapsible-toggle" id="plan-warmup-toggle">Warm-up / Cool-down</div>
           <div class="collapsible-content" id="plan-warmup-content"></div>
           <div class="collapsible-toggle" id="plan-meals-toggle">Meal Plan</div>
@@ -275,10 +368,10 @@
         </div>
       </div>
 
-      <!-- Card: Meals Summary -->
-      <div class="card coach-collapsible-card" id="meals-summary-card" data-coach-section="meals">
+      <!-- Card: Meals Summary (diary rows → Food) -->
+      <div class="card coach-collapsible-card diary-block" id="meals-summary-card" data-coach-section="meals">
         <div class="card-header">
-          <span class="card-title">Meals Logged</span>
+          <span class="card-title">Meals</span>
           <span class="card-summary-inline" id="meals-summary-line"></span>
           <button type="button" class="card-collapse-btn" id="meals-collapse" aria-label="Collapse meals" aria-expanded="true">
             <span class="card-chevron" aria-hidden="true"></span>
@@ -286,7 +379,7 @@
         </div>
         <div class="card-body" id="meals-body">
           <div class="meals-coach-alerts hidden" id="meals-coach-alerts"></div>
-          <div id="meals-summary-list" class="text-muted">No meals logged yet</div>
+          <div id="meals-summary-list" class="diary-meal-list text-muted">No meals logged yet</div>
           <div class="meals-day-total hidden" id="meals-day-total">
             <span class="meals-day-total-label">Day total</span>
             <span class="meals-day-total-macros" id="meals-day-total-macros">0g P · ~0 kcal</span>
@@ -404,6 +497,7 @@
       </div>
 
       </div><!-- /coach-sections -->
+      </div><!-- /diary-home -->
     </div>
 
     <!-- ════════════════════════════════════════════════════════
@@ -413,18 +507,14 @@
       <div class="tab-loading-overlay" id="food-loading-overlay" aria-hidden="true">
         <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
       </div>
-      <h2 class="tab-title">Log Food</h2>
+      <h2 class="tab-title">Food</h2>
       <div class="food-coach-banner hidden" id="food-coach-banner" role="status"></div>
       <div class="food-preview-banner hidden" id="food-preview-banner">Preview only — logging opens on the day.</div>
       <div class="food-plan-preview hidden" id="food-plan-preview"></div>
 
-      <!-- Meal slot pills -->
       <div class="meal-slots" id="meal-slots"></div>
-
-      <!-- Planned meal hint -->
       <div class="text-muted meal-hint" id="meal-hint"></div>
 
-      <!-- Same as yesterday shortcut -->
       <div class="same-as-yesterday hidden" id="same-as-yesterday">
         <div class="same-as-yesterday-content">
           <span class="same-as-yesterday-label" id="same-as-label">Yesterday's lunch:</span>
@@ -436,26 +526,21 @@
         </div>
       </div>
 
-      <!-- Food search + grid -->
-      <div class="food-search-wrap" id="food-search-wrap">
-        <input type="search" class="form-input food-search-input" id="food-search" placeholder="Search food…" autocomplete="off" enterkeyhint="search">
+      <div class="food-diary-block">
+        <div class="food-diary-head">
+          <span class="food-diary-title" id="food-diary-title">Meal</span>
+          <button type="button" class="btn btn-primary btn-sm" id="food-add-open">Add food</button>
+        </div>
+        <div class="meal-summary" id="meal-summary"></div>
       </div>
-      <p class="food-grid-hint" id="food-grid-hint">Tap ADD, then use − / + on the item</p>
-      <div class="food-grid" id="food-grid"></div>
 
-      <!-- Text notes -->
       <div class="form-group mt-12" id="food-notes-group">
         <label class="form-label">Notes (optional)</label>
         <textarea class="form-input food-notes-input" id="food-notes" placeholder="e.g., bhurji style, extra ghee..."></textarea>
       </div>
 
-      <!-- Current slot summary -->
-      <div class="meal-summary" id="meal-summary"></div>
-
-      <!-- Spacer for sticky footer -->
       <div class="food-tab-spacer"></div>
 
-      <!-- Sticky footer: slot total + save/clear -->
       <div class="food-sticky-footer">
         <div class="food-footer-totals">
           <span class="food-footer-slot" id="food-slot-label">Lunch</span>
@@ -465,6 +550,44 @@
           <button type="button" class="btn btn-danger-outline btn-large hidden" id="clear-slot">Clear slot</button>
           <button type="button" class="btn btn-secondary btn-large hidden" id="next-meal">Next meal &rarr;</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Add Food sheet (MFP-style) -->
+    <div class="food-add-sheet" id="food-add-sheet" aria-hidden="true">
+      <button type="button" class="food-add-sheet-backdrop" id="food-add-sheet-backdrop" aria-label="Close"></button>
+      <div class="food-add-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="food-add-sheet-title">
+        <div class="food-add-sheet-grab" aria-hidden="true"></div>
+        <div class="food-add-sheet-header">
+          <h3 class="food-add-sheet-title" id="food-add-sheet-title">Add food</h3>
+          <button type="button" class="btn btn-secondary btn-sm" id="food-add-sheet-close">Done</button>
+        </div>
+        <div class="food-search-wrap" id="food-search-wrap">
+          <input type="search" class="form-input food-search-input" id="food-search" placeholder="Search staples &amp; Your foods…" autocomplete="off" enterkeyhint="search">
+          <div class="food-lookup-actions">
+            <input type="text" class="form-input food-barcode-input" id="food-barcode" placeholder="Barcode" inputmode="numeric" autocomplete="off">
+            <button type="button" class="btn btn-secondary btn-sm" id="food-barcode-go">Scan code</button>
+          </div>
+        </div>
+        <div class="food-add-tabs" role="tablist">
+          <button type="button" class="food-add-tab active" role="tab" data-add-tab="recent" aria-selected="true">Recent</button>
+          <button type="button" class="food-add-tab" role="tab" data-add-tab="yours" aria-selected="false">Your foods</button>
+          <button type="button" class="food-add-tab" role="tab" data-add-tab="staples" aria-selected="false">Staples</button>
+        </div>
+        <div class="food-lookup-panel hidden" id="food-lookup-panel">
+          <div class="food-lookup-head">
+            <span id="food-lookup-title">Open Food Facts</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="food-lookup-dismiss">Close</button>
+          </div>
+          <div class="food-lookup-results" id="food-lookup-results"></div>
+          <p class="food-lookup-attr text-muted">Data from Open Food Facts (ODbL). Confirm macros before saving.</p>
+        </div>
+        <p class="food-grid-hint" id="food-grid-hint">Tap ADD, then use − / + on the item</p>
+        <div class="food-empty-actions hidden" id="food-empty-actions">
+          <button type="button" class="btn btn-primary btn-large" id="food-empty-create">Create custom</button>
+          <button type="button" class="btn btn-secondary btn-large" id="food-empty-lookup">Look up packaged</button>
+        </div>
+        <div class="food-grid food-grid--sheet" id="food-grid"></div>
       </div>
     </div>
 
@@ -480,7 +603,7 @@
       </div>
       <div class="week-nav">
         <button type="button" class="week-nav-btn" id="week-prev" aria-label="Previous week">&larr;</button>
-        <span class="week-nav-label" id="week-nav-label">Week plan</span>
+        <span class="week-nav-label" id="week-nav-label">Plan</span>
         <button type="button" class="week-nav-btn" id="week-next" aria-label="Next week">&rarr;</button>
       </div>
       <div class="week-mileage-summary hidden" id="week-mileage-summary"></div>
@@ -496,7 +619,7 @@
       <div class="tab-loading-overlay" id="progress-loading-overlay" aria-hidden="true">
         <span class="coach-loader coach-loader--lg" role="status" aria-label="Loading"></span>
       </div>
-      <h2 class="tab-title">Trends</h2>
+      <h2 class="tab-title">Progress</h2>
 
       <div class="trends-section hidden" id="active-signals-section">
         <h3 class="trends-domain-title">Active signals</h3>
@@ -524,101 +647,7 @@
         </div>
       </div>
 
-      <h3 class="trends-domain-title">Training</h3>
-      <div class="card trends-card" id="weekly-mileage-card">
-        <div class="card-header">
-          <span class="card-title">Weekly Mileage</span>
-        </div>
-        <div class="card-body" id="weekly-mileage-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <div class="card trends-card" id="long-run-card">
-        <div class="card-header">
-          <span class="card-title">Long Run Progress</span>
-        </div>
-        <div class="card-body" id="long-run-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <div class="card trends-card" id="cadence-trend-card">
-        <div class="card-header">
-          <span class="card-title">Cadence</span>
-        </div>
-        <div class="card-body" id="cadence-trend-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <h3 class="trends-domain-title">Recovery</h3>
-      <div class="card trends-card" id="sleep-trend-card">
-        <div class="card-header">
-          <span class="card-title">Sleep</span>
-        </div>
-        <div class="card-body" id="sleep-trend-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <div class="card trends-card" id="rpe-trend-card">
-        <div class="card-header">
-          <span class="card-title">RPE</span>
-        </div>
-        <div class="card-body" id="rpe-trend-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <div class="card trends-card" id="knee-timeline-card">
-        <div class="card-header">
-          <span class="card-title">Knee Status</span>
-        </div>
-        <div class="card-body" id="knee-timeline-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <h3 class="trends-domain-title">Nutrition</h3>
-      <div class="card trends-card" id="protein-compliance-card">
-        <div class="card-header">
-          <span class="card-title">Protein Compliance</span>
-        </div>
-        <div class="card-body" id="protein-compliance-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <div class="card trends-card" id="calorie-compliance-card">
-        <div class="card-header">
-          <span class="card-title">Calorie Compliance</span>
-        </div>
-        <div class="card-body" id="calorie-compliance-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <h3 class="trends-domain-title">Habits</h3>
-      <div class="card trends-card" id="cigarettes-trend-card">
-        <div class="card-header">
-          <span class="card-title">Cigarettes</span>
-        </div>
-        <div class="card-body" id="cigarettes-trend-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <div class="card trends-card" id="supplement-adherence-card">
-        <div class="card-header">
-          <span class="card-title">Supplement Adherence</span>
-        </div>
-        <div class="card-body" id="supplement-adherence-content">
-          <p class="text-muted">Loading…</p>
-        </div>
-      </div>
-
-      <h3 class="trends-domain-title">Body Composition</h3>
+<h3 class="trends-domain-title">Body · composition</h3>
       <p class="text-secondary tab-intro mb-12">Machine scans — InBody, Karada Scan, etc. Log right after your visit.</p>
 
       <div id="scan-due-banner"></div>
@@ -703,7 +732,110 @@
         </div>
         <div class="card-body" id="scan-history"></div>
       </div>
-    </div>
+
+      <h3 class="trends-domain-title">Nutrition</h3>
+      <div class="card trends-card" id="protein-compliance-card">
+        <div class="card-header">
+          <span class="card-title">Protein Compliance</span>
+        </div>
+        <div class="card-body" id="protein-compliance-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="calorie-compliance-card">
+        <div class="card-header">
+          <span class="card-title">Calorie Compliance</span>
+        </div>
+        <div class="card-body" id="calorie-compliance-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <h3 class="trends-domain-title" id="trends-training-title">Training</h3>
+      <div class="card trends-card" id="lift-progress-card">
+        <div class="card-header">
+          <span class="card-title">Key lifts</span>
+        </div>
+        <div class="card-body" id="lift-progress-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+      <div class="card trends-card" id="weekly-mileage-card">
+        <div class="card-header">
+          <span class="card-title">Weekly Mileage</span>
+        </div>
+        <div class="card-body" id="weekly-mileage-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="long-run-card">
+        <div class="card-header">
+          <span class="card-title">Long Run Progress</span>
+        </div>
+        <div class="card-body" id="long-run-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="cadence-trend-card">
+        <div class="card-header">
+          <span class="card-title">Cadence</span>
+        </div>
+        <div class="card-body" id="cadence-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <h3 class="trends-domain-title">Recovery</h3>
+      <div class="card trends-card" id="sleep-trend-card">
+        <div class="card-header">
+          <span class="card-title">Sleep</span>
+        </div>
+        <div class="card-body" id="sleep-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="rpe-trend-card">
+        <div class="card-header">
+          <span class="card-title">RPE</span>
+        </div>
+        <div class="card-body" id="rpe-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="knee-timeline-card">
+        <div class="card-header">
+          <span class="card-title">Knee Status</span>
+        </div>
+        <div class="card-body" id="knee-timeline-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <h3 class="trends-domain-title" id="trends-habits-title">Recovery · habits</h3>
+      <div class="card trends-card" id="cigarettes-trend-card">
+        <div class="card-header">
+          <span class="card-title">Cigarettes</span>
+        </div>
+        <div class="card-body" id="cigarettes-trend-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <div class="card trends-card" id="supplement-adherence-card">
+        <div class="card-header">
+          <span class="card-title">Supplement Adherence</span>
+        </div>
+        <div class="card-body" id="supplement-adherence-content">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+          </div>
 
   </div>
 
@@ -711,11 +843,11 @@
        BOTTOM NAV
        ══════════════════════════════════════════════════════════ -->
   <nav class="bottom-nav" role="navigation" aria-label="Main">
-    <button class="nav-tab active" data-tab="coach" aria-label="Coach">
+    <button class="nav-tab active" data-tab="coach" aria-label="Today">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
-      Coach
+      Today
     </button>
     <button class="nav-tab" data-tab="food" aria-label="Food">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -723,13 +855,13 @@
       </svg>
       Food
     </button>
-    <button class="nav-tab" data-tab="week" aria-label="Week">
+    <button class="nav-tab" data-tab="week" aria-label="Plan">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>
       </svg>
-      Week
+      Plan
     </button>
-    <button class="nav-tab" data-tab="progress" aria-label="Trends">
+    <button class="nav-tab" data-tab="progress" aria-label="Progress">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/>
       </svg>
@@ -762,10 +894,11 @@
     </div>
   </div>
 
-  <!-- Custom Food Modal -->
+  <!-- Custom / confirm Food Modal (Phase C) -->
   <div class="modal-overlay" id="custom-food-modal">
     <div class="modal">
       <div class="modal-title" id="custom-modal-title">Add Custom Item</div>
+      <p class="modal-message hidden" id="custom-modal-hint"></p>
       <div class="form-group mb-12">
         <label class="form-label">Name</label>
         <input type="text" class="form-input" id="custom-name" placeholder="e.g., Soy chunks">
@@ -773,13 +906,27 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Protein (g)</label>
-          <input type="number" class="form-input" id="custom-protein" inputmode="numeric" placeholder="15">
+          <input type="number" class="form-input" id="custom-protein" inputmode="decimal" step="0.1" placeholder="15">
         </div>
         <div class="form-group">
           <label class="form-label">Calories</label>
           <input type="number" class="form-input" id="custom-calories" inputmode="numeric" placeholder="120">
         </div>
       </div>
+      <div class="form-row mt-12">
+        <div class="form-group">
+          <label class="form-label">Fat (g)</label>
+          <input type="number" class="form-input" id="custom-fat" inputmode="decimal" step="0.1" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          <input type="text" class="form-input" id="custom-unit" placeholder="1 / 100g / scoop">
+        </div>
+      </div>
+      <label class="custom-save-library-label mt-12" id="custom-save-library-wrap">
+        <input type="checkbox" id="custom-save-library" checked>
+        Save to Your foods
+      </label>
       <div class="form-row mt-12">
         <button class="btn btn-secondary" id="custom-cancel">Cancel</button>
         <button class="btn btn-primary" id="custom-add">Add</button>

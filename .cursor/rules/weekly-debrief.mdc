@@ -128,13 +128,14 @@ Structured table **Mon–Sun with dates on every row**. Each day includes:
 
 After issuing the plan:
 
-1. Add to `WEEK_PLANS` in `coach/week-plans.py`
-2. Run `python3 seed-plans.py` (paste SQL if RLS blocks REST)
-3. **Archive the report:** user invokes `save-weekly-debrief` skill → `coach_debriefs` in Supabase → Week tab read-only display
+1. **Write Week N+1 into Supabase `daily_plans`** (source of truth — do not resurrect Deekshant rows in `coach/week-plans.py`)
+2. Run `python3 audit-week-plan.py --week-of YYYY-MM-DD` and fix any FAIL before the week starts
+3. Update `coach/current-block.md` week number / template if the layout changed
+4. **Archive the report:** user invokes `save-weekly-debrief` skill → `coach_debriefs` in Supabase → Week tab read-only display
 
 ## Section 8 — COACH'S NOTE
 
-One firm paragraph. No bullets. No hedging. Reference current training block phase and race timeline (6 Sep 2026).
+One firm paragraph. No bullets. No hedging. Reference current training block phase and race timeline (13 Dec 2026).
 
 ## Section 9 — COACHING LOG UPDATE
 

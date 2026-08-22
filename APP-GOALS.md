@@ -28,7 +28,7 @@ Morning → log vitals → follow plan → log training + food → generate debr
 | **Device** | Phone (PWA, portrait, home-screen install) |
 | **Location** | Udaipur — Indian veg diet, park runs, bodyweight until ~Jul 2026 |
 | **When used** | Morning (vitals), post-workout (training), after each meal (food), night (debrief) |
-| **Race** | Vedanta Zinc City Half Marathon — 6 Sep 2026, 5:00 AM |
+| **Race** | Half Marathon — 13 Dec 2026 (exact event TBD). Previous: Vedanta Zinc City HM 6 Sep (cancelled) |
 | **Body goal** | 73–74 kg by race day, knees intact, 18–20 km long run in training |
 
 ---
@@ -103,7 +103,7 @@ If the app fails at date context, data persistence, or debrief completeness, not
 
 - **Not** replacing Cursor coach or in-app AI debrief
 - **Not** Strava/GPX import (stays in `import-runs.py`)
-- **Not** weekly plan authoring in-app (coach updates `coach/week-plans.py` / Supabase)
+- **Not** weekly plan authoring in-app (coach updates Supabase `daily_plans`; verify with `audit-week-plan.py`)
 - **Not** macro coaching, meal suggestions, or triglyceride warnings in-app
 - **Not** multi-athlete, social, or gamification
 - **Not** desktop-first layout or feature parity with Excel power-user workflows
@@ -184,6 +184,8 @@ For any screen or change, answer in order:
 
 **P0 partial:** date header shipped; labeling fixes applied 24 Jun 2026.
 
+**Phase A–C (21 Aug 2026):** Friends expansion — setup, day-shift, gym kg×reps, OFF food lookup. See `docs/FRIENDS-PRODUCT-SPEC.md`. Run `athlete-profiles.sql` + `user-custom-foods.sql` in Supabase.
+
 ### P7–P13 — Depth & breadth (approved 25 Jun 2026)
 
 Implementation detail: **`WEEK-STATS-SPEC.md`** (week windows, aggregations, consumers, acceptance tests).
@@ -213,6 +215,7 @@ Implementation detail: **`WEEK-STATS-SPEC.md`** (week windows, aggregations, con
 | `COACH-CONTEXT.md` | Project workflow |
 | `personal-details.md` | Athlete profile |
 | `WEEK-STATS-SPEC.md` | Week aggregation contract — P7–P13 implementation |
+| `docs/FRIENDS-PRODUCT-SPEC.md` | Multi-athlete / friends expansion — setup, day-shift, food layers (Phases A–C) |
 | `.cursor/rules/*.mdc` | Coach debrief + plan rules the app must feed |
 | `js/data.js` | Food reference, meal slots, day types |
 | `js/week-stats.js` | Week windows + aggregates (P7) |

@@ -1,13 +1,6 @@
 // Main app — tab routing, date state, initialization
-import { MEAL_SLOTS, renderDayBadge } from './data.js';
+import { renderDayBadge } from './data.js';
 import { initSupabase, fetchDailyPlan, setCurrentUserId } from './supabase.js';
-import {
-  RUN_WARMUP,
-  RUN_COOLDOWN,
-  WKT_WARMUP,
-  WKT_COOLDOWN,
-  MOBILITY_COOLDOWN,
-} from './plan-templates.js';
 import { loadSession, initAuthListeners, signIn, signUp, signOut, getProfile } from './auth.js';
 import { initToday, loadTodayData } from './today.js';
 import { initFood, loadFoodData, invalidateFoodLogsCache } from './food.js';
@@ -25,7 +18,9 @@ import { flushAllAutosaves, setupAutosaveLifecycle } from './auto-save.js';
 import { invalidateWeekStatsCache } from './week-stats.js';
 import { initSaveState, clearSaveState } from './save-state.js';
 import { mergePlanWithFallback } from './plan-merge.js';
-
+import { ensureAthleteProfileReady, clearDbAthleteProfileCache } from './athlete-profile.js';
+import { initSetup, openSetup } from './setup.js';
+import { slotsForPlan, renderSessionStatusChip } from './day-shift.js';
 // ── App State ────────────────────────────────────────────────
 export const state = {
   currentDate: new Date(),
@@ -365,61 +360,27 @@ function updateDayTypeBadge() {
   if (!state.currentPlan) {
     el.textContent = 'No plan for this date';
     el.innerHTML = '';
+    renderSessionStatusChip(null);
     return;
   }
   el.innerHTML = renderDayBadge(state.currentPlan.day_type);
+  renderSessionStatusChip(state.currentPlan);
 }
 
-// ── Fallback plan from embedded Week 1 data ──────────────────
-// Synced with coach/week-plans.py — used when Supabase row is missing or stale
-export function getFallbackPlan(date) {
-  const monWorkout =
-    `${WKT_WARMUP} · Pull-ups 4×max · Push-ups 3×15 · ` +
-    'Rows 3×10 (park bench) · Dead hang 3×20s · Plank 3×40s · Side plank 2×30s · ' +
-    'Glute bridges 2×12 (light activation) · 25–30 min · RPE 5 · ' +
-    WKT_COOLDOWN;
-  const friWorkout =
-    `${WKT_WARMUP} · Pull-ups 4×max · Push-ups 3×max · ` +
-    'Rows 3×10 (park bench) · Dead hang 3×20s · Plank 3×40s · Side plank 2×30s · ' +
-    'Calf raises 2×15 (light) · 25–30 min · RPE 5–6 · ' +
-    WKT_COOLDOWN;
-  const wedWorkout =
-    'WARM-UP (5 min): 5 min brisk walk · Squats 3×15 (slow) · Lunges 2×10/leg · ' +
-    'Glute bridges 3×15 · Calf raises 3×20 · Foam roll quads + calves + IT band 5 min · ' +
-    '20–25 min · RPE 4–5 · ' +
-    MOBILITY_COOLDOWN;
-
-  const plans = {
-    '2026-06-22': { day_name: 'Mon', day_type: 'Bodyweight', protein_target: 150, water_target: '2L', run_type: null, run_km: null, run_pace: null, run_cue: null, workout_plan: 'Bodyweight — upper + core + light knee activation', workout_detail: monWorkout, meals_plan: '6:30 Pre-workout — Water + black coffee\n7:45 Post-workout — 4 eggs bhurji + 1 chapati + 1 scoop whey\n1:00 Lunch — 2 chapati + 1 bowl moong dal + 100g paneer + salad\n4:30 Snack — 1 scoop whey + 10 walnuts\n8:30 Dinner — 3 eggs omelette + 1 bowl curd + sautéed veggies', directive: 'First day. Upper body only — NO squats/lunges today. Legs must be fresh for tomorrow\'s run.' },
-    '2026-06-23': { day_name: 'Tue', day_type: 'Run', protein_target: 148, water_target: '2.5L', run_type: 'Easy', run_km: 3, run_pace: '8:00–8:30/km', run_cue: `${RUN_WARMUP} · Cadence: use 150 BPM metronome · RPE 5–6 · Oxygen Park · ${RUN_COOLDOWN}`, workout_plan: null, workout_detail: null, meals_plan: '6:20 Pre-run — 1 banana + 250ml water\n~7:30 Post-run — 4 eggs + 2 whole wheat toast + 1 bowl curd\n1:00 Lunch — 2 chapati + 1 bowl dal + 100g paneer + salad\n4:00 Snack — 1 scoop whey + small handful peanuts\n8:30 Dinner — 3 eggs bhurji + 1 bowl dal + veggies', directive: 'Easy means easy — slower than your 5 km pace. Warm-up is mandatory.' },
-    '2026-06-24': { day_name: 'Wed', day_type: 'Active Recovery', protein_target: 149, water_target: '2L', run_type: null, run_km: null, run_pace: null, run_cue: null, workout_plan: 'Knee prep + mobility', workout_detail: wedWorkout, meals_plan: '8:00 Breakfast — 4 eggs + 1 scoop whey\n1:00 Lunch — 1.5 chapati + 1 bowl dal + 150g curd + salad\n4:30 Snack — 1 scoop whey + 10 walnuts\n8:30 Dinner — 3 eggs + 80g paneer + veggies', directive: 'Knee prep day — not a leg strength session. Slow, controlled reps.' },
-    '2026-06-25': { day_name: 'Thu', day_type: 'Run', protein_target: 148, water_target: '2.5L', run_type: 'Easy', run_km: 4, run_pace: '8:00–8:30/km', run_cue: `${RUN_WARMUP} · Cadence: 150 BPM metronome · RPE 5–6 · Knee check at 2 km — if pain, walk home · ${RUN_COOLDOWN}`, workout_plan: null, workout_detail: null, meals_plan: '6:20 Pre-run — 1 banana + 250ml water\n~7:40 Post-run — 4 eggs + 2 chapati + 1 bowl curd\n1:00 Lunch — 2 chapati + 1 bowl dal + 100g paneer\n4:00 Snack — 1 scoop whey + 1 tbsp flaxseed + handful peanuts\n8:30 Dinner — 3 eggs + 1 bowl dal + salad', directive: 'Longest mid-week run. Hold the pace ceiling. Warm-up is non-negotiable.' },
-    '2026-06-26': { day_name: 'Fri', day_type: 'Bodyweight', protein_target: 150, water_target: '2L', run_type: null, run_km: null, run_pace: null, run_cue: null, workout_plan: 'Bodyweight — upper + core', workout_detail: friWorkout, meals_plan: '6:30 Pre-workout — Water + black coffee\n7:45 Post-workout — 4 eggs + 1 chapati + 1 scoop whey\n1:00 Lunch — 2 chapati + 1 bowl chana/rajma + 100g paneer\n4:30 Snack — 1 scoop whey + 10 walnuts\n8:30 Dinner — 3 eggs + curd + veggies', directive: 'Upper body only — keep legs fresh for tomorrow\'s long run. Sleep early — 7h minimum.' },
-    '2026-06-27': { day_name: 'Sat', day_type: 'Run', protein_target: 150, water_target: '2.5L+', run_type: 'Long Easy', run_km: 5, run_pace: '8:00–8:45/km', run_cue: `${RUN_WARMUP} · Cadence: 150 BPM metronome · RPE 6 max · Walk 1 min at 2.5 km if needed · ${RUN_COOLDOWN} · Extra: foam roll quads + calves post-shower if available`, workout_plan: null, workout_detail: null, meals_plan: '6:20 Pre-run — 1 banana + 2 dates + 250ml water\n~7:50 Post-run — 4 eggs + 2 chapati + curd\n1:00 Lunch — 2-3 chapati + dal + 100g paneer\n4:00 Snack — 1 scoop whey + handful peanuts\n8:30 Dinner — 3 eggs + dal + veggies', directive: 'Week\'s key run. Consolidate 5 km. Finish feeling you could do 1 more km.' },
-    '2026-06-28': { day_name: 'Sun', day_type: 'Rest', protein_target: 149, water_target: '2L', run_type: null, run_km: null, run_pace: null, run_cue: null, workout_plan: null, workout_detail: 'Optional: 20 min gentle walk + foam roll legs', meals_plan: '8:00 Breakfast — 4 eggs + 1 scoop whey\n1:00 Lunch — 2 chapati + dal + 100g paneer + salad\n4:30 Snack — 1 scoop whey + 10 walnuts\n8:30 Dinner — 3 eggs + curd + veggies', directive: 'Close the week clean. Weigh Monday AM before food.' },
-  };
-  return plans[date] || null;
+// ── Fallback plan ────────────────────────────────────────────
+// Live plans live in Supabase daily_plans only (no embedded week table).
+export function getFallbackPlan(_date) {
+  return null;
 }
 
-/** Backfill warm-up / cool-down when Supabase has cadence-only run_cue. */
-export function patchPlanWarmup(plan, date) {
-  if (!plan) return null;
-  const fb = getFallbackPlan(date);
-  if (!fb) return plan;
-  const patched = { ...plan };
-  if (patched.run_type && (!patched.run_cue || !/WARM-UP/i.test(patched.run_cue)) && fb.run_cue) {
-    patched.run_cue = fb.run_cue;
-  }
-  if (patched.workout_plan && (!patched.workout_detail || !/WARM-UP/i.test(patched.workout_detail)) && fb.workout_detail) {
-    patched.workout_detail = fb.workout_detail;
-  }
-  return patched;
+/** No-op when no embedded fallback exists; returns plan unchanged. */
+export function patchPlanWarmup(plan, _date) {
+  return plan || null;
 }
 
 // ── Get meal slots for current day ───────────────────────────
 export function getCurrentMealSlots() {
-  if (!state.currentPlan) return MEAL_SLOTS.Rest;
-  return MEAL_SLOTS[state.currentPlan.day_type] || MEAL_SLOTS.Rest;
+  return slotsForPlan(state.currentPlan);
 }
 
 // ── Auth gate ────────────────────────────────────────────────
@@ -501,6 +462,9 @@ function setupAuth() {
   document.getElementById('sign-out-btn').addEventListener('click', async () => {
     await signOut();
     setCurrentUserId(null);
+    clearDbAthleteProfileCache();
+    document.getElementById('setup-screen')?.classList.remove('show');
+    booted = false;
     showAuth();
   });
 }
@@ -515,6 +479,14 @@ async function enterApp(session) {
   const profile = getProfile();
   document.getElementById('user-display').textContent =
     profile?.display_name || active.user.email;
+
+  const { needsSetup } = await ensureAthleteProfileReady();
+  if (needsSetup) {
+    document.getElementById('auth-screen').classList.remove('show');
+    openSetup({ edit: false });
+    return;
+  }
+
   hideAuth();
   setContentLoading(true, { overlay: true });
   try {
@@ -525,6 +497,7 @@ async function enterApp(session) {
 }
 
 let booted = false;
+let setupInited = false;
 
 async function bootApp() {
   if (booted) {
@@ -554,8 +527,26 @@ async function bootApp() {
   updatePreviewMode();
   await checkAndRenderGapReturn({ viewingToday: isViewingToday() });
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register(`sw.js?v=28`).catch(() => {});
   }
+}
+
+function ensureSetupInited() {
+  if (setupInited) return;
+  setupInited = true;
+  initSetup({
+    onComplete: async () => {
+      hideAuth();
+      document.querySelector('.app-container')?.classList.remove('hidden');
+      document.querySelector('.bottom-nav')?.classList.remove('hidden');
+      setContentLoading(true, { overlay: true });
+      try {
+        await bootApp();
+      } finally {
+        setContentLoading(false, { overlay: true });
+      }
+    },
+  });
 }
 
 // ── Init ─────────────────────────────────────────────────────
@@ -574,6 +565,7 @@ async function init() {
   }
 
   setupAuth();
+  ensureSetupInited();
 
   initAuthListeners(
     async (session) => {
@@ -584,6 +576,12 @@ async function init() {
       hideAuth();
       setContentLoading(true, { overlay: true });
       try {
+        const { needsSetup } = await ensureAthleteProfileReady();
+        if (needsSetup) {
+          setContentLoading(false, { overlay: true });
+          openSetup({ edit: false });
+          return;
+        }
         await bootApp();
       } finally {
         setContentLoading(false, { overlay: true });
@@ -591,6 +589,7 @@ async function init() {
     },
     () => {
       setCurrentUserId(null);
+      clearDbAthleteProfileCache();
       booted = false;
       showAuth();
     }

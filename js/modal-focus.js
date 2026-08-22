@@ -79,3 +79,18 @@ export function setupModalFocusTraps() {
     }
   });
 }
+
+/** Focus trap for the Food Add bottom sheet (class `.open`, not `.show`). */
+export function setupSheetFocusTrap(sheetEl, { onEscape } = {}) {
+  if (!sheetEl) return;
+  const panel = sheetEl.querySelector('.food-add-sheet-panel') || sheetEl;
+
+  sheetEl.addEventListener('keydown', (e) => {
+    if (!sheetEl.classList.contains('open')) return;
+    if (e.key === 'Escape') {
+      onEscape?.();
+      return;
+    }
+    trapTab(e, panel);
+  });
+}

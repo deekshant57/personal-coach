@@ -14,15 +14,18 @@ alwaysApply: true
 - **Fat floor: 55–65 g/day** — never cut eggs/paneer to chase lower calories
 - **Friday pre-long-run dinner:** carb-forward (+1 chapati or poha); not a light dinner
 
-## Deficit anchors
+## Calorie anchors
 
-Apply deficit anchors from `personal-details.md` (maintenance, run-day, rest-day targets). Recalculate when weekly km crosses **25, 35, 45** or when a body comp scan triggers a BF% band change (see `body-comp.mdc`).
+**Phase 1 (Aug–Sep 2026):** Maintenance ~2,300–2,400 kcal · 160g protein · no deficit. Recomp phase — support hypertrophy.
+
+**Phase 2 (Oct–Nov 2026):** Resume deficit. Apply deficit anchors from `personal-details.md` (run-day, rest-day targets). Recalculate when weekly km crosses **25, 35, 45** or when a body comp scan triggers a BF% band change (see `body-comp.mdc`).
 
 State calorie brackets explicitly in plans.
 
-## Fasting (HM prep: Jun–Sep 2026)
+## Fasting
 
-- **Avoid fasting** during HM prep weeks
+- **Phase 1:** No fasting — maintenance calories needed for hypertrophy
+- **Phase 2 (HM build):** Avoid fasting during HM prep weeks
 - If unavoidable: minimum **1,500 kcal** and **140g protein** in eating window; no peanut/milk shakes (TG risk)
 - Compensate next day at **maintenance**, not binge
 
@@ -50,11 +53,43 @@ State calorie brackets explicitly in plans.
 
 | Item | Approx |
 |------|--------|
-| 1 egg | 7g protein, 70 kcal |
+| 1 egg (whole — yolk + white) | 7g protein, 70 kcal — never whites-only; yolks hit fat floor |
+| 1 bowl veggies (non-starchy sabzi) | 3g protein, ~80–120 kcal — bhindi/beans/cabbage/cauliflower/capsicum/zucchini/carrot/palak/lauki; not dal/legume; not potato-main |
 | 1 chapati (whole wheat) | 3g protein, 80 kcal |
 | 1 bowl dal (1 cup) | 12g protein, 180 kcal |
 | 100g paneer | 18g protein, 265 kcal |
 | 1 cup curd | 8g protein, 150 kcal |
+| 200g hung curd | 14g protein, 160 kcal |
 | 1 scoop whey | 24g protein, 120 kcal |
+| 1 bowl lobia / chana / chhole / kala chana / rajma | 15g protein, ~200–210 kcal |
+| 1 bowl chana dal | 14g protein, 190 kcal |
+| 1 bowl quinoa (cooked) | 8g protein, 220 kcal |
+| 1 plate savory oats | 6g protein, 220 kcal |
+| 3 idli + sambar | 12g protein, 300 kcal |
+| 1 dosa + sambar | 10g protein, 280 kcal |
+| 1 uttapam + sambar | 12g protein, 320 kcal |
+| 1 bowl palak paneer / matar paneer | 18g protein, ~300–310 kcal |
+| 2 moong chilla w/ paneer | 20g protein, 280 kcal |
+| 1.5 besan chilla w/ paneer | 17g protein, 340 kcal |
 
 Adjust when portions are specified. Show your math briefly in the debrief.
+
+## Approved meal swaps (keep listed food — add as options, never delete)
+
+Use these when the planned item is unavailable. Log the item you actually ate.
+
+| Slot | Planned / keep | Equal options |
+|------|----------------|---------------|
+| Breakfast / post-run carb | poha, upma, toast | quinoa, oats, moong chilla, besan chilla, idli+sambar, dosa+sambar, uttapam+sambar |
+| Lunch / dinner legume | dal, chana, rajma, palak dal | lobia, chana dal, chhole, kala chana |
+| Lunch carb | chapati | rice bowl, quinoa bowl (match volume) |
+| Extra protein | eggs, paneer, curd, whey | tofu, hung curd, paneer bhurji, palak paneer, matar paneer, sprout chaat |
+
+**Rules:**
+- Chillas replace breakfast *carb + some protein* — if swapping poha→chilla, you can drop ~1 egg or keep eggs and overshoot protein (fine)
+- Quinoa / oats = carb swaps (not full legume replacements)
+- Idli/dosa/uttapam only count as equal swaps **with a full sambar bowl**; plain alone is under-protein
+- Lobia ↔ chana ↔ chhole ↔ kala chana ↔ rajma ↔ dal / chana dal are 1:1 bowl swaps
+- Palak paneer / matar paneer ↔ 100g paneer / paneer bhurji (same protein slot)
+- Do not swap legumes out for only rice/quinoa/oats without adding paneer/eggs/curd to hold protein
+- Prefer pantry staples (dal, chana, curd, eggs, whey) over specialty dairy — Greek yogurt skipped for cost

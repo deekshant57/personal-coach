@@ -21,6 +21,7 @@ import {
   getTenPercentCapKm,
   getRaceCountdownDays,
 } from './week-stats.js';
+import { getAthleteProfile } from './athlete-profile.js';
 
 const TRAINING_BLOCK_START = new Date(2026, 5, 22); // Mon 22 Jun 2026 — Week 1
 
@@ -81,10 +82,17 @@ function renderWeekMileageSummary(stats, priorStats) {
   const el = document.getElementById('week-mileage-summary');
   if (!el || !stats) return;
 
+  const profile = getAthleteProfile();
+  if (!profile.showRunningTrends) {
+    el.innerHTML = '';
+    el.classList.add('hidden');
+    return;
+  }
+
   const actual = stats.actualKm || 0;
   const planned = stats.plannedKm || 0;
   const cap = getTenPercentCapKm(priorStats?.actualKm);
-  const daysToRace = getRaceCountdownDays();
+  const daysToRace = profile.showRaceCountdown ? getRaceCountdownDays() : 0;
 
   let html = `
     <div class="week-mileage-row">
@@ -327,7 +335,7 @@ export async function loadWeekView() {
         </span>
         <span class="week-card-header-right">
           ${dotsHtml}
-          <span class="text-muted week-card-protein">${plan.protein_target || 145}g P</span>
+          <span class="text-muted week-card-macros">${plan.protein_target || 145}g P${plan.calorie_target ? ` · ${Number(plan.calorie_target).toLocaleString()} kcal` : ''}</span>
         </span>
       </button>
       <div class="week-card-summary">${escapeHtml(summary)}</div>

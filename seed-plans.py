@@ -79,8 +79,11 @@ def sql_value(column, value):
     return sql_literal(value)
 
 
-def load_week_plans():
-    plans_path = os.path.join(os.path.dirname(__file__), 'coach', 'week-plans.py')
+def load_week_plans(plans_path=None):
+    if plans_path is None:
+        plans_path = os.path.join(os.path.dirname(__file__), 'coach', 'week-plans.py')
+    elif not os.path.isabs(plans_path):
+        plans_path = os.path.join(os.path.dirname(__file__), plans_path)
     with open(plans_path, 'r') as f:
         source = f.read()
     ns = {}
@@ -177,10 +180,11 @@ def api_request(path, data, headers, method='POST'):
         return e.code, e.read().decode()
 
 
-def seed_week_plans(user_id):
-    week_plans = load_week_plans()
+def seed_week_plans(user_id, week_plans=None):
+    if week_plans is None:
+        week_plans = load_week_plans()
     if not week_plans:
-        print('ERROR: No WEEK_PLANS found in coach/week-plans.py')
+        print('ERROR: No WEEK_PLANS found')
         return False
 
     headers = api_headers()
@@ -235,12 +239,13 @@ def seed_week_plans(user_id):
     return ok
 
 
-def patch_sync_daily_plans(user_id):
+def patch_sync_daily_plans(user_id, week_plans=None):
     """PATCH existing daily_plans rows (full field sync). Requires service_role."""
     if not os.environ.get('SUPABASE_SERVICE_ROLE_KEY'):
         return False
 
-    week_plans = load_week_plans()
+    if week_plans is None:
+        week_plans = load_week_plans()
     headers = api_headers()
     headers['Prefer'] = 'return=minimal'
     ok = True
@@ -262,6 +267,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Seed Supabase week plans')
     parser.add_argument('--user-id', default=DEFAULT_USER_ID, help='Auth user UUID')
     parser.add_argument(
+        '--plans',
+        default=None,
+        help='Path to week-plans.py (default: coach/week-plans.py). '
+        'Use athletes/namrata/coach/week-plans.py for Namrata.',
+    )
+    parser.add_argument(
         '--sql-only',
         action='store_true',
         help='Write sync-plans.sql for Supabase SQL Editor (bypasses RLS)',
@@ -273,24 +284,41 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    week_plans = load_week_plans()
+    week_plans = load_week_plans(args.plans)
+    plans_label = args.plans or 'coach/week-plans.py'
 
     if args.sql_only:
+        if not week_plans:
+            print('ERROR: WEEK_PLANS is empty — nothing to write.')
+            print('Deekshant plans live in Supabase daily_plans (source of truth).')
+            print('For Namrata: --plans athletes/namrata/coach/week-plans.py')
+            sys.exit(1)
         out = os.path.join(os.path.dirname(__file__), 'sync-plans.sql')
         write_sql_file(out, week_plans, args.user_id)
     elif args.patch:
+        if not week_plans:
+            print('ERROR: WEEK_PLANS is empty — refusing to patch.')
+            print('Deekshant plans live in Supabase daily_plans. Do not seed from this file.')
+            sys.exit(1)
         print('Patching daily_plans (full field sync)...')
         print(f'URL: {SUPABASE_URL}')
         print(f'User: {args.user_id}')
-        ok = patch_sync_daily_plans(args.user_id)
+        print(f'Plans: {plans_label}')
+        ok = patch_sync_daily_plans(args.user_id, week_plans)
         if not ok:
             sys.exit(1)
         print('\nDone — daily_plans synced.')
     else:
+        if not week_plans:
+            print('ERROR: WEEK_PLANS is empty — refusing to seed.')
+            print('Deekshant plans live in Supabase daily_plans (source of truth).')
+            print('For Namrata: --plans athletes/namrata/coach/week-plans.py --user-id <uuid>')
+            sys.exit(1)
         print('Seeding Supabase with week plans...')
         print(f'URL: {SUPABASE_URL}')
         print(f'User: {args.user_id}')
-        ok = seed_week_plans(args.user_id)
+        print(f'Plans: {plans_label}')
+        ok = seed_week_plans(args.user_id, week_plans)
         if ok:
             print('\nDone!')
         else:

@@ -14,6 +14,10 @@ export function setCurrentUserId(userId) {
   currentUserId = userId;
 }
 
+export function getCurrentUserId() {
+  return currentUserId;
+}
+
 export async function initSupabase() {
   if (!isConfigured()) throw new Error('Supabase not configured');
 
@@ -369,4 +373,147 @@ export async function fetchCoachDebriefForWeek(weekStartIso) {
     return null;
   }
   return data;
+}
+
+// ── Athlete profiles (Phase A) ────────────────────────────────
+export async function fetchAthleteProfileRow(userId = uid()) {
+  if (!supabase || !userId) return null;
+  const { data, error } = await supabase
+    .from('athlete_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    console.error('fetchAthleteProfileRow:', error);
+    return null;
+  }
+  return data;
+}
+
+export async function upsertAthleteProfile(fields) {
+  if (!supabase || !uid()) return false;
+  const row = {
+    ...fields,
+    user_id: uid(),
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabase
+    .from('athlete_profiles')
+    .upsert(row, { onConflict: 'user_id' });
+  if (error) console.error('upsertAthleteProfile:', error);
+  return !error;
+}
+
+export async function patchDailyPlan(date, fields) {
+  if (!supabase || !uid()) return false;
+  const { error } = await supabase
+    .from('daily_plans')
+    .update({ ...fields })
+    .eq('user_id', uid())
+    .eq('date', date);
+  if (error) console.error('patchDailyPlan:', error);
+  return !error;
+}
+
+export async function upsertDailyPlan(date, fields) {
+  if (!supabase || !uid()) return false;
+  const row = {
+    user_id: uid(),
+    date,
+    ...fields,
+  };
+  const { error } = await supabase
+    .from('daily_plans')
+    .upsert(row, { onConflict: 'user_id,date' });
+  if (error) console.error('upsertDailyPlan:', error);
+  return !error;
+}
+
+// ── User custom foods (Phase C) ───────────────────────────────
+export async function fetchUserCustomFoods() {
+  if (!supabase || !uid()) return [];
+  const { data, error } = await supabase
+    .from('user_custom_foods')
+    .select('*')
+    .eq('user_id', uid())
+    .order('name');
+  if (error) {
+    console.error('fetchUserCustomFoods:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function upsertUserCustomFood(food) {
+  if (!supabase || !uid()) return null;
+  const row = {
+    user_id: uid(),
+    name: food.name,
+    protein: food.protein ?? 0,
+    calories: food.calories ?? 0,
+    fat: food.fat ?? 0,
+    carbs: food.carbs ?? null,
+    unit: food.unit || '1',
+    barcode: food.barcode || null,
+    source: food.source || 'manual',
+    updated_at: new Date().toISOString(),
+  };
+  if (food.id) row.id = food.id;
+
+  // Prefer update-by-id; else upsert by matching lower(name) via select+insert/update
+  if (food.id) {
+    const { data, error } = await supabase
+      .from('user_custom_foods')
+      .upsert(row, { onConflict: 'id' })
+      .select()
+      .maybeSingle();
+    if (error) {
+      console.error('upsertUserCustomFood:', error);
+      return null;
+    }
+    return data;
+  }
+
+  const existing = await supabase
+    .from('user_custom_foods')
+    .select('id')
+    .eq('user_id', uid())
+    .ilike('name', food.name)
+    .maybeSingle();
+
+  if (existing.data?.id) {
+    const { data, error } = await supabase
+      .from('user_custom_foods')
+      .update(row)
+      .eq('id', existing.data.id)
+      .select()
+      .maybeSingle();
+    if (error) {
+      console.error('upsertUserCustomFood update:', error);
+      return null;
+    }
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from('user_custom_foods')
+    .insert(row)
+    .select()
+    .maybeSingle();
+  if (error) {
+    console.error('upsertUserCustomFood insert:', error);
+    return null;
+  }
+  return data;
+}
+
+export async function deleteUserCustomFood(id) {
+  if (!supabase || !uid() || !id) return false;
+  const { error } = await supabase
+    .from('user_custom_foods')
+    .delete()
+    .eq('user_id', uid())
+    .eq('id', id);
+  if (error) console.error('deleteUserCustomFood:', error);
+  return !error;
 }

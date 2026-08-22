@@ -1,52 +1,61 @@
-// Training block context — mirror coach/current-block.md until Supabase sync (Sprint 2+)
-import { WEIGHT_GOAL_KG, WEIGHT_GOAL_LABEL } from './weight-trend.js';
+// Training block context — per signed-in athlete (see athlete-profile.js)
+import { getAthleteProfile } from './athlete-profile.js';
+import { summarizePlanSession } from './plan-summary.js';
 
+function blockFromProfile(profile = getAthleteProfile()) {
+  return profile.block;
+}
+
+/** @deprecated Prefer getAthleteProfile().block — kept for any legacy imports. */
 export const BLOCK = {
-  name: 'HM Build — Base Phase',
-  shortName: 'HM Build Base',
-  phase: 'Base',
-  week: 2,
-  raceDate: '2026-09-06',
-  raceName: 'Vedanta Zinc City HM',
-  weightGoalKg: WEIGHT_GOAL_KG,
-  weightGoalLabel: WEIGHT_GOAL_LABEL,
+  name: 'Phase 1 — Hypertrophy + Base',
+  shortName: 'Hypertrophy',
+  phase: 'Hypertrophy',
+  week: 1,
+  raceDate: '2026-12-13',
+  raceName: 'Half Marathon (Dec 13)',
+  weightGoalKg: 73,
+  weightGoalLabel: '~73 kg',
 };
 
-export function formatBlockLabel() {
-  return `${BLOCK.name} · Week ${BLOCK.week}`;
+export function formatBlockLabel(profile = getAthleteProfile()) {
+  const b = blockFromProfile(profile);
+  return `${b.name} · Week ${b.week}`;
 }
 
-export function formatBlockChip(now = new Date()) {
-  const weeks = getWeeksToRace(now);
-  const weekLabel = weeks > 0 ? ` · ${weeks} wk to race` : '';
-  return `${BLOCK.name} · Week ${BLOCK.week}${weekLabel}`;
+export function formatBlockChip(now = new Date(), profile = getAthleteProfile()) {
+  const b = blockFromProfile(profile);
+  const weeks = getWeeksToRace(now, profile);
+  const weekLabel = profile.showRaceCountdown && weeks > 0
+    ? ` · ${weeks} wk to race`
+    : '';
+  return `${b.name} · Week ${b.week}${weekLabel}`;
 }
 
-export function getWeeksToRace(now = new Date()) {
-  const race = new Date(`${BLOCK.raceDate}T00:00:00`);
+export function getWeeksToRace(now = new Date(), profile = getAthleteProfile()) {
+  const raceDate = blockFromProfile(profile).raceDate;
+  if (!raceDate) return 0;
+  const race = new Date(`${raceDate}T00:00:00`);
   const ms = race - now;
   if (ms <= 0) return 0;
   return Math.ceil(ms / (7 * 86400000));
 }
 
 /** Level 1 facts only — rest day recovery block (S15.3). */
-export function formatRecoveryTodayHtml({ plan, nextLabel }) {
+export function formatRecoveryTodayHtml({ plan, nextLabel }, profile = getAthleteProfile()) {
   const protein = plan?.protein_target || 140;
   const lines = [
     `Protein floor: ${protein}g`,
-    'Sleep floor: 7h',
-    'Supplements: Supradyn, Creatine, Omega-3 (D3 on Thu)',
+    ...(profile.recoveryLines || []),
   ];
   if (nextLabel) lines.push(`Tomorrow: ${nextLabel}`);
   return lines.map((line) => `<p class="recovery-today-line">${line}</p>`).join('');
 }
 
-export function formatRestDayPlanTitle(nextSessionLabel) {
-  const block = formatBlockLabel();
+export function formatRestDayPlanTitle(nextSessionLabel, profile = getAthleteProfile()) {
+  const block = formatBlockLabel(profile);
   if (nextSessionLabel) return `Rest day · ${block} · Next: ${nextSessionLabel}`;
   return `Rest day · ${block}`;
 }
-
-import { summarizePlanSession } from './plan-summary.js';
 
 export { summarizePlanSession };

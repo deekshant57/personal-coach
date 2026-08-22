@@ -3,7 +3,7 @@ import {
   extractWarmupCooldown,
   extractRunCues,
 } from './plan-templates.js';
-import { state, getToday, isMonday, isViewingFuture, isViewingPast, showToast, showConfirm, formatDate, getFallbackPlan } from './app.js';
+import { state, getToday, isMonday, isViewingFuture, isViewingPast, showToast, showConfirm, formatDate, getFallbackPlan, getCurrentMealSlots } from './app.js';
 import { SLOT_LABELS, formatFoodLabel } from './data.js';
 import {
   macrosFromResolvedLog,
@@ -19,7 +19,7 @@ import {
   fetchWorkoutLog, upsertWorkoutLog,
 } from './supabase.js';
 import { loadSupplements, initSupplements, resetSupplementsForFuture, refreshSupplementHints } from './supplements.js';
-import { updateProteinBar, deleteMealSlot, fetchFoodLogsForDate, invalidateFoodLogsCache } from './food.js';
+import { updateProteinBar, deleteMealSlot, fetchFoodLogsForDate, invalidateFoodLogsCache, loadFoodData, focusFoodSlot } from './food.js';
 import { syncMeaningfulEvents } from './meaningful-events.js';
 import { updateDayProgress } from './day-progress.js';
 import { refreshDebriefIfActive } from './debrief.js';
@@ -48,6 +48,7 @@ import {
   workoutExercisesInteracted,
   validateWorkoutLogForDone,
   resetWorkoutExerciseList,
+  invalidateLastPerfCache,
 } from './workout-log.js';
 import {
   scheduleAutosave,
@@ -63,6 +64,11 @@ import {
   layoutCoachScreen,
   updateSectionCompression,
 } from './coach-layout.js';
+import {
+  initDayShiftControls,
+  updateDayShiftControls,
+  markSessionCompleted,
+} from './day-shift.js';
 
 let trainingAutosaveSuspended = false;
 
@@ -86,11 +92,25 @@ export function initToday() {
   setupCollapsibles();
   setupNotesCard();
   initSupplements();
+  initDayShiftControls({
+    onChanged: async () => {
+      await loadFoodData();
+      syncDayStatus();
+      layoutCoachScreen();
+    },
+  });
   registerAutosaveFlush({ training: flushTrainingAutosave });
 
   // "Log Food →" button
   document.getElementById('go-to-food').addEventListener('click', () => {
-    document.querySelector('.nav-tab[data-tab="food"]').click();
+    focusFoodSlot(null);
+  });
+
+  document.getElementById('meals-summary-list')?.addEventListener('click', (e) => {
+    if (e.target.closest('.remove-btn')) return;
+    const row = e.target.closest('[data-open-slot]');
+    if (!row) return;
+    focusFoodSlot(row.dataset.openSlot);
   });
 }
 
@@ -260,6 +280,7 @@ function renderPlanCard() {
     document.getElementById('plan-training-summary').textContent = '';
     document.getElementById('plan-warmup-content').textContent = '';
     document.getElementById('plan-meals-content').textContent = '';
+    updateDayShiftControls(null);
     return;
   }
 
@@ -330,7 +351,9 @@ function renderPlanCard() {
 
   // Update protein target
   const target = plan.protein_target || 145;
-  document.getElementById('protein-target').textContent = `/ ${target}g protein`;
+  document.getElementById('protein-target').textContent = `/ ${target}g P`;
+
+  updateDayShiftControls(isViewingFuture() ? null : plan);
 
   refreshSupplementHints();
   updateDayProgress();
@@ -379,7 +402,10 @@ function collectRunLogFromForm() {
 async function persistTraining({ silent = true } = {}) {
   const plan = state.currentPlan;
   if (!plan || isViewingFuture() || trainingAutosaveSuspended) return true;
-  if (!plan.run_type && !plan.workout_plan) return true;
+  const canLogWorkout = !!plan.workout_plan
+    || plan.day_type === 'Gym'
+    || plan.day_type === 'Bodyweight';
+  if (!plan.run_type && !canLogWorkout) return true;
 
   if (plan.run_type) {
     const log = collectRunLogFromForm();
@@ -403,6 +429,7 @@ async function persistTraining({ silent = true } = {}) {
     const ok = await upsertWorkoutLog(getToday(), log);
     if (!ok) return false;
     state.workoutLog = log;
+    invalidateLastPerfCache();
     syncDayStatus();
     return true;
   }, { toastOnSuccess: !silent });
@@ -411,7 +438,8 @@ async function persistTraining({ silent = true } = {}) {
 function scheduleTrainingAutosave() {
   if (isViewingFuture() || trainingAutosaveSuspended) return;
   const plan = state.currentPlan;
-  if (!plan?.run_type && !plan?.workout_plan) return;
+  if (!plan?.run_type && !plan?.workout_plan
+    && plan?.day_type !== 'Gym' && plan?.day_type !== 'Bodyweight') return;
 
   scheduleAutosave(trainingAutosaveKey(), async () => {
     await persistTraining({ silent: true });
@@ -469,6 +497,10 @@ function setupTrainingLog() {
     }
 
     btn.classList.toggle('done');
+    const nowDone = btn.classList.contains('done');
+    if (nowDone) {
+      markSessionCompleted(getToday()).then(() => updateDayShiftControls(state.currentPlan));
+    }
     scheduleTrainingAutosave();
     syncDayStatus();
   });
@@ -500,7 +532,8 @@ function renderTrainingCard() {
   const workoutFields = document.getElementById('workout-fields');
   const title = document.getElementById('training-title');
 
-  if (!plan || (!plan.run_type && !plan.workout_plan)) {
+  if (!plan || (!plan.run_type && !plan.workout_plan
+    && plan.day_type !== 'Gym' && plan.day_type !== 'Bodyweight')) {
     card.classList.add('hidden');
     return;
   }
@@ -516,9 +549,10 @@ function renderTrainingCard() {
     document.getElementById('run-planned-hint').textContent =
       `Planned: ${plan.run_type} ${plan.run_km} km @ ${plan.run_pace || '—'}`;
   } else {
-    title.textContent = `Workout Log — ${plan.workout_plan}`;
+    const label = plan.workout_plan || plan.day_type || 'Workout';
+    title.textContent = `Workout Log — ${label}`;
     document.getElementById('workout-planned-hint').textContent =
-      `Planned: ${plan.workout_plan}`;
+      `Planned: ${label}`;
     renderWorkoutExerciseList(plan, state.workoutLog);
 
     // Restore saved workout form state
@@ -572,7 +606,7 @@ async function loadTrainingLog() {
         setDoneToggle(false);
         resetRunFields();
       }
-    } else if (plan.workout_plan) {
+    } else if (plan.workout_plan || plan.day_type === 'Gym' || plan.day_type === 'Bodyweight') {
       const log = await fetchWorkoutLog(getToday());
       state.workoutLog = log;
       const listEl = document.getElementById('workout-exercise-list');
@@ -602,7 +636,9 @@ function resetWorkoutFields() {
   resetRpeSlider('input-workout-rpe', 'workout-rpe-value');
   document.getElementById('input-workout-notes').value = '';
   document.getElementById('workout-fallback-details')?.removeAttribute('open');
-  if (state.currentPlan?.workout_plan) {
+  if (state.currentPlan?.workout_plan
+    || state.currentPlan?.day_type === 'Gym'
+    || state.currentPlan?.day_type === 'Bodyweight') {
     resetWorkoutExerciseList(state.currentPlan);
   }
 }
@@ -662,7 +698,14 @@ export async function loadMealsSummary() {
   if (!logs || logs.length === 0) {
     state.foodIssues = [];
     renderMealsCoachAlerts([]);
-    list.innerHTML = '<span class="text-muted">No meals logged yet</span>';
+    const slots = getCurrentMealSlots();
+    list.innerHTML = slots.map((slot) => {
+      const label = SLOT_LABELS[slot] || slot;
+      return `<button type="button" class="diary-meal-row diary-meal-row--empty" data-open-slot="${slot}">
+        <span class="diary-meal-row-label">${escapeHtml(label)}</span>
+        <span class="diary-meal-row-cta">Log ${escapeHtml(label)} →</span>
+      </button>`;
+    }).join('');
     updateProteinBar(0, 0);
     updateMealsDayTotal(0, 0);
     syncDayStatus();
@@ -672,6 +715,7 @@ export async function loadMealsSummary() {
   let totalProtein = 0;
   let totalCalories = 0;
   let html = '';
+  const loggedSlots = new Set(logs.map((l) => l.meal_slot));
 
   for (const log of logs) {
     const { items, protein, calories } = macrosFromResolvedLog(log);
@@ -685,14 +729,24 @@ export async function loadMealsSummary() {
 
     const macroLabel = formatMealMacroLabel(protein, calories, items);
 
-    html += `<div class="meal-summary-item${hasUnresolved ? ' meal-summary-item--warn' : ''}">
+    html += `<div class="diary-meal-row meal-summary-item${hasUnresolved ? ' meal-summary-item--warn' : ''}" data-open-slot="${slot}" role="button" tabindex="0">
       <div class="meal-summary-item-main">
-        <span class="name">${label}: ${escapeHtml(names || noteText || '—')}</span>
+        <span class="name">${escapeHtml(label)}</span>
+        <span class="diary-meal-items">${escapeHtml(names || noteText || '—')}</span>
         ${names && noteText ? `<span class="meal-slot-notes">${escapeHtml(noteText)}</span>` : ''}
       </div>
       <span class="protein">${macroLabel}</span>
-      <button class="remove-btn" data-slot="${slot}" aria-label="Remove ${slot}">&times;</button>
+      <button type="button" class="remove-btn" data-slot="${slot}" aria-label="Remove ${slot}">&times;</button>
     </div>`;
+  }
+
+  for (const slot of getCurrentMealSlots()) {
+    if (loggedSlots.has(slot)) continue;
+    const label = SLOT_LABELS[slot] || slot;
+    html += `<button type="button" class="diary-meal-row diary-meal-row--empty" data-open-slot="${slot}">
+      <span class="diary-meal-row-label">${escapeHtml(label)}</span>
+      <span class="diary-meal-row-cta">Log →</span>
+    </button>`;
   }
 
   list.innerHTML = html;

@@ -8,6 +8,7 @@ import {
 import { expandVitalsCard } from './vitals-ui.js';
 import { focusFoodSlot } from './food.js';
 import { scrollToDebriefExport } from './debrief.js';
+import { getAthleteProfile } from './athlete-profile.js';
 
 function isVitalsComplete() {
   const v = state.vitals;
@@ -47,6 +48,7 @@ function getMealProgress() {
 }
 
 function getSupplementProgressTasks() {
+  if (!getAthleteProfile().showSupplementsCard) return [];
   const dateIso = state.currentDate || getToday();
   return getSupplementTasks(state.currentPlan, state.supplementLog, dateIso);
 }

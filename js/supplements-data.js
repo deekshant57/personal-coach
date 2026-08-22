@@ -1,4 +1,5 @@
-// Supplement definitions + schedule helpers
+// Supplement definitions + schedule helpers (filtered per athlete profile)
+import { getAthleteProfile } from './athlete-profile.js';
 
 export const D3_WEEKDAY = 4; // Thursday (0 = Sun)
 
@@ -28,6 +29,12 @@ export const SUPPLEMENT_ITEMS = [
     weekly: true,
   },
 ];
+
+const ALL_DAILY_KEYS = ['supradyn', 'creatine', 'omega_3'];
+
+export function getAthleteSupplementKeys(profile = getAthleteProfile()) {
+  return profile.supplementKeys || ALL_DAILY_KEYS.concat(['uprise_d3_60k']);
+}
 
 export function parseIsoDate(iso) {
   const [y, m, d] = iso.split('-').map(Number);
@@ -62,52 +69,72 @@ export function getSupradynTimingHint(plan) {
   return 'After breakfast (~8:00)';
 }
 
+const TASK_META = {
+  supradyn: {
+    id: 'supradyn',
+    key: 'supradyn',
+    label: 'Supradyn',
+    action: 'supplements',
+    focusKey: 'supradyn',
+  },
+  creatine: {
+    id: 'creatine',
+    key: 'creatine',
+    label: 'Creatine',
+    hint: 'With lunch',
+    action: 'supplements',
+    focusKey: 'creatine',
+  },
+  omega_3: {
+    id: 'omega_3',
+    key: 'omega_3',
+    label: 'Omega-3',
+    hint: 'With lunch',
+    action: 'supplements',
+    focusKey: 'omega_3',
+  },
+  uprise_d3_60k: {
+    id: 'uprise_d3_60k',
+    key: 'uprise_d3_60k',
+    label: 'D3 60K',
+    hint: 'With fattiest meal',
+    action: 'supplements',
+    focusKey: 'uprise_d3_60k',
+  },
+};
+
 /** Per-supplement tasks for the Today day-progress strip. */
-export function getSupplementTasks(plan, log, dateIso) {
-  const supradynHint = getSupradynTimingHint(plan);
-  const tasks = [
-    {
-      id: 'supradyn',
-      key: 'supradyn',
-      label: 'Supradyn',
-      hint: supradynHint,
+export function getSupplementTasks(plan, log, dateIso, profile = getAthleteProfile()) {
+  const allowed = new Set(getAthleteSupplementKeys(profile));
+  const tasks = [];
+
+  if (allowed.has('supradyn')) {
+    tasks.push({
+      ...TASK_META.supradyn,
+      hint: getSupradynTimingHint(plan),
       done: !!log?.supradyn,
       required: true,
-      action: 'supplements',
-      focusKey: 'supradyn',
-    },
-    {
-      id: 'creatine',
-      key: 'creatine',
-      label: 'Creatine',
-      hint: 'With lunch',
+    });
+  }
+  if (allowed.has('creatine')) {
+    tasks.push({
+      ...TASK_META.creatine,
       done: !!log?.creatine,
       required: true,
-      action: 'supplements',
-      focusKey: 'creatine',
-    },
-    {
-      id: 'omega_3',
-      key: 'omega_3',
-      label: 'Omega-3',
-      hint: 'With lunch',
+    });
+  }
+  if (allowed.has('omega_3')) {
+    tasks.push({
+      ...TASK_META.omega_3,
       done: !!log?.omega_3,
       required: true,
-      action: 'supplements',
-      focusKey: 'omega_3',
-    },
-  ];
-
-  if (isD3Day(dateIso)) {
+    });
+  }
+  if (allowed.has('uprise_d3_60k') && isD3Day(dateIso)) {
     tasks.push({
-      id: 'uprise_d3_60k',
-      key: 'uprise_d3_60k',
-      label: 'D3 60K',
-      hint: 'With fattiest meal',
+      ...TASK_META.uprise_d3_60k,
       done: !!log?.uprise_d3_60k,
       required: true,
-      action: 'supplements',
-      focusKey: 'uprise_d3_60k',
     });
   }
 
@@ -118,33 +145,42 @@ export function areSupplementTasksComplete(tasks) {
   return tasks.filter((t) => t.required).every((t) => t.done);
 }
 
-/** Supplement keys required for a given calendar date. */
-export function getRequiredSupplementKeys(dateIso) {
-  const keys = ['supradyn', 'creatine', 'omega_3'];
-  if (isD3Day(dateIso)) keys.push('uprise_d3_60k');
+/** Supplement keys required for a given calendar date (athlete-scoped). */
+export function getRequiredSupplementKeys(dateIso, profile = getAthleteProfile()) {
+  const allowed = getAthleteSupplementKeys(profile);
+  const keys = ALL_DAILY_KEYS.filter((k) => allowed.includes(k));
+  if (allowed.includes('uprise_d3_60k') && isD3Day(dateIso)) {
+    keys.push('uprise_d3_60k');
+  }
   return keys;
 }
 
-export function isSupplementLogComplete(log, dateIso) {
+export function isSupplementLogComplete(log, dateIso, profile = getAthleteProfile()) {
   if (!log) return false;
-  return getRequiredSupplementKeys(dateIso).every((key) => log[key] === true);
+  return getRequiredSupplementKeys(dateIso, profile).every((key) => log[key] === true);
 }
 
-export function formatSupplementDebriefLine(log, dateIso) {
+export function formatSupplementDebriefLine(log, dateIso, profile = getAthleteProfile()) {
   if (!log) return 'Not logged';
+  const allowed = new Set(getAthleteSupplementKeys(profile));
   const parts = [];
-  if (log.supradyn) parts.push('Supradyn ✓');
-  else parts.push('Supradyn ✗');
-  if (log.creatine) parts.push('Creatine ✓');
-  else parts.push('Creatine ✗');
-  if (log.omega_3) parts.push('Omega-3 ✓');
-  else parts.push('Omega-3 ✗');
-  if (isD3Day(dateIso)) {
-    parts.push(log.uprise_d3_60k ? 'Uprise D3 60K ✓' : 'Uprise D3 60K ✗');
-  } else {
-    parts.push('Uprise D3 60K — NA (not Thursday)');
+  if (allowed.has('supradyn')) {
+    parts.push(log.supradyn ? 'Supradyn ✓' : 'Supradyn ✗');
   }
-  return parts.join(' · ');
+  if (allowed.has('creatine')) {
+    parts.push(log.creatine ? 'Creatine ✓' : 'Creatine ✗');
+  }
+  if (allowed.has('omega_3')) {
+    parts.push(log.omega_3 ? 'Omega-3 ✓' : 'Omega-3 ✗');
+  }
+  if (allowed.has('uprise_d3_60k')) {
+    if (isD3Day(dateIso)) {
+      parts.push(log.uprise_d3_60k ? 'Uprise D3 60K ✓' : 'Uprise D3 60K ✗');
+    } else {
+      parts.push('Uprise D3 60K — NA (not Thursday)');
+    }
+  }
+  return parts.join(' · ') || 'Not logged';
 }
 
 /** Last N calendar days ending at endIso (inclusive). */
@@ -159,7 +195,7 @@ export function dateRangeEnding(endIso, days) {
   return out;
 }
 
-export function computeAdherenceStats(logsByDate, endIso, days = 28) {
+export function computeAdherenceStats(logsByDate, endIso, days = 28, profile = getAthleteProfile()) {
   const dates = dateRangeEnding(endIso, days);
   let dailyTaken = 0;
   let dailyRequired = 0;
@@ -168,7 +204,7 @@ export function computeAdherenceStats(logsByDate, endIso, days = 28) {
 
   for (const iso of dates) {
     const log = logsByDate.get(iso);
-    const required = getRequiredSupplementKeys(iso);
+    const required = getRequiredSupplementKeys(iso, profile);
     for (const key of required) {
       if (key === 'uprise_d3_60k') {
         d3Required++;
@@ -187,4 +223,17 @@ export function computeAdherenceStats(logsByDate, endIso, days = 28) {
     d3Taken,
     d3Required,
   };
+}
+
+export function formatSupplementAdherenceHint(profile = getAthleteProfile()) {
+  const keys = getAthleteSupplementKeys(profile);
+  const daily = [];
+  if (keys.includes('supradyn')) daily.push('Supradyn');
+  if (keys.includes('creatine')) daily.push('Creatine');
+  if (keys.includes('omega_3')) daily.push('Omega-3');
+  const dailyBit = daily.length ? `${daily.join(' + ')} every day` : 'No daily stack';
+  const d3Bit = keys.includes('uprise_d3_60k')
+    ? ' · Uprise D3 60K on Thursdays only'
+    : '';
+  return `${dailyBit}${d3Bit}.`;
 }

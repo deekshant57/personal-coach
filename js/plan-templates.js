@@ -164,6 +164,13 @@ function formatSetReps(set, type) {
   if (type === 'simple') {
     return set.done ? '✓' : null;
   }
+  if (type === 'weighted') {
+    if (!set.done && set.kg == null && set.reps == null) return null;
+    if (set.kg != null && set.kg > 0) {
+      return `${set.kg}×${set.reps ?? '?'}`;
+    }
+    return set.reps != null ? String(set.reps) : null;
+  }
   if (!set.done || set.reps == null) return null;
   return String(set.reps);
 }

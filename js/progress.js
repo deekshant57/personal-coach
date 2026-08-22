@@ -56,6 +56,8 @@ import {
   renderWaistTrend,
   resolvePlansForCompliance,
 } from './trends-data.js';
+import { getAthleteProfile } from './athlete-profile.js';
+import { renderLiftProgression } from './lift-progress.js';
 
 const SCAN_INTERVAL_WEEKS = 5;
 
@@ -73,6 +75,8 @@ export function initProgress() {
   document.getElementById('tab-progress')?.addEventListener('click', (e) => {
     if (e.target.closest('.progress-retry-btn')) loadProgressView();
   });
+  // Hide athlete-irrelevant cards immediately (before async fetch)
+  applyAthleteTrendsVisibility();
 }
 
 const PROGRESS_LOAD_ERROR_HTML = `
@@ -91,6 +95,7 @@ const PROGRESS_CARD_IDS = [
   'sleep-trend-content',
   'rpe-trend-content',
   'knee-timeline-content',
+  'lift-progress-content',
   'protein-compliance-content',
   'calorie-compliance-content',
   'cigarettes-trend-content',
@@ -99,6 +104,7 @@ const PROGRESS_CARD_IDS = [
 ];
 
 function renderProgressLoadError() {
+  applyAthleteTrendsVisibility();
   PROGRESS_CARD_IDS.forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = PROGRESS_LOAD_ERROR_HTML;
@@ -111,27 +117,30 @@ function renderProgressLoadError() {
 }
 
 export async function loadProgressView() {
+  applyAthleteTrendsVisibility();
   setOverlayLoading('progress-loading-overlay', true);
   try {
+    const profile = getAthleteProfile();
     const endIso = formatDate(new Date());
     const startIso = lookbackStartIso();
-    const complianceStart = complianceStartIso(14);
 
     const [
       scans,
       runLogs,
       vitals,
       supplementLogs,
-      foodLogs,
+      foodLogs28,
       rawPlans,
       workoutLogs,
     ] = await Promise.all([
       fetchBodyCompScans(),
-      fetchAllRunLogs(),
+      profile.showRunningTrends ? fetchAllRunLogs() : Promise.resolve([]),
       fetchVitalsRange(startIso, endIso),
-      fetchSupplementLogsRange(supplementAdherenceStartIso(), endIso),
-      fetchWeekFoodLogs(complianceStart, endIso),
-      fetchWeekPlans(complianceStart, endIso),
+      profile.showSupplementsCard
+        ? fetchSupplementLogsRange(supplementAdherenceStartIso(), endIso)
+        : Promise.resolve([]),
+      fetchWeekFoodLogs(complianceStartIso(28), endIso),
+      fetchWeekPlans(complianceStartIso(28), endIso),
       fetchWeekWorkoutLogs(startIso, endIso),
     ]);
 
@@ -140,13 +149,19 @@ export async function loadProgressView() {
     cachedVitals = vitals;
     cachedWorkoutLogs = workoutLogs;
 
-    const plans = await resolvePlansForCompliance(complianceStart, endIso, rawPlans);
+    const plans = await resolvePlansForCompliance(complianceStartIso(28), endIso, rawPlans);
 
-    detectMeaningfulEvents({ vitals, runLogs, today: endIso });
+    detectMeaningfulEvents({
+      vitals,
+      runLogs: profile.showRunningTrends ? runLogs : [],
+      today: endIso,
+    });
     renderActiveSignals();
 
-    renderProgressView({ foodLogs, plans });
-    renderSupplementAdherence(supplementLogs, endIso);
+    renderProgressView({ foodLogs: foodLogs28, plans });
+    if (profile.showSupplementsCard) {
+      renderSupplementAdherence(supplementLogs, endIso);
+    }
   } catch (err) {
     console.error('loadProgressView:', err);
     renderProgressLoadError();
@@ -487,8 +502,22 @@ function renderComplianceSections(foodLogs, plans) {
   const proteinEl = document.getElementById('protein-compliance-content');
   const calorieEl = document.getElementById('calorie-compliance-content');
   if (proteinEl) {
-    const days = buildProteinCompliance(foodLogs, plans);
-    proteinEl.innerHTML = renderComplianceStrip({ days, label: 'days on protein floor' });
+    const days14 = buildProteinCompliance(foodLogs, plans, { days: 14 });
+    const days7 = buildProteinCompliance(foodLogs, plans, { days: 7 });
+    const days28 = buildProteinCompliance(foodLogs, plans, { days: 28 });
+    const rate = (days) => {
+      const logged = days.filter((d) => d.detail !== 'not logged');
+      if (!logged.length) return '—';
+      const hits = logged.filter((d) => d.hit).length;
+      return `${hits}/${logged.length} (${Math.round((hits / logged.length) * 100)}%)`;
+    };
+    proteinEl.innerHTML = `
+      <div class="protein-hit-rates">
+        <div class="protein-hit-rate"><span class="protein-hit-label">7d</span><span class="protein-hit-value">${rate(days7)}</span></div>
+        <div class="protein-hit-rate"><span class="protein-hit-label">14d</span><span class="protein-hit-value">${rate(days14)}</span></div>
+        <div class="protein-hit-rate"><span class="protein-hit-label">28d</span><span class="protein-hit-value">${rate(days28)}</span></div>
+      </div>
+      ${renderComplianceStrip({ days: days14, label: 'days on protein floor' })}`;
   }
   if (calorieEl) {
     const days = buildCalorieCompliance(foodLogs, plans);
@@ -496,18 +525,69 @@ function renderComplianceSections(foodLogs, plans) {
   }
 }
 
+function setTrendsCardVisible(cardId, visible) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  card.classList.toggle('hidden', !visible);
+}
+
+function applyAthleteTrendsVisibility(profile = getAthleteProfile()) {
+  setTrendsCardVisible('weekly-mileage-card', profile.showRunningTrends);
+  setTrendsCardVisible('long-run-card', profile.showRunningTrends);
+  setTrendsCardVisible('cadence-trend-card', profile.showRunningTrends);
+  setTrendsCardVisible('knee-timeline-card', profile.showKneeTracking);
+  setTrendsCardVisible('cigarettes-trend-card', profile.showCigarettes);
+  setTrendsCardVisible('supplement-adherence-card', profile.showSupplementsCard);
+
+  // Hide empty domain headings when all cards under them are off
+  // Training section stays visible for gym-only athletes (key lifts card)
+  document.getElementById('trends-training-title')?.classList.remove('hidden');
+  setTrendsCardVisible('lift-progress-card', true);
+  const showHabits = profile.showCigarettes || profile.showSupplementsCard;
+  document.getElementById('trends-habits-title')?.classList.toggle('hidden', !showHabits);
+
+  // Clear run/knee card bodies so a stale flash never shows empty-run copy
+  if (!profile.showRunningTrends) {
+    for (const id of ['weekly-mileage-content', 'long-run-content', 'cadence-trend-content']) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    }
+  }
+  if (!profile.showKneeTracking) {
+    const knee = document.getElementById('knee-timeline-content');
+    if (knee) knee.innerHTML = '';
+  }
+}
+
 function renderProgressView({ foodLogs = [], plans = [] } = {}) {
   const scans = state.bodyCompScans || [];
+  const profile = getAthleteProfile();
+  applyAthleteTrendsVisibility(profile);
 
-  document.getElementById('weight-trend-content').innerHTML = renderWeightTrend(cachedVitals);
-  document.getElementById('waist-trend-content').innerHTML = renderWaistTrend(cachedVitals);
-  renderWeeklyMileage(cachedRunLogs, plans);
-  renderLongRunProgress(cachedRunLogs);
-  document.getElementById('cadence-trend-content').innerHTML = renderCadenceTrend(cachedRunLogs);
+  document.getElementById('weight-trend-content').innerHTML = renderWeightTrend(cachedVitals)
+    || '<p class="progress-section-empty">No weight logs yet — add morning vitals on Today.</p>';
+  document.getElementById('waist-trend-content').innerHTML = renderWaistTrend(cachedVitals)
+    || '<p class="progress-section-empty">Waist logs appear after Monday vitals.</p>';
+
+  if (profile.showRunningTrends) {
+    renderWeeklyMileage(cachedRunLogs, plans);
+    renderLongRunProgress(cachedRunLogs);
+    document.getElementById('cadence-trend-content').innerHTML = renderCadenceTrend(cachedRunLogs);
+  }
+  renderLiftProgression(cachedWorkoutLogs);
   document.getElementById('sleep-trend-content').innerHTML = renderSleepTrend(cachedVitals);
-  document.getElementById('rpe-trend-content').innerHTML = renderRpeDots(buildRpeSessions(cachedRunLogs, cachedWorkoutLogs));
-  document.getElementById('knee-timeline-content').innerHTML = renderKneeTimeline(cachedRunLogs);
-  document.getElementById('cigarettes-trend-content').innerHTML = renderCigaretteTrend(cachedVitals);
+  document.getElementById('rpe-trend-content').innerHTML = renderRpeDots(
+    buildRpeSessions(
+      profile.showRunningTrends ? cachedRunLogs : [],
+      cachedWorkoutLogs,
+    ),
+  );
+  if (profile.showKneeTracking) {
+    document.getElementById('knee-timeline-content').innerHTML = renderKneeTimeline(cachedRunLogs);
+  }
+  if (profile.showCigarettes) {
+    document.getElementById('cigarettes-trend-content').innerHTML = renderCigaretteTrend(cachedVitals);
+  }
   renderComplianceSections(foodLogs, plans);
   renderDueBanner(scans);
   renderLatestScan(scans);

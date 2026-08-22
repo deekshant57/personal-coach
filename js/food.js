@@ -12,10 +12,18 @@ import {
 } from './food-macros.js';
 import { autoResolveFoodLogsForDate } from './food-resolve.js';
 import { state, getToday, getCurrentMealSlots, showToast, showConfirm, isViewingFuture, formatDate } from './app.js';
-import { upsertFoodLog, fetchFoodLogs, deleteFoodLog } from './supabase.js';
+import { upsertFoodLog, fetchFoodLogs, deleteFoodLog, fetchWeekFoodLogs } from './supabase.js';
 import { loadMealsSummary } from './today.js';
-import { setOverlayLoading } from './spinner.js';
+import { setOverlayLoading, setButtonLoading } from './spinner.js';
 import { trackSave } from './save-state.js';
+import {
+  loadUserFoodLibrary,
+  libraryAsFoodItems,
+  saveFoodToLibrary,
+  runOffSearch,
+  runOffBarcode,
+  escapeHtml as escapeLibHtml,
+} from './food-library.js';
 import {
   scheduleAutosave,
   cancelAutosave,
@@ -25,6 +33,7 @@ import {
   registerAutosaveFlush,
   hasPendingAutosave,
 } from './auto-save.js';
+import { setupSheetFocusTrap } from './modal-focus.js';
 
 // ── Local State ──────────────────────────────────────────────
 let activeSlot = '';
@@ -35,6 +44,9 @@ let savedSnapshots = {}; // { slotName: JSON string of last saved state }
 let dirtySlotResolve = null;
 let editingCustomId = null;
 let foodAutosaveSuspended = false;
+let pendingConfirmDraft = null; // OFF / manual draft awaiting confirm
+let addSheetTab = 'recent'; // recent | yours | staples
+let recentFoodsCache = [];
 
 let foodLogsCache = { date: null, logs: null };
 let yesterdayLogsCache = { forDate: null, logs: null };
@@ -90,15 +102,19 @@ function isCustomItem(item) {
 
 // ── Init ─────────────────────────────────────────────────────
 export function initFood() {
-  renderFoodGrid();
   setupCustomModal();
   setupMealSummaryActions();
   setupDirtySlotGuard();
   setupNotesPersistence();
   setupFoodSearch();
+  setupFoodLookup();
   setupSameAsYesterday();
   setupClearSlot();
+  setupAddFoodSheet();
   document.getElementById('next-meal')?.addEventListener('click', () => goToNextMeal());
+  loadUserFoodLibrary()
+    .then(() => refreshRecentFoods().then(() => renderFoodGrid()))
+    .catch(() => renderFoodGrid());
   registerAutosaveFlush({ food: flushFoodAutosaves });
 }
 
@@ -202,8 +218,8 @@ export async function loadFoodData() {
   const previewBanner = document.getElementById('food-preview-banner');
   const planPreview = document.getElementById('food-plan-preview');
   const loggingIds = [
-    'meal-slots', 'meal-hint', 'same-as-yesterday', 'food-search-wrap', 'food-grid-hint', 'food-grid',
-    'food-notes-group', 'meal-summary', 'food-sticky-footer',
+    'meal-slots', 'meal-hint', 'same-as-yesterday',
+    'food-notes-group', 'meal-summary', 'food-sticky-footer', 'food-diary-block',
   ];
 
   if (future) {
@@ -238,7 +254,17 @@ export async function loadFoodData() {
 
 function setupFoodSearch() {
   const searchEl = document.getElementById('food-search');
-  searchEl?.addEventListener('input', applyFoodSearchFilter);
+  searchEl?.addEventListener('input', () => {
+    applyFoodSearchFilter();
+  });
+}
+
+function countVisibleFoodItems() {
+  let n = 0;
+  document.querySelectorAll('#food-grid .food-item').forEach((el) => {
+    if (!el.classList.contains('hidden') && !el.classList.contains('custom')) n += 1;
+  });
+  return n;
 }
 
 function applyFoodSearchFilter() {
@@ -247,7 +273,7 @@ function applyFoodSearchFilter() {
 
   document.querySelectorAll('#food-grid .food-item').forEach((el) => {
     if (el.classList.contains('custom')) {
-      const show = !q || 'custom'.includes(q);
+      const show = !q || 'custom'.includes(q) || 'add'.includes(q) || 'create'.includes(q);
       el.classList.toggle('hidden', !show);
       if (show) visible += 1;
       return;
@@ -258,15 +284,127 @@ function applyFoodSearchFilter() {
     if (show) visible += 1;
   });
 
+  document.querySelectorAll('#food-grid .food-sheet-empty').forEach((el) => {
+    el.classList.toggle('hidden', !!q);
+  });
+
+  const emptyActions = document.getElementById('food-empty-actions');
   const hint = document.getElementById('food-grid-hint');
+  const noLocal = q.length > 0 && countVisibleFoodItems() === 0;
+
+  if (emptyActions) {
+    emptyActions.classList.toggle('hidden', !noLocal);
+  }
+  hideLookupPanel();
+
   if (!hint) return;
-  if (q && visible === 0) {
-    hint.textContent = 'No items match your search';
+  if (noLocal) {
+    hint.textContent = 'No match in staples or Your foods.';
   } else if (!q) {
     hint.textContent = 'Tap ADD, then use − / + on the item';
   } else {
     hint.textContent = `${visible} item${visible === 1 ? '' : 's'}`;
   }
+}
+
+function hideLookupPanel() {
+  document.getElementById('food-lookup-panel')?.classList.add('hidden');
+}
+
+function setupFoodLookup() {
+  document.getElementById('food-empty-create')?.addEventListener('click', () => {
+    const q = (document.getElementById('food-search')?.value || '').trim();
+    openCustomModal(null, {
+      title: 'Create custom',
+      hint: 'Approve macros before adding. Save to Your foods for next time.',
+      draft: { name: q, source: 'manual' },
+    });
+  });
+
+  document.getElementById('food-empty-lookup')?.addEventListener('click', async () => {
+    const q = (document.getElementById('food-search')?.value || '').trim();
+    if (q.length < 2) {
+      showToast('Type a packaged product name first');
+      return;
+    }
+    await offerOffSearch(q);
+  });
+
+  document.getElementById('food-lookup-dismiss')?.addEventListener('click', hideLookupPanel);
+  document.getElementById('food-barcode-go')?.addEventListener('click', async () => {
+    const code = document.getElementById('food-barcode')?.value?.trim();
+    if (!code) {
+      showToast('Enter a barcode');
+      return;
+    }
+    const btn = document.getElementById('food-barcode-go');
+    setButtonLoading(btn, true, 'Scan code');
+    try {
+      const draft = await runOffBarcode(code);
+      if (!draft) {
+        showToast('Not found — add manually');
+        openCustomModal(null, {
+          title: 'Add Custom Item',
+          hint: `Barcode ${code} not in Open Food Facts`,
+          draft: { name: '', barcode: code, source: 'manual' },
+        });
+        return;
+      }
+      openCustomModal(null, {
+        title: 'Confirm food',
+        hint: 'Approve macros (per 100g unless edited). Save to Your foods for next time.',
+        draft,
+      });
+    } finally {
+      setButtonLoading(btn, false, 'Scan code');
+    }
+  });
+
+  document.getElementById('food-lookup-results')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-off-index]');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.offIndex, 10);
+    const draft = window.__offResults?.[idx];
+    if (!draft) return;
+    openCustomModal(null, {
+      title: 'Confirm food',
+      hint: 'Approve macros before adding. Saved foods appear under Your foods.',
+      draft,
+    });
+  });
+}
+
+async function offerOffSearch(query) {
+  const panel = document.getElementById('food-lookup-panel');
+  const results = document.getElementById('food-lookup-results');
+  const title = document.getElementById('food-lookup-title');
+  if (!panel || !results) return;
+
+  panel.classList.remove('hidden');
+  if (title) title.textContent = `Lookup: ${query}`;
+  results.innerHTML = '<p class="text-muted">Searching Open Food Facts…</p>';
+
+  const hits = await runOffSearch(query);
+  window.__offResults = hits;
+  if (!hits.length) {
+    results.innerHTML = `
+      <p class="text-muted">No results.</p>
+      <button type="button" class="btn btn-secondary btn-sm" id="food-lookup-manual">Add manually</button>`;
+    document.getElementById('food-lookup-manual')?.addEventListener('click', () => {
+      openCustomModal(null, {
+        title: 'Add Custom Item',
+        draft: { name: query, source: 'manual' },
+      });
+    });
+    return;
+  }
+
+  results.innerHTML = hits.map((h, i) => `
+    <button type="button" class="food-lookup-item" data-off-index="${i}">
+      <span class="food-lookup-name">${escapeLibHtml(h.name)}</span>
+      <span class="food-lookup-macros">${h.protein}g P · ${h.calories} kcal / 100g</span>
+      ${h.brand ? `<span class="text-muted">${escapeLibHtml(h.brand)}</span>` : ''}
+    </button>`).join('');
 }
 
 function setupNotesPersistence() {
@@ -371,6 +509,8 @@ function updateFoodFooter() {
   const labelEl = document.getElementById('food-slot-label');
   if (totalEl) totalEl.textContent = `${totalP}g P · ${totalC} kcal`;
   if (labelEl) labelEl.textContent = SLOT_LABELS[activeSlot] || activeSlot || 'Meal';
+  const diaryTitle = document.getElementById('food-diary-title');
+  if (diaryTitle) diaryTitle.textContent = SLOT_LABELS[activeSlot] || activeSlot || 'Meal';
 
   const nextBtn = document.getElementById('next-meal');
   const nextSlot = getFirstUnfilledSlot({ fallbackToFirst: false });
@@ -629,42 +769,144 @@ async function clearActiveSlot() {
   showToast(`${label} cleared`);
 }
 
-// ── Food Grid ────────────────────────────────────────────────
+// ── Food Grid / Add sheet ────────────────────────────────────
+function setupAddFoodSheet() {
+  const open = () => openAddFoodSheet();
+  const close = () => closeAddFoodSheet();
+  document.getElementById('food-add-open')?.addEventListener('click', open);
+  document.getElementById('food-add-sheet-close')?.addEventListener('click', close);
+  document.getElementById('food-add-sheet-backdrop')?.addEventListener('click', close);
+
+  document.querySelectorAll('.food-add-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      addSheetTab = tab.dataset.addTab || 'staples';
+      document.querySelectorAll('.food-add-tab').forEach((t) => {
+        const on = t.dataset.addTab === addSheetTab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', String(on));
+      });
+      renderFoodGrid();
+    });
+  });
+
+  setupSheetFocusTrap(document.getElementById('food-add-sheet'), {
+    onEscape: () => closeAddFoodSheet(),
+  });
+}
+
+function openAddFoodSheet() {
+  const sheet = document.getElementById('food-add-sheet');
+  if (!sheet) return;
+  sheet.classList.add('open');
+  sheet.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('food-sheet-open');
+  refreshRecentFoods().then(() => renderFoodGrid());
+  requestAnimationFrame(() => {
+    const search = document.getElementById('food-search');
+    search?.focus();
+  });
+}
+
+function closeAddFoodSheet() {
+  const sheet = document.getElementById('food-add-sheet');
+  if (!sheet) return;
+  sheet.classList.remove('open');
+  sheet.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('food-sheet-open');
+  hideLookupPanel();
+  document.getElementById('food-add-open')?.focus();
+}
+
+async function refreshRecentFoods() {
+  try {
+    const end = getToday();
+    const startDate = new Date(`${end}T12:00:00`);
+    startDate.setDate(startDate.getDate() - 14);
+    const start = formatDate(startDate);
+    const logs = await fetchWeekFoodLogs(start, end);
+    const byId = new Map();
+    for (const log of logs || []) {
+      let items = log.items;
+      if (typeof items === 'string') {
+        try { items = JSON.parse(items); } catch { items = []; }
+      }
+      for (const item of items || []) {
+        if (!item?.id || !item?.name) continue;
+        if (!byId.has(item.id)) {
+          byId.set(item.id, {
+            id: item.id,
+            name: item.name,
+            protein: item.protein || 0,
+            calories: item.calories || 0,
+            fat: item.fat || 0,
+            emoji: '↺',
+            unit: '1',
+          });
+        }
+      }
+    }
+    recentFoodsCache = [...byId.values()].slice(0, 40);
+  } catch (err) {
+    console.error('refreshRecentFoods:', err);
+    recentFoodsCache = [];
+  }
+}
+
+function appendFoodTile(grid, item, { library = false } = {}) {
+  const el = document.createElement('div');
+  el.className = library ? 'food-item food-item--library' : 'food-item';
+  el.dataset.id = item.id;
+  el.innerHTML = `
+    <span class="food-item-header">
+      <span class="food-item-emoji">${item.emoji || (library ? '★' : '')}</span>
+      <span class="food-item-name">${item.name}</span>
+    </span>
+    <span class="food-item-protein">${item.protein}g P · ${item.calories} kcal</span>
+    <button type="button" class="food-item-add">ADD</button>
+    <div class="food-item-stepper hidden">
+      <button type="button" class="stepper-btn stepper-minus" aria-label="Remove one ${item.name}">−</button>
+      <span class="stepper-qty">0</span>
+      <button type="button" class="stepper-btn stepper-plus" aria-label="Add one ${item.name}">+</button>
+    </div>
+  `;
+  el.querySelector('.food-item-add').addEventListener('click', (e) => {
+    e.stopPropagation();
+    addItem(item);
+  });
+  el.querySelector('.stepper-minus').addEventListener('click', (e) => {
+    e.stopPropagation();
+    removeItem(item);
+  });
+  el.querySelector('.stepper-plus').addEventListener('click', (e) => {
+    e.stopPropagation();
+    addItem(item);
+  });
+  grid.appendChild(el);
+}
+
 function renderFoodGrid() {
   const grid = document.getElementById('food-grid');
+  if (!grid) return;
   grid.innerHTML = '';
 
-  FOOD_ITEMS.forEach((item) => {
-    const el = document.createElement('div');
-    el.className = 'food-item';
-    el.dataset.id = item.id;
-    el.innerHTML = `
-      <span class="food-item-header">
-        <span class="food-item-emoji">${item.emoji}</span>
-        <span class="food-item-name">${item.name}</span>
-      </span>
-      <span class="food-item-protein">${item.protein}g P · ${item.calories} kcal</span>
-      <button type="button" class="food-item-add">ADD</button>
-      <div class="food-item-stepper hidden">
-        <button type="button" class="stepper-btn stepper-minus" aria-label="Remove one ${item.name}">−</button>
-        <span class="stepper-qty">0</span>
-        <button type="button" class="stepper-btn stepper-plus" aria-label="Add one ${item.name}">+</button>
-      </div>
-    `;
-    el.querySelector('.food-item-add').addEventListener('click', (e) => {
-      e.stopPropagation();
-      addItem(item);
-    });
-    el.querySelector('.stepper-minus').addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeItem(item);
-    });
-    el.querySelector('.stepper-plus').addEventListener('click', (e) => {
-      e.stopPropagation();
-      addItem(item);
-    });
-    grid.appendChild(el);
-  });
+  const library = libraryAsFoodItems();
+  const tab = addSheetTab;
+
+  if (tab === 'recent') {
+    if (!recentFoodsCache.length) {
+      grid.innerHTML = '<p class="food-sheet-empty text-muted">No recent foods yet — add from Staples or Your foods.</p>';
+    } else {
+      recentFoodsCache.forEach((item) => appendFoodTile(grid, item));
+    }
+  } else if (tab === 'yours') {
+    if (!library.length) {
+      grid.innerHTML = '<p class="food-sheet-empty text-muted">Save custom or packaged foods to build Your foods.</p>';
+    } else {
+      library.forEach((item) => appendFoodTile(grid, item, { library: true }));
+    }
+  } else {
+    FOOD_ITEMS.forEach((item) => appendFoodTile(grid, item));
+  }
 
   const customEl = document.createElement('button');
   customEl.type = 'button';
@@ -674,12 +916,33 @@ function renderFoodGrid() {
       <span class="food-item-emoji">+</span>
       <span class="food-item-name">Custom</span>
     </span>
-    <span class="food-item-protein">Add item</span>
+    <span class="food-item-protein">Create &amp; approve</span>
   `;
   customEl.addEventListener('click', () => {
-    openCustomModal();
+    openCustomModal(null, {
+      title: 'Create custom',
+      hint: 'Approve macros before adding. Save to Your foods for next time.',
+    });
   });
   grid.appendChild(customEl);
+  applyFoodSearchFilter();
+  renderSlotStateQtyOnly();
+}
+
+function renderSlotStateQtyOnly() {
+  const items = slotItems[activeSlot] || [];
+  document.querySelectorAll('#food-grid .food-item[data-id]').forEach((el) => {
+    const id = el.dataset.id;
+    const item = items.find((i) => i.id === id);
+    const count = item?.qty || 0;
+    const qtyEl = el.querySelector('.stepper-qty');
+    const addBtn = el.querySelector('.food-item-add');
+    const stepper = el.querySelector('.food-item-stepper');
+    if (qtyEl) qtyEl.textContent = count;
+    if (addBtn) addBtn.classList.toggle('hidden', count > 0);
+    if (stepper) stepper.classList.toggle('hidden', count === 0);
+    el.classList.toggle('has-qty', count > 0);
+  });
 }
 
 function addItem(foodItem) {
@@ -694,6 +957,7 @@ function addItem(foodItem) {
       qty: 1,
       protein: foodItem.protein,
       calories: foodItem.calories,
+      fat: foodItem.fat ?? 0,
     });
   }
   notifyFoodChanged();
@@ -855,21 +1119,27 @@ export async function deleteMealSlot(mealSlot) {
 // ── Protein Bar ──────────────────────────────────────────────
 export function updateProteinBar(total, calories = null) {
   const target = state.currentPlan?.protein_target || 145;
+  const calTarget = state.currentPlan?.calorie_target;
   const pct = Math.min(100, (total / target) * 100);
+  const kcal = Math.round(calories || 0);
 
   document.getElementById('protein-current').textContent = `${Math.round(total)}g`;
-  document.getElementById('protein-target').textContent = `/ ${target}g protein`;
+  document.getElementById('protein-target').textContent = `/ ${target}g P`;
   document.getElementById('protein-fill').style.width = `${pct}%`;
 
   const calEl = document.getElementById('calorie-current');
   if (calEl) {
-    const kcal = Math.round(calories || 0);
-    calEl.textContent = kcal > 0 ? `~${kcal.toLocaleString()} kcal` : '~0 kcal';
+    if (calTarget) {
+      calEl.textContent = `${kcal.toLocaleString()} / ${Number(calTarget).toLocaleString()} kcal`;
+    } else {
+      calEl.textContent = kcal > 0 ? `~${kcal.toLocaleString()} kcal` : '— kcal';
+    }
   }
 
+  // Quiet spine: amber only when far under — never red shame for over-target
   const isLow = pct < 60;
-  document.getElementById('protein-label').classList.toggle('warning', isLow);
-  document.getElementById('protein-fill').classList.toggle('warning', isLow);
+  document.getElementById('protein-label')?.classList.toggle('warning', isLow);
+  document.getElementById('protein-fill')?.classList.toggle('warning', isLow);
 }
 
 function updateTotalProtein() {
@@ -931,21 +1201,51 @@ async function loadExistingLogs() {
 }
 
 // ── Custom Food Modal ────────────────────────────────────────
-function openCustomModal(item = null) {
+function openCustomModal(item = null, { title = null, hint = null, draft = null } = {}) {
   editingCustomId = item?.id || null;
+  pendingConfirmDraft = draft || null;
   const titleEl = document.getElementById('custom-modal-title');
   const addBtn = document.getElementById('custom-add');
+  const hintEl = document.getElementById('custom-modal-hint');
+  const saveLib = document.getElementById('custom-save-library');
+  const saveWrap = document.getElementById('custom-save-library-wrap');
+
+  if (hintEl) {
+    if (hint) {
+      hintEl.textContent = hint;
+      hintEl.classList.remove('hidden');
+    } else {
+      hintEl.textContent = '';
+      hintEl.classList.add('hidden');
+    }
+  }
 
   if (item) {
-    titleEl.textContent = 'Edit Custom Item';
+    titleEl.textContent = title || 'Edit Custom Item';
     addBtn.textContent = 'Save';
     document.getElementById('custom-name').value = item.name;
     document.getElementById('custom-protein').value = item.protein;
     document.getElementById('custom-calories').value = item.calories;
+    document.getElementById('custom-fat').value = item.fat ?? '';
+    document.getElementById('custom-unit').value = item.unit || '1';
+    if (saveLib) saveLib.checked = false;
+    if (saveWrap) saveWrap.classList.add('hidden');
+  } else if (draft) {
+    titleEl.textContent = title || 'Confirm food';
+    addBtn.textContent = 'Add to meal';
+    document.getElementById('custom-name').value = draft.name || '';
+    document.getElementById('custom-protein').value = draft.protein ?? '';
+    document.getElementById('custom-calories').value = draft.calories ?? '';
+    document.getElementById('custom-fat').value = draft.fat ?? '';
+    document.getElementById('custom-unit').value = draft.unit || '100g';
+    if (saveLib) saveLib.checked = true;
+    if (saveWrap) saveWrap.classList.remove('hidden');
   } else {
-    titleEl.textContent = 'Add Custom Item';
+    titleEl.textContent = title || 'Add Custom Item';
     addBtn.textContent = 'Add';
     resetCustomModalFields();
+    if (saveLib) saveLib.checked = true;
+    if (saveWrap) saveWrap.classList.remove('hidden');
   }
 
   document.getElementById('custom-food-modal').classList.add('show');
@@ -955,13 +1255,17 @@ function resetCustomModalFields() {
   document.getElementById('custom-name').value = '';
   document.getElementById('custom-protein').value = '';
   document.getElementById('custom-calories').value = '';
+  document.getElementById('custom-fat').value = '';
+  document.getElementById('custom-unit').value = '1';
   editingCustomId = null;
+  pendingConfirmDraft = null;
 }
 
 function closeCustomModal() {
   document.getElementById('custom-food-modal').classList.remove('show');
   document.getElementById('custom-modal-title').textContent = 'Add Custom Item';
   document.getElementById('custom-add').textContent = 'Add';
+  document.getElementById('custom-modal-hint')?.classList.add('hidden');
   resetCustomModalFields();
 }
 
@@ -970,10 +1274,13 @@ function setupCustomModal() {
     closeCustomModal();
   });
 
-  document.getElementById('custom-add').addEventListener('click', () => {
+  document.getElementById('custom-add').addEventListener('click', async () => {
     const name = document.getElementById('custom-name').value.trim();
-    const protein = parseInt(document.getElementById('custom-protein').value, 10) || 0;
+    const protein = parseFloat(document.getElementById('custom-protein').value) || 0;
     const calories = parseInt(document.getElementById('custom-calories').value, 10) || 0;
+    const fat = parseFloat(document.getElementById('custom-fat').value) || 0;
+    const unit = document.getElementById('custom-unit').value.trim() || '1';
+    const saveToLibrary = document.getElementById('custom-save-library')?.checked;
 
     if (!name) {
       showToast('Enter a name');
@@ -986,6 +1293,7 @@ function setupCustomModal() {
         item.name = name;
         item.protein = protein;
         item.calories = calories;
+        item.fat = fat;
         notifyFoodChanged();
         showToast(`${name} updated`);
       }
@@ -993,17 +1301,39 @@ function setupCustomModal() {
       return;
     }
 
+    let foodId = `custom_${Date.now()}`;
+    if (saveToLibrary) {
+      const saved = await saveFoodToLibrary({
+        name,
+        protein,
+        calories,
+        fat,
+        unit,
+        barcode: pendingConfirmDraft?.barcode || null,
+        source: pendingConfirmDraft?.source || 'manual',
+      });
+      if (saved?.id) {
+        foodId = `lib_${saved.id}`;
+        renderFoodGrid();
+      } else if (saveToLibrary) {
+        showToast('Added to meal (library save needs migration)', { variant: 'error' });
+      }
+    }
+
     const customItem = {
-      id: `custom_${Date.now()}`,
+      id: foodId,
       name,
       protein,
       calories,
+      fat,
+      unit,
     };
 
     if (!slotItems[activeSlot]) slotItems[activeSlot] = [];
     slotItems[activeSlot].push({ ...customItem, qty: 1 });
 
     closeCustomModal();
+    hideLookupPanel();
     notifyFoodChanged();
     showToast(`${name} added`);
   });
