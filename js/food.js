@@ -11,7 +11,7 @@ import {
   macrosFromResolvedLog,
 } from './food-macros.js';
 import { autoResolveFoodLogsForDate } from './food-resolve.js';
-import { state, getToday, getCurrentMealSlots, showToast, showConfirm, isViewingFuture, formatDate } from './app.js';
+import { state, getToday, getCurrentMealSlots, showToast, showConfirm, isViewingFuture, formatDate, switchToTab } from './app.js';
 import { upsertFoodLog, fetchFoodLogs, deleteFoodLog, fetchWeekFoodLogs } from './supabase.js';
 import { loadMealsSummary } from './today.js';
 import { setOverlayLoading, setButtonLoading } from './spinner.js';
@@ -219,7 +219,7 @@ function notifyFoodChanged(slot = activeSlot) {
   scheduleFoodSlotAutosave(slot);
 }
 
-export async function loadFoodData() {
+export async function loadFoodData({ autoOpenSheet = true } = {}) {
   const future = isViewingFuture();
   const previewBanner = document.getElementById('food-preview-banner');
   const planPreview = document.getElementById('food-plan-preview');
@@ -252,7 +252,7 @@ export async function loadFoodData() {
 
   setOverlayLoading('food-loading-overlay', true);
   try {
-    await loadExistingLogs();
+    await loadExistingLogs({ autoOpenSheet });
   } finally {
     setOverlayLoading('food-loading-overlay', false);
   }
@@ -370,7 +370,7 @@ function pickerRowHtml(item, qty) {
           <button type="button" class="food-picker-minus" aria-label="Remove one ${escapeHtml(item.name)}">−</button>
           <span class="food-picker-qty">${qty}</span>
           <button type="button" class="food-picker-plus" aria-label="Add one ${escapeHtml(item.name)}">+</button>
-        ` : `<span class="food-picker-add-icon" aria-hidden="true">+</span>`}
+        ` : `<button type="button" class="food-picker-plus food-picker-add-icon" aria-label="Add ${escapeHtml(item.name)}">+</button>`}
       </div>
     </div>`;
 }
@@ -1224,7 +1224,7 @@ function updateTotalProtein() {
 }
 
 // ── Load Existing Logs ───────────────────────────────────────
-async function loadExistingLogs() {
+async function loadExistingLogs({ autoOpenSheet = true } = {}) {
   const date = getToday();
   cancelAutosavesByPrefix(`food:${date}:`);
 
@@ -1264,10 +1264,25 @@ async function loadExistingLogs() {
   foodAutosaveSuspended = false;
 
   const today = getToday();
-  if (!isViewingFuture() && foodSheetAutoOpenedDate !== today && activeSlot && !filledSlots.has(activeSlot)) {
+  if (
+    autoOpenSheet
+    && !isViewingFuture()
+    && foodSheetAutoOpenedDate !== today
+    && activeSlot
+    && !filledSlots.has(activeSlot)
+  ) {
     foodSheetAutoOpenedDate = today;
     requestAnimationFrame(() => openAddFoodSheet());
   }
+}
+
+function scrollFoodDiaryIntoView(slot) {
+  document.getElementById('food-diary-block')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (!slot) return;
+  const pill = document.querySelector(`.meal-slot-pill[data-slot="${slot}"]`);
+  pill?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  pill?.classList.add('meal-slot-pill--focus');
+  window.setTimeout(() => pill?.classList.remove('meal-slot-pill--focus'), 1200);
 }
 
 // ── Custom Food Modal ────────────────────────────────────────
@@ -1416,12 +1431,19 @@ function setupCustomModal() {
 }
 
 export async function focusFoodSlot(slot) {
-  const tab = document.querySelector('.nav-tab[data-tab="food"]');
-  if (!tab?.classList.contains('active')) {
-    tab?.click();
-  }
-  await loadFoodData();
-  if (slot && getCurrentMealSlots().includes(slot)) {
+  closeAddFoodSheet();
+  switchToTab('food', { skipTabLoad: true });
+  await loadFoodData({ autoOpenSheet: false });
+
+  const slots = getCurrentMealSlots();
+  const targetSlot = slot && slots.includes(slot) ? slot : activeSlot;
+
+  if (slot && slots.includes(slot) && slot !== activeSlot) {
     await selectSlot(slot, { skipGuard: true });
+  } else if (slot && slots.includes(slot)) {
+    updateSlotPillStates();
+    renderSlotState();
   }
+
+  scrollFoodDiaryIntoView(targetSlot);
 }

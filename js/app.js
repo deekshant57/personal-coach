@@ -222,7 +222,7 @@ function syncAppRoute() {
   writeAppRoute(getActiveTab(), state.currentDate, { todayIso: formatToday() });
 }
 
-function switchToTab(tabName, { skipRouteSync = false, skipFlush = false } = {}) {
+function switchToTab(tabName, { skipRouteSync = false, skipFlush = false, skipTabLoad = false, foodAutoOpenSheet = true } = {}) {
   if (!isValidAppTab(tabName)) return;
 
   if (!skipFlush) flushAutosavesInBackground();
@@ -235,10 +235,12 @@ function switchToTab(tabName, { skipRouteSync = false, skipFlush = false } = {})
   });
   updateTabChrome(tabName);
 
-  if (tabName === 'coach') loadTodayData();
-  if (tabName === 'food') loadFoodData();
-  if (tabName === 'week') loadWeekView();
-  if (tabName === 'progress') loadProgressView();
+  if (!skipTabLoad) {
+    if (tabName === 'coach') loadTodayData();
+    if (tabName === 'food') loadFoodData({ autoOpenSheet: foodAutoOpenSheet });
+    if (tabName === 'week') loadWeekView();
+    if (tabName === 'progress') loadProgressView();
+  }
 
   if (!skipRouteSync) syncAppRoute();
 }
