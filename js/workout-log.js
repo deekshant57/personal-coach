@@ -898,3 +898,33 @@ export function resetWorkoutExerciseList(plan) {
   el._userInteracted = false;
   renderWorkoutExerciseList(plan, null, el, { force: true });
 }
+
+/** One-line memory summary after a gym session (not live set grid). */
+export function formatWorkoutSessionSummary(log, plan) {
+  const label = plan?.workout_plan || plan?.day_type || 'Workout';
+  const exercises = normalizeSavedExercises(log?.exercises_json);
+  if (!exercises.length) {
+    if (log?.what_i_did?.trim()) return `${label} · logged`;
+    return log?.done ? `${label} · done` : '';
+  }
+  let doneSets = 0;
+  let top = null;
+  for (const ex of exercises) {
+    if (ex.skipped) continue;
+    for (const set of ex.sets || []) {
+      if (!set.done && set.kg == null && set.reps == null) continue;
+      if (set.done || set.kg != null || set.reps != null) doneSets += 1;
+      if (set.kg != null && Number(set.kg) > 0) {
+        if (!top || Number(set.kg) > Number(top.kg)
+          || (Number(set.kg) === Number(top.kg) && Number(set.reps || 0) > Number(top.reps || 0))) {
+          top = { kg: set.kg, reps: set.reps, name: ex.name };
+        }
+      }
+    }
+  }
+  const bits = [label];
+  if (doneSets) bits.push(`${doneSets} sets`);
+  if (top) bits.push(`top ${formatSetLabel(top)}`);
+  else if (log?.done) bits.push('done');
+  return bits.join(' · ');
+}

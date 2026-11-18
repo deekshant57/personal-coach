@@ -27,10 +27,11 @@ See also: Food search is local-first; Open Food Facts only via **Look up package
 
 ## Prod checklist (before ship)
 
-1. Run `athlete-profiles.sql` then `user-custom-foods.sql` in Supabase SQL Editor (additive only)
-2. `python3 scripts/verify-phase-a-migration.py` → `VERIFY_OK`
-3. Hard-refresh PWA / confirm SW `coach-v27`
-4. Smoke: diary meal → Food; Add sheet tabs; empty search CTAs; Plan Open day; Progress groups  
+1. Run `athlete-profiles.sql`, `athlete-profiles-sport-mode.sql`, then `user-custom-foods.sql` in Supabase SQL Editor (additive only)
+2. `python3 scripts/verify-phase-a-migration.py` → `VERIFY_OK` (if script present)
+3. Hard-refresh PWA / confirm SW `coach-v35`
+4. Smoke: diary meal → Food; Add sheet tabs; Plan Open day; Progress groups
+5. Friends invite gate: `docs/FRIENDS-INVITE.md` (all three sport presets + Floor/Close)  
 
 ## Food search rule (locked)
 

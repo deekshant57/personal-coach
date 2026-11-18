@@ -18,8 +18,9 @@ import { flushAllAutosaves, setupAutosaveLifecycle } from './auto-save.js';
 import { invalidateWeekStatsCache } from './week-stats.js';
 import { initSaveState, clearSaveState } from './save-state.js';
 import { mergePlanWithFallback } from './plan-merge.js';
-import { ensureAthleteProfileReady, clearDbAthleteProfileCache } from './athlete-profile.js';
+import { ensureAthleteProfileReady, clearDbAthleteProfileCache, getDbAthleteProfile } from './athlete-profile.js';
 import { initSetup, openSetup } from './setup.js';
+import { ensurePlansExtended } from './plan-seed.js';
 import { slotsForPlan, renderSessionStatusChip } from './day-shift.js';
 import {
   parseAppRouteHash,
@@ -600,13 +601,19 @@ async function bootApp() {
   updatePreviewMode();
   await checkAndRenderGapReturn({ viewingToday: isViewingToday() });
 
+  // Keep friends' seeded window filled without hand-holding
+  const dbProfile = getDbAthleteProfile();
+  if (dbProfile?.week_template?.length) {
+    ensurePlansExtended(dbProfile, { days: 14, minRemaining: 3 }).catch(() => {});
+  }
+
   if (route.tab !== 'coach') {
     switchToTab(route.tab, { skipRouteSync: true });
   }
   syncAppRoute();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(`sw.js?v=33`).catch(() => {});
+    navigator.serviceWorker.register(`sw.js?v=35`).catch(() => {});
   }
 }
 

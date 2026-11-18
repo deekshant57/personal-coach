@@ -539,10 +539,11 @@ function applyAthleteTrendsVisibility(profile = getAthleteProfile()) {
   setTrendsCardVisible('cigarettes-trend-card', profile.showCigarettes);
   setTrendsCardVisible('supplement-adherence-card', profile.showSupplementsCard);
 
-  // Hide empty domain headings when all cards under them are off
-  // Training section stays visible for gym-only athletes (key lifts card)
-  document.getElementById('trends-training-title')?.classList.remove('hidden');
-  setTrendsCardVisible('lift-progress-card', true);
+  // Training domain: lifts and/or running cards
+  const showLifts = profile.showLifts !== false;
+  setTrendsCardVisible('lift-progress-card', showLifts);
+  const showTrainingDomain = showLifts || profile.showRunningTrends;
+  document.getElementById('trends-training-title')?.classList.toggle('hidden', !showTrainingDomain);
   const showHabits = profile.showCigarettes || profile.showSupplementsCard;
   document.getElementById('trends-habits-title')?.classList.toggle('hidden', !showHabits);
 
@@ -574,7 +575,12 @@ function renderProgressView({ foodLogs = [], plans = [] } = {}) {
     renderLongRunProgress(cachedRunLogs);
     document.getElementById('cadence-trend-content').innerHTML = renderCadenceTrend(cachedRunLogs);
   }
-  renderLiftProgression(cachedWorkoutLogs);
+  if (profile.showLifts !== false) {
+    renderLiftProgression(cachedWorkoutLogs);
+  } else {
+    const liftEl = document.getElementById('lift-progress-content');
+    if (liftEl) liftEl.innerHTML = '';
+  }
   document.getElementById('sleep-trend-content').innerHTML = renderSleepTrend(cachedVitals);
   document.getElementById('rpe-trend-content').innerHTML = renderRpeDots(
     buildRpeSessions(

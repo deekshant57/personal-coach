@@ -140,14 +140,106 @@ export async function seedPlansFromProfile(profile, { days = 14, fromDate = new 
 }
 
 export function defaultWeekTemplate(sessionWindow = 'morning') {
-  // Mon–Sat Gym, Sunday Rest — beginner-friendly default
+  return weekTemplateForSportMode('gym', sessionWindow);
+}
+
+/** @param {'gym'|'run'|'hybrid'} sportMode */
+export function weekTemplateForSportMode(sportMode = 'gym', sessionWindow = 'morning') {
+  const w = sessionWindow || 'morning';
+  if (sportMode === 'run') {
+    return [
+      { weekday: 1, day_type: 'Run', session_window: w, label: 'Easy run' },
+      { weekday: 2, day_type: 'Run', session_window: w, label: 'Easy run' },
+      { weekday: 3, day_type: 'Rest', session_window: null, label: null },
+      { weekday: 4, day_type: 'Run', session_window: w, label: 'Easy run' },
+      { weekday: 5, day_type: 'Rest', session_window: null, label: null },
+      { weekday: 6, day_type: 'Run', session_window: w, label: 'Long run' },
+      { weekday: 0, day_type: 'Rest', session_window: null, label: null },
+    ];
+  }
+  if (sportMode === 'hybrid') {
+    return [
+      { weekday: 1, day_type: 'Gym', session_window: w, label: 'Upper' },
+      { weekday: 2, day_type: 'Run', session_window: w, label: 'Easy run' },
+      { weekday: 3, day_type: 'Gym', session_window: w, label: 'Lower' },
+      { weekday: 4, day_type: 'Run', session_window: w, label: 'Easy run' },
+      { weekday: 5, day_type: 'Gym', session_window: w, label: 'Full body' },
+      { weekday: 6, day_type: 'Run', session_window: w, label: 'Long run' },
+      { weekday: 0, day_type: 'Rest', session_window: null, label: null },
+    ];
+  }
+  // gym-only — Mon–Sat Gym, Sunday Rest
   return [
-    { weekday: 1, day_type: 'Gym', session_window: sessionWindow, label: 'Lower' },
-    { weekday: 2, day_type: 'Gym', session_window: sessionWindow, label: 'Upper' },
-    { weekday: 3, day_type: 'Gym', session_window: sessionWindow, label: 'Lower' },
-    { weekday: 4, day_type: 'Gym', session_window: sessionWindow, label: 'Full light' },
-    { weekday: 5, day_type: 'Gym', session_window: sessionWindow, label: 'Upper' },
-    { weekday: 6, day_type: 'Gym', session_window: sessionWindow, label: 'Lower' },
+    { weekday: 1, day_type: 'Gym', session_window: w, label: 'Lower' },
+    { weekday: 2, day_type: 'Gym', session_window: w, label: 'Upper' },
+    { weekday: 3, day_type: 'Gym', session_window: w, label: 'Lower' },
+    { weekday: 4, day_type: 'Gym', session_window: w, label: 'Full light' },
+    { weekday: 5, day_type: 'Gym', session_window: w, label: 'Upper' },
+    { weekday: 6, day_type: 'Gym', session_window: w, label: 'Lower' },
     { weekday: 0, day_type: 'Rest', session_window: null, label: null },
   ];
+}
+
+/** Default goal_primary for a sport preset. */
+export function goalForSportMode(sportMode) {
+  if (sportMode === 'run') return 'endurance';
+  if (sportMode === 'hybrid') return 'general';
+  return 'strength';
+}
+
+/**
+ * Infer sport mode from profile when sport_mode column is missing.
+ * @returns {'gym'|'run'|'hybrid'}
+ */
+export function deriveSportMode(profile) {
+  const explicit = profile?.sport_mode;
+  if (explicit === 'gym' || explicit === 'run' || explicit === 'hybrid') return explicit;
+  const list = Array.isArray(profile?.week_template) ? profile.week_template : [];
+  let hasGym = false;
+  let hasRun = false;
+  for (const e of list) {
+    if (e.day_type === 'Gym' || e.day_type === 'Bodyweight') hasGym = true;
+    if (e.day_type === 'Run') hasRun = true;
+  }
+  if (hasGym && hasRun) return 'hybrid';
+  if (hasRun && !hasGym) return 'run';
+  return 'gym';
+}
+
+/** Human-readable run plan line without "null km". */
+export function formatRunPlanLabel(plan) {
+  if (!plan?.run_type && plan?.day_type !== 'Run') return '';
+  const type = plan.run_type || 'Run';
+  const km = plan.run_km;
+  const pace = plan.run_pace;
+  const parts = [type];
+  if (km != null && km !== '' && !Number.isNaN(Number(km))) {
+    parts.push(`${km} km`);
+  }
+  if (pace) parts.push(`@ ${pace}`);
+  return parts.join(' ');
+}
+
+/**
+ * Ensure daily_plans exist for the next `days` from today (fills gaps only).
+ * Call when friends approach the end of their seeded window.
+ */
+export async function ensurePlansExtended(profile, { days = 14, minRemaining = 3 } = {}) {
+  if (!profile?.week_template?.length) {
+    return { inserted: 0, skipped: 0, extended: false };
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = addDays(today, days - 1);
+  const existing = await fetchWeekPlans(isoFromDate(today), isoFromDate(end));
+  const byDate = new Set((existing || []).map((p) => p.date));
+  let remaining = 0;
+  for (let i = 0; i < days; i++) {
+    if (byDate.has(isoFromDate(addDays(today, i)))) remaining += 1;
+  }
+  if (remaining >= minRemaining) {
+    return { inserted: 0, skipped: remaining, extended: false };
+  }
+  const result = await seedPlansFromProfile(profile, { days, fromDate: today });
+  return { ...result, extended: result.inserted > 0 };
 }

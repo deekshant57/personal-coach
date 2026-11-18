@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coach-v34';
+const CACHE_NAME = 'coach-v35';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   './js/athlete-profile.js',
   './js/setup.js',
   './js/plan-seed.js',
+  './js/session-player.js',
   './js/day-shift.js',
   './js/exercise-library.js',
   './js/lift-progress.js',

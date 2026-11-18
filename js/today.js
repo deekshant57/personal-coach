@@ -41,6 +41,8 @@ import {
   formatRestDayPlanTitle,
   summarizePlanSession,
 } from './block-context.js';
+import { formatRunPlanLabel } from './plan-seed.js';
+import { getAthleteProfile } from './athlete-profile.js';
 import {
   renderWorkoutExerciseList,
   setupWorkoutExerciseHandlers,
@@ -50,7 +52,13 @@ import {
   validateWorkoutLogForDone,
   resetWorkoutExerciseList,
   invalidateLastPerfCache,
+  formatWorkoutSessionSummary,
 } from './workout-log.js';
+import {
+  initSessionPlayer,
+  refreshSessionEntry,
+  isSessionActive,
+} from './session-player.js';
 import {
   scheduleAutosave,
   cancelAutosave,
@@ -95,6 +103,13 @@ export function initToday() {
   setupCollapsibles();
   setupNotesCard();
   initSupplements();
+  initSessionPlayer({
+    onExit: () => {
+      renderTrainingCard();
+      layoutCoachScreen();
+      syncDayStatus();
+    },
+  });
   initDayShiftControls({
     onChanged: async () => {
       await loadFoodData();
@@ -338,7 +353,7 @@ function renderPlanCard() {
   // Training summary (+ run cues when separate from warm-up / cool-down)
   let summary = '';
   if (plan.run_type) {
-    summary = `${plan.run_type} ${plan.run_km} km @ ${plan.run_pace}`;
+    summary = formatRunPlanLabel(plan);
     const cues = extractRunCues(plan.run_cue);
     if (cues) summary += `\n${cues}`;
   } else if (plan.workout_plan) {
@@ -572,16 +587,27 @@ function renderTrainingCard() {
   runFields.classList.toggle('hidden', !isRun);
   workoutFields.classList.toggle('hidden', isRun);
 
+  const profile = getAthleteProfile();
+  const kneeWrap = document.getElementById('knee-status-group');
+  if (kneeWrap) {
+    kneeWrap.classList.toggle('hidden', !profile.showKneeTracking);
+  }
+
   if (isRun) {
-    title.textContent = `Run Log — ${plan.run_type} ${plan.run_km} km`;
+    const runLabel = formatRunPlanLabel(plan) || plan.run_type || 'Run';
+    title.textContent = `Run — ${runLabel}`;
     document.getElementById('run-planned-hint').textContent =
-      `Planned: ${plan.run_type} ${plan.run_km} km @ ${plan.run_pace || '—'}`;
+      plan.run_km != null || plan.run_pace
+        ? `Planned: ${runLabel}`
+        : `Planned: ${plan.run_type || 'Run'} · log distance when done`;
   } else {
     const label = plan.workout_plan || plan.day_type || 'Workout';
-    title.textContent = `Workout Log — ${label}`;
+    title.textContent = `Workout — ${label}`;
     document.getElementById('workout-planned-hint').textContent =
       `Planned: ${label}`;
-    renderWorkoutExerciseList(plan, state.workoutLog);
+    if (!isSessionActive()) {
+      renderWorkoutExerciseList(plan, state.workoutLog);
+    }
 
     // Restore saved workout form state
     const log = state.workoutLog;
@@ -601,6 +627,33 @@ function renderTrainingCard() {
       setDoneToggle(false);
       resetWorkoutFields();
     }
+  }
+
+  updateTrainingMemorySummary(plan, isRun);
+  refreshSessionEntry({ plan, isRun });
+}
+
+function updateTrainingMemorySummary(plan, isRun) {
+  const line = document.getElementById('training-summary-line');
+  if (!line) return;
+  if (isRun) {
+    const log = state.runLog;
+    if (log?.done || log?.actual_km) {
+      const bits = [];
+      if (log.actual_km != null) bits.push(`${log.actual_km} km`);
+      if (log.time_display) bits.push(log.time_display);
+      if (log.avg_pace) bits.push(log.avg_pace);
+      line.textContent = bits.join(' · ') || 'Logged';
+    } else {
+      line.textContent = '';
+    }
+    return;
+  }
+  const log = state.workoutLog;
+  if (log && (log.done || workoutLogHasLoggedWork(log))) {
+    line.textContent = formatWorkoutSessionSummary(log, plan) || 'Logged';
+  } else {
+    line.textContent = '';
   }
 }
 

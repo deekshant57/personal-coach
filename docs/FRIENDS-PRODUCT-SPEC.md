@@ -1,21 +1,24 @@
 # Friends Product Spec — Plan-First Athletic Logger
 
-**Version:** 1.0  
-**Date:** 21 Aug 2026  
-**Status:** Phase A–C implemented in app  
+**Version:** 1.1  
+**Date:** 18 Nov 2026  
+**Status:** Phase A–C + sport presets + Session UX (Floor/Close/Memory) implemented  
 **Parents:** `PRODUCT-BIBLE.md`, `APP-GOALS.md`  
-**Related:** `WEEK-STATS-SPEC.md` §7 (custom foods), `docs/SCREEN-SPECS.md`, `js/athlete-profile.js`
+**Related:** `WEEK-STATS-SPEC.md` §7 (custom foods), `docs/SESSION-UX-SPEC.md`, `js/athlete-profile.js`, `js/session-player.js`
 
 This document locks product decisions for letting friends use the app without Cursor/coach authoring every day. It is not a UI mock. Implement in phase order; do not skip to charts or Open Food Facts before Phase A.
+
+**Friends coaching depth (locked 18 Nov 2026):** All invitees are **self-serve** — plan + log + trends only. No Cursor Coach Skill, no `athletes/` folders required. Invite only when the app needs **no hand-holding** (presets + session UX + plan extend).
 
 ---
 
 ## 1. Product verdict (locked)
 
-**What we are building:** A plan-first athletic logger.
+**What we are building:** A plan-first athletic logger with tracker-surface session UX.
 
 ```
-Setup (once) → Week template → Daily log (flexible) → Trends → Coach Skill (optional)
+Setup (sport preset) → Week template → Start session (Floor) → Close → Memory / Trends
+Coach Skill remains optional and out of band for friends
 ```
 
 **What we are not building:** MyFitnessPal clone, Hevy clone, social feed, streak gamification, photo-AI calorie guessing as source of truth.
@@ -470,16 +473,28 @@ Add success criteria:
 | 21 Aug 2026 | Move session prefers keeping training meal slots; Skip offers rest remap |
 | 21 Aug 2026 | Food: staples → user library → OFF → manual; always confirm external macros |
 | 21 Aug 2026 | `athlete_profiles` is source of truth for friends; markdown coach files remain for coached athletes |
+| 18 Nov 2026 | Sport presets: Gym-only / Run-only / Hybrid; `sport_mode` + `ui_flags`; no all-gym skip |
+| 18 Nov 2026 | Session UX: Floor / Close / Memory (`docs/SESSION-UX-SPEC.md`); self-serve friends only |
+| 18 Nov 2026 | Plan extend + auto-seed when fewer than 3 plan days remain |
 
 ---
 
-## 13. Immediate next implementation slice
+## 13. Sport presets (Track A)
 
-When coding starts, do **only**:
+Setup opens with **Gym-only / Run-only / Hybrid**:
 
-1. `athlete_profiles` migration + RLS  
-2. Setup wizard (targets + week template + seed 14 days)  
-3. `day-shift.js` Move / Skip + header planned vs actual  
-4. Wire `getCurrentMealSlots()` through `slot_scheme`  
+| Preset | Default goal | Week shape | Chrome |
+|--------|--------------|------------|--------|
+| Gym-only | strength | Mon–Sat Gym, Sun Rest | Lifts on; running trends off; knee off |
+| Run-only | endurance | Easy/long runs + rest | Running trends on; lifts off; knee off |
+| Hybrid | general | Gym + Run alternating | Both on; knee off |
 
-Stop before OFF, before set graphs, before Progress redesign.
+Friends may edit day types after preset. Soft gate is **Use preset defaults** (never forces all-gym when Run/Hybrid selected).
+
+Migration: `athlete-profiles-sport-mode.sql` (`sport_mode`, `ui_flags`). Chrome also **derives** from `week_template` if columns missing.
+
+---
+
+## 14. Invite gate checklist
+
+See `docs/FRIENDS-INVITE.md`. Do not invite until smoke passes for all three presets + gym and run Floor sessions.

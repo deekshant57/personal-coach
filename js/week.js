@@ -6,13 +6,14 @@ import {
   formatDayDisplay,
   formatDayDisplayFromIso,
   getToday,
+  showToast,
 } from './app.js';
 import { fetchWeekPlans, fetchCoachDebriefForWeek, fetchWeekFoodLogs } from './supabase.js';
 import { renderDayBadge } from './data.js';
 import { buildCoachDebriefCardHtml, wireCoachDebriefCard } from './coach-debrief.js';
 import { resolvePlansForRange } from './plan-merge.js';
 import { extractWarmupCooldown, extractRunCues } from './plan-templates.js';
-import { skeletonWeekCardsHtml, setOverlayLoading } from './spinner.js';
+import { skeletonWeekCardsHtml, setOverlayLoading, setButtonLoading } from './spinner.js';
 import { formatBlockChip } from './block-context.js';
 import {
   getWeekStats,
@@ -21,7 +22,8 @@ import {
   getTenPercentCapKm,
   getRaceCountdownDays,
 } from './week-stats.js';
-import { getAthleteProfile } from './athlete-profile.js';
+import { getAthleteProfile, getDbAthleteProfile, refreshDbAthleteProfile } from './athlete-profile.js';
+import { formatRunPlanLabel, ensurePlansExtended } from './plan-seed.js';
 
 const TRAINING_BLOCK_START = new Date(2026, 5, 22); // Mon 22 Jun 2026 — Week 1
 
@@ -69,6 +71,28 @@ export function initWeek(onOpenDay) {
   document.getElementById('week-next')?.addEventListener('click', () => {
     weekViewMonday.setDate(weekViewMonday.getDate() + 7);
     loadWeekView();
+  });
+
+  document.getElementById('plan-extend-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('plan-extend-btn');
+    setButtonLoading(btn, true, 'Extend plan');
+    try {
+      let profile = getDbAthleteProfile();
+      if (!profile) profile = await refreshDbAthleteProfile();
+      if (!profile?.week_template?.length) {
+        showToast('Complete Setup first to extend your plan', { variant: 'error' });
+        return;
+      }
+      const result = await ensurePlansExtended(profile, { days: 14, minRemaining: 14 });
+      if (result.inserted > 0) {
+        showToast(`Added ${result.inserted} plan day${result.inserted === 1 ? '' : 's'}`, { variant: 'saved' });
+        await loadWeekView();
+      } else {
+        showToast('Next 14 days already have plans', { variant: 'saved' });
+      }
+    } finally {
+      setButtonLoading(btn, false, 'Extend plan');
+    }
   });
 }
 
@@ -277,7 +301,9 @@ export async function loadWeekView() {
     container.innerHTML = '';
 
     if (plans.length === 0) {
-      container.innerHTML = '<p class="text-muted empty-state-pad">No plan for this week</p>';
+      container.innerHTML = `
+        <p class="text-muted empty-state-pad">No plan for this week</p>
+        <p class="text-muted empty-state-pad">Use <strong>Extend plan</strong> above, or edit your week template in Setup.</p>`;
       renderWeekMileageSummary(weekStats, priorWeekStats);
       renderCoachDebriefSection(coachDebrief);
       return;
@@ -294,7 +320,7 @@ export async function loadWeekView() {
 
       let summary = '';
       if (plan.run_type) {
-        summary = `${plan.run_type} ${plan.run_km} km @ ${plan.run_pace}`;
+        summary = formatRunPlanLabel(plan) || plan.run_type;
       } else if (plan.workout_plan) {
         summary = plan.workout_plan;
       } else {

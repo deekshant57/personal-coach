@@ -24,7 +24,7 @@ Morning → log vitals → follow plan → log training + food → generate debr
 
 | | |
 |---|---|
-| **User** | Deekshant — single athlete, not a multi-user product |
+| **User** | Deekshant (coached) + self-serve friends (gym / run / hybrid) via same PWA |
 | **Device** | Phone (PWA, portrait, home-screen install) |
 | **Location** | Udaipur — Indian veg diet, park runs, bodyweight until ~Jul 2026 |
 | **When used** | Morning (vitals), post-workout (training), after each meal (food), night (debrief) |
@@ -96,6 +96,10 @@ If the app fails at date context, data persistence, or debrief completeness, not
 | S8 | Monday debrief paste includes correct **prior-week** rollups (not today-only placeholders) |
 | S9 | Failed writes show visible error state with retry — no silent loss |
 | S10 | Week-level planned vs actual km visible without leaving the app |
+| S11 | New friend reaches first food log in ≤10 minutes including Gym/Run/Hybrid setup |
+| S12 | Friend completes Start → Floor → Close for gym or run without hand-holding |
+| S13 | Run plan labels never show `null km`; knee UI only when `showKneeTracking` |
+| S14 | Plan Extend fills missing days so friends do not hit an empty week |
 
 ---
 
@@ -103,9 +107,9 @@ If the app fails at date context, data persistence, or debrief completeness, not
 
 - **Not** replacing Cursor coach or in-app AI debrief
 - **Not** Strava/GPX import (stays in `import-runs.py`)
-- **Not** weekly plan authoring in-app (coach updates Supabase `daily_plans`; verify with `audit-week-plan.py`)
+- **Not** rich coach plan authoring in-app (friends self-seed from week template + Extend plan; coached athletes still use Cursor/`daily_plans`)
 - **Not** macro coaching, meal suggestions, or triglyceride warnings in-app
-- **Not** multi-athlete, social, or gamification
+- **Not** social or gamification (multi-athlete self-serve **is** in scope — see `docs/FRIENDS-PRODUCT-SPEC.md`)
 - **Not** desktop-first layout or feature parity with Excel power-user workflows
 
 ---
@@ -216,6 +220,8 @@ Implementation detail: **`WEEK-STATS-SPEC.md`** (week windows, aggregations, con
 | `personal-details.md` | Athlete profile |
 | `WEEK-STATS-SPEC.md` | Week aggregation contract — P7–P13 implementation |
 | `docs/FRIENDS-PRODUCT-SPEC.md` | Multi-athlete / friends expansion — setup, day-shift, food layers (Phases A–C) |
+| `docs/SESSION-UX-SPEC.md` | Floor / Close / Memory session contract |
+| `docs/FRIENDS-INVITE.md` | Invite gate + ops checklist for ~10 self-serve friends |
 | `.cursor/rules/*.mdc` | Coach debrief + plan rules the app must feed |
 | `js/data.js` | Food reference, meal slots, day types |
 | `js/week-stats.js` | Week windows + aggregates (P7) |

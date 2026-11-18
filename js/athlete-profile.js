@@ -1,11 +1,11 @@
-// Per-athlete UI chrome + Supabase athlete_profiles (Phase A)
+// Per-athlete UI chrome + Supabase athlete_profiles (Phase A + sport presets)
 import {
   getCurrentUserId,
   fetchAthleteProfileRow,
   upsertAthleteProfile,
 } from './supabase.js';
 import { getSession, getProfile } from './auth.js';
-import { defaultWeekTemplate } from './plan-seed.js';
+import { defaultWeekTemplate, deriveSportMode } from './plan-seed.js';
 
 export const DEEKSHANT_USER_ID = 'd6f25dae-4cc8-48dd-9822-fbccf9a92139';
 export const NAMRATA_USER_ID = '9e6a0d55-b63f-4857-b318-122e0c337ef4';
@@ -14,6 +14,7 @@ const PROFILES = {
   [DEEKSHANT_USER_ID]: {
     key: 'deekshant',
     displayName: 'Deekshant',
+    sportMode: 'hybrid',
     block: {
       name: 'Phase 1 — Hypertrophy + Base',
       shortName: 'Hypertrophy',
@@ -26,6 +27,7 @@ const PROFILES = {
     weightGoalLabel: '73–74 kg',
     weightGoalStatLabel: 'Race goal',
     showRunningTrends: true,
+    showLifts: true,
     showRaceCountdown: true,
     showKneeTracking: true,
     showCigarettes: true,
@@ -39,6 +41,7 @@ const PROFILES = {
   [NAMRATA_USER_ID]: {
     key: 'namrata',
     displayName: 'Namrata',
+    sportMode: 'gym',
     block: {
       name: 'Foundation — Strength + Cardio',
       shortName: 'Foundation',
@@ -51,6 +54,7 @@ const PROFILES = {
     weightGoalLabel: null,
     weightGoalStatLabel: null,
     showRunningTrends: false,
+    showLifts: true,
     showRaceCountdown: false,
     showKneeTracking: false,
     showCigarettes: false,
@@ -69,6 +73,7 @@ const SETUP_BACKFILL = {
   [DEEKSHANT_USER_ID]: {
     display_name: 'Deekshant',
     goal_primary: 'endurance',
+    sport_mode: 'hybrid',
     diet_style: 'eggetarian',
     protein_target_g: 145,
     calorie_target_training: 2100,
@@ -83,10 +88,16 @@ const SETUP_BACKFILL = {
       { weekday: 6, day_type: 'Run', session_window: 'morning', label: 'Long run' },
       { weekday: 0, day_type: 'Rest', session_window: null, label: null },
     ],
+    ui_flags: {
+      showRunningTrends: true,
+      showLifts: true,
+      showKneeTracking: true,
+    },
   },
   [NAMRATA_USER_ID]: {
     display_name: 'Namrata',
     goal_primary: 'strength',
+    sport_mode: 'gym',
     diet_style: 'veg',
     protein_target_g: 100,
     calorie_target_training: 1800,
@@ -95,6 +106,11 @@ const SETUP_BACKFILL = {
     special_day_weekday: 4,
     default_session_window: 'morning',
     week_template: defaultWeekTemplate('morning'),
+    ui_flags: {
+      showRunningTrends: false,
+      showLifts: true,
+      showKneeTracking: false,
+    },
   },
 };
 
@@ -105,15 +121,54 @@ export function resolveAthleteUserId(userId = getCurrentUserId()) {
   return userId || getSession()?.user?.id || null;
 }
 
+/** Build chrome flags from sport mode + optional ui_flags overrides. */
+export function chromeFlagsForSportMode(sportMode, uiFlags = {}) {
+  const flags = uiFlags && typeof uiFlags === 'object' ? uiFlags : {};
+  const mode = sportMode === 'run' || sportMode === 'hybrid' || sportMode === 'gym'
+    ? sportMode
+    : 'gym';
+  const defaults = {
+    gym: {
+      showRunningTrends: false,
+      showLifts: true,
+      showKneeTracking: false,
+      showRaceCountdown: false,
+    },
+    run: {
+      showRunningTrends: true,
+      showLifts: false,
+      showKneeTracking: false,
+      showRaceCountdown: false,
+    },
+    hybrid: {
+      showRunningTrends: true,
+      showLifts: true,
+      showKneeTracking: false,
+      showRaceCountdown: false,
+    },
+  }[mode];
+
+  return {
+    sportMode: mode,
+    showRunningTrends: flags.showRunningTrends ?? defaults.showRunningTrends,
+    showLifts: flags.showLifts ?? defaults.showLifts,
+    showKneeTracking: flags.showKneeTracking ?? defaults.showKneeTracking,
+    showRaceCountdown: flags.showRaceCountdown ?? defaults.showRaceCountdown,
+  };
+}
+
 /** UI chrome profile — hard-coded flags with generic fallback for friends. */
 export function getAthleteProfile(userId = resolveAthleteUserId()) {
   if (userId && PROFILES[userId]) return PROFILES[userId];
   const name = cachedDbProfile?.display_name
     || getProfile()?.display_name
     || 'Athlete';
+  const sportMode = deriveSportMode(cachedDbProfile);
+  const chrome = chromeFlagsForSportMode(sportMode, cachedDbProfile?.ui_flags);
   return {
     key: 'friend',
     displayName: name,
+    sportMode: chrome.sportMode,
     block: {
       name: 'Training',
       shortName: 'Training',
@@ -127,9 +182,10 @@ export function getAthleteProfile(userId = resolveAthleteUserId()) {
       : null,
     weightGoalLabel: null,
     weightGoalStatLabel: null,
-    showRunningTrends: cachedDbProfile?.goal_primary === 'endurance',
-    showRaceCountdown: false,
-    showKneeTracking: false,
+    showRunningTrends: chrome.showRunningTrends,
+    showLifts: chrome.showLifts,
+    showRaceCountdown: chrome.showRaceCountdown,
+    showKneeTracking: chrome.showKneeTracking,
     showCigarettes: false,
     showSupplementsCard: false,
     supplementKeys: [],

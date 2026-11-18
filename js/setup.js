@@ -1,12 +1,18 @@
-// Athlete setup wizard — Phase A
+// Athlete setup wizard — Phase A + sport presets
 import { getProfile } from './auth.js';
 import { upsertAthleteProfile } from './supabase.js';
 import {
   refreshDbAthleteProfile,
   getDbAthleteProfile,
   resolveAthleteUserId,
+  chromeFlagsForSportMode,
 } from './athlete-profile.js';
-import { defaultWeekTemplate, seedPlansFromProfile } from './plan-seed.js';
+import {
+  weekTemplateForSportMode,
+  goalForSportMode,
+  deriveSportMode,
+  seedPlansFromProfile,
+} from './plan-seed.js';
 import { setButtonLoading } from './spinner.js';
 
 const DAY_LABELS = [
@@ -23,6 +29,7 @@ const DAY_TYPES = ['Gym', 'Run', 'Bodyweight', 'Active Recovery', 'Rest'];
 
 let onCompleteCallback = null;
 let editMode = false;
+let selectedSportMode = 'gym';
 
 function setupScreen() {
   return document.getElementById('setup-screen');
@@ -57,7 +64,7 @@ function readTemplateFromForm() {
 function applyTemplateToForm(template) {
   const list = Array.isArray(template) && template.length
     ? template
-    : defaultWeekTemplate('morning');
+    : weekTemplateForSportMode(selectedSportMode, 'morning');
   for (const { weekday } of DAY_LABELS) {
     const entry = list.find((e) => Number(e.weekday) === weekday) || {
       day_type: 'Rest',
@@ -76,11 +83,32 @@ function applyTemplateToForm(template) {
   }
 }
 
+function setSportModeUI(mode) {
+  selectedSportMode = mode === 'run' || mode === 'hybrid' ? mode : 'gym';
+  document.querySelectorAll('.setup-preset').forEach((btn) => {
+    const active = btn.dataset.sportMode === selectedSportMode;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function applySportPreset(mode, { overwriteGoal = true } = {}) {
+  setSportModeUI(mode);
+  const window = document.getElementById('setup-session-window')?.value || 'morning';
+  applyTemplateToForm(weekTemplateForSportMode(selectedSportMode, window));
+  const goalEl = document.getElementById('setup-goal');
+  if (overwriteGoal && goalEl) {
+    goalEl.value = goalForSportMode(selectedSportMode);
+  }
+}
+
 function fillFormFromProfile(profile) {
   const authName = getProfile()?.display_name || '';
   document.getElementById('setup-display-name').value =
     profile?.display_name || authName || '';
-  document.getElementById('setup-goal').value = profile?.goal_primary || 'general';
+  const mode = deriveSportMode(profile);
+  setSportModeUI(mode);
+  document.getElementById('setup-goal').value = profile?.goal_primary || goalForSportMode(mode);
   document.getElementById('setup-diet').value = profile?.diet_style || 'veg';
   document.getElementById('setup-weight').value = profile?.starting_weight_kg ?? '';
   document.getElementById('setup-protein').value = profile?.protein_target_g ?? 120;
@@ -89,13 +117,14 @@ function fillFormFromProfile(profile) {
   document.getElementById('setup-session-window').value =
     profile?.default_session_window || 'morning';
   document.getElementById('setup-injuries').value = profile?.injuries_notes || '';
-  applyTemplateToForm(profile?.week_template);
+  applyTemplateToForm(profile?.week_template?.length
+    ? profile.week_template
+    : weekTemplateForSportMode(mode, profile?.default_session_window || 'morning'));
 }
 
 function collectProfilePayload({ markComplete }) {
   const defaultWindow = document.getElementById('setup-session-window').value || 'morning';
   let week_template = readTemplateFromForm();
-  // Apply default window to training days that somehow lack one
   week_template = week_template.map((e) => {
     const isTraining = e.day_type === 'Gym' || e.day_type === 'Run' || e.day_type === 'Bodyweight';
     return {
@@ -108,10 +137,12 @@ function collectProfilePayload({ markComplete }) {
   const calTrain = parseInt(document.getElementById('setup-cal-training').value, 10);
   const calRest = parseInt(document.getElementById('setup-cal-rest').value, 10);
   const weightRaw = document.getElementById('setup-weight').value;
+  const chrome = chromeFlagsForSportMode(selectedSportMode);
 
   return {
     display_name: document.getElementById('setup-display-name').value.trim() || 'Athlete',
-    goal_primary: document.getElementById('setup-goal').value || 'general',
+    goal_primary: document.getElementById('setup-goal').value || goalForSportMode(selectedSportMode),
+    sport_mode: selectedSportMode,
     diet_style: document.getElementById('setup-diet').value || 'veg',
     starting_weight_kg: weightRaw ? parseFloat(weightRaw) : null,
     protein_target_g: Number.isFinite(protein) ? protein : 120,
@@ -120,6 +151,12 @@ function collectProfilePayload({ markComplete }) {
     default_session_window: defaultWindow,
     injuries_notes: document.getElementById('setup-injuries').value.trim() || null,
     week_template,
+    ui_flags: {
+      showRunningTrends: chrome.showRunningTrends,
+      showLifts: chrome.showLifts,
+      showKneeTracking: chrome.showKneeTracking,
+      showRaceCountdown: chrome.showRaceCountdown,
+    },
     setup_completed_at: markComplete ? new Date().toISOString() : null,
   };
 }
@@ -129,6 +166,7 @@ function validateForm() {
   const protein = parseInt(document.getElementById('setup-protein').value, 10);
   const calTrain = parseInt(document.getElementById('setup-cal-training').value, 10);
   const calRest = parseInt(document.getElementById('setup-cal-rest').value, 10);
+  if (!selectedSportMode) return 'Pick Gym-only, Run-only, or Hybrid';
   if (!name) return 'Enter your name';
   if (!Number.isFinite(protein) || protein < 40) return 'Protein target looks too low';
   if (!Number.isFinite(calTrain) || calTrain < 800) return 'Training calories look too low';
@@ -174,12 +212,17 @@ async function saveSetup({ markComplete, seed }) {
   }
 
   const payload = collectProfilePayload({ markComplete });
-  const ok = await upsertAthleteProfile(payload);
+  let ok = await upsertAthleteProfile(payload);
   if (!ok) {
-    if (errEl) {
-      errEl.textContent = 'Could not save profile. Run athlete-profiles.sql in Supabase, then retry.';
+    // sport_mode / ui_flags columns may be missing — retry without them
+    const { sport_mode, ui_flags, ...fallback } = payload;
+    ok = await upsertAthleteProfile(fallback);
+    if (!ok) {
+      if (errEl) {
+        errEl.textContent = 'Could not save profile. Run athlete-profiles.sql (and athlete-profiles-sport-mode.sql) in Supabase, then retry.';
+      }
+      return false;
     }
-    return false;
   }
 
   await refreshDbAthleteProfile();
@@ -202,6 +245,21 @@ export function initSetup({ onComplete } = {}) {
   onCompleteCallback = onComplete || null;
   renderWeekTemplateRows();
 
+  document.querySelectorAll('.setup-preset').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      applySportPreset(btn.dataset.sportMode || 'gym', { overwriteGoal: !editMode });
+    });
+  });
+
+  document.getElementById('setup-session-window')?.addEventListener('change', () => {
+    // Keep day windows aligned when default window changes and template still matches preset shape
+    const window = document.getElementById('setup-session-window').value || 'morning';
+    const template = readTemplateFromForm();
+    const preset = weekTemplateForSportMode(selectedSportMode, window);
+    const sameShape = template.every((e, i) => e.day_type === preset[i]?.day_type);
+    if (sameShape) applyTemplateToForm(preset);
+  });
+
   document.getElementById('setup-submit')?.addEventListener('click', async () => {
     const btn = document.getElementById('setup-submit');
     setButtonLoading(btn, true, 'Save & continue');
@@ -216,11 +274,11 @@ export function initSetup({ onComplete } = {}) {
     }
   });
 
-  document.getElementById('setup-skip')?.addEventListener('click', async () => {
-    const btn = document.getElementById('setup-skip');
-    setButtonLoading(btn, true, 'Skip for now');
+  // Soft gate: apply selected preset defaults (never force all-gym if run/hybrid chosen)
+  document.getElementById('setup-use-defaults')?.addEventListener('click', async () => {
+    const btn = document.getElementById('setup-use-defaults');
+    setButtonLoading(btn, true, 'Use preset defaults');
     try {
-      // Soft gate: apply defaults + mark complete so friends aren't blocked forever
       if (!document.getElementById('setup-display-name').value.trim()) {
         document.getElementById('setup-display-name').value =
           getProfile()?.display_name || 'Athlete';
@@ -234,16 +292,14 @@ export function initSetup({ onComplete } = {}) {
       if (!document.getElementById('setup-cal-rest').value) {
         document.getElementById('setup-cal-rest').value = '1800';
       }
-      applyTemplateToForm(defaultWeekTemplate(
-        document.getElementById('setup-session-window').value || 'morning'
-      ));
+      applySportPreset(selectedSportMode || 'gym', { overwriteGoal: true });
       const ok = await saveSetup({ markComplete: true, seed: true });
       if (ok) {
         hideSetupScreen();
         onCompleteCallback?.({ editMode, skipped: true });
       }
     } finally {
-      setButtonLoading(btn, false, 'Skip for now');
+      setButtonLoading(btn, false, 'Use preset defaults');
     }
   });
 
@@ -255,9 +311,15 @@ export function initSetup({ onComplete } = {}) {
 export function openSetup({ edit = false } = {}) {
   editMode = edit;
   renderWeekTemplateRows();
-  fillFormFromProfile(getDbAthleteProfile());
-  const skip = document.getElementById('setup-skip');
-  if (skip) skip.classList.toggle('hidden', edit);
+  const profile = getDbAthleteProfile();
+  if (profile) {
+    fillFormFromProfile(profile);
+  } else {
+    fillFormFromProfile(null);
+    applySportPreset('gym', { overwriteGoal: true });
+  }
+  const soft = document.getElementById('setup-use-defaults');
+  if (soft) soft.classList.toggle('hidden', edit);
   const title = document.getElementById('setup-title');
   if (title) title.textContent = edit ? 'Edit setup' : 'Set up your plan';
   showSetupScreen();
