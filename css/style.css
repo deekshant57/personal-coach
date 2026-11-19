@@ -22,7 +22,12 @@
   --border: #2a2a2a;
   --border-light: #333333;
 
+  /* Elevated / inset surfaces (dark theme — never light fallbacks) */
+  --surface: #1a1a1a;
+  --surface-2: rgba(255, 255, 255, 0.04);
+
   --text: #f5f5f5;
+  --text-primary: #f5f5f5;
   --text-secondary: #a3a3a3;
   --text-muted: #737373;
   --text-hint: #525252;
@@ -33,9 +38,15 @@
   --accent-teal: #2dd4bf;
   --accent-amber: #fbbf24;
   --accent-red: #f87171;
+  /* Gym day badge — retain existing purple, now tokenized */
+  --accent-purple: #a78bfa;
+  --accent-purple-ink: #1a1a2e;
+
+  --danger: #f87171;
 
   --radius: 12px;
   --radius-sm: 8px;
+  --radius-md: 10px;
   --radius-pill: 20px;
 
   --nav-height: 56px;
@@ -54,7 +65,8 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
-  overflow-x: hidden;
+  /* clip: hide horizontal bleed without creating a scrollport that breaks sticky */
+  overflow-x: clip;
   overflow-y: auto;
 }
 
@@ -67,7 +79,7 @@ body {
   padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   overflow-y: visible;
   width: 100%;
 }
@@ -103,7 +115,7 @@ a {
   max-width: 480px;
   margin: 0 auto;
   padding: 0 16px;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .tab-content {
@@ -137,15 +149,17 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
   padding: 8px 6px;
   border-radius: var(--radius-sm);
-  transition: color 0.2s;
+  transition: color 0.15s ease;
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 550;
   letter-spacing: 0.01em;
   min-width: 56px;
+  min-height: 44px;
   flex: 1;
   max-width: 96px;
 }
@@ -164,8 +178,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 4px 0 12px;
+  gap: 8px;
+  padding: 2px 0 6px;
 }
 
 .date-header-center {
@@ -174,37 +188,42 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .date-header .date-text {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 650;
   text-align: center;
-  line-height: 1.3;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 .date-header .date-sub {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .date-off-today-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 0 10px;
+  gap: 10px;
+  padding: 6px 0;
   font-size: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  margin-bottom: 2px;
 }
 
 .date-off-today-hint {
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 .date-goto-today-btn {
@@ -223,19 +242,19 @@ a {
 
 /* ── Gap return banner (Sprint 6) ───────────────────────────── */
 .gap-return-banner {
-  padding: 0 0 10px;
+  padding: 0 0 6px;
 }
 
 .gap-return-content {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 8px 10px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .gap-return-copy {
@@ -338,22 +357,21 @@ a {
 
 /* ── Day progress (P1) ─────────────────────────────────────── */
 .day-progress {
-  padding: 0 0 10px;
+  padding: 6px 0 6px;
   border-top: 1px solid var(--border);
-  margin-top: 2px;
-  padding-top: 10px;
+  margin-top: 0;
 }
 
 .coach-next {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent-amber) 10%, var(--bg-card));
-  border: 1px solid color-mix(in srgb, var(--accent-amber) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent-amber) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-amber) 22%, var(--border));
 }
 
 .coach-next-copy {
@@ -363,31 +381,32 @@ a {
 
 .coach-next-label {
   display: block;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 650;
   text-transform: uppercase;
-  letter-spacing: 0.35px;
+  letter-spacing: 0.3px;
   color: var(--accent-amber);
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .coach-next-text {
   display: block;
-  font-size: 14px;
-  line-height: 1.35;
-  color: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-secondary);
 }
 
 .coach-next-btn {
   flex-shrink: 0;
-  height: 36px;
+  height: 44px;
+  min-width: 44px;
   padding: 0 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--accent-green);
-  background: rgba(74, 222, 128, 0.12);
+  background: rgba(74, 222, 128, 0.1);
   color: var(--accent-green);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .coach-next-btn:active {
@@ -395,12 +414,12 @@ a {
 }
 
 .day-progress-summary {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.25px;
 }
 
 .day-progress-summary.complete {
@@ -409,12 +428,12 @@ a {
 
 .day-progress-chips {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: 2px;
+  padding-bottom: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -444,11 +463,11 @@ a {
 .progress-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   flex-shrink: 0;
-  padding: 6px 10px;
+  padding: 5px 9px;
   border-radius: var(--radius-pill);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -470,22 +489,22 @@ a {
 #vitals-card,
 #training-card,
 #meals-summary-card {
-  scroll-margin-top: 200px;
+  scroll-margin-top: 120px;
 }
 
 .date-nav-btn {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: var(--bg-card);
+  background: transparent;
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
-  font-size: 18px;
-  transition: opacity 0.2s, background 0.2s;
+  color: var(--text-muted);
+  font-size: 16px;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
 .date-nav-btn:active:not(:disabled) {
@@ -518,7 +537,7 @@ a {
 .day-badge--bodyweight { background: var(--accent-orange); }
 .day-badge--active-recovery { background: var(--accent-teal); }
 .day-badge--rest { background: var(--text-muted); }
-.day-badge--gym { background: #a78bfa; color: #1a1a2e; }
+.day-badge--gym { background: var(--accent-purple); color: var(--accent-purple-ink); }
 
 /* ── Tab titles & shared typography ─────────────────────────── */
 .tab-title {
@@ -713,17 +732,19 @@ a {
   pointer-events: none;
 }
 
-.btn.is-loading {
-  opacity: 0.85;
-  pointer-events: none;
-}
-
-/* ── Sticky App Header (macro spine + date) ─────────────────── */
-.app-sticky-header {
+/* ── Phase 3.1.A.1 — Sticky context + secondary header ───────
+   .app-sticky-context is a direct child of .app-container (sibling of
+   tab content) so sticky outlives secondary chrome.
+   Dual class .app-sticky-header kept for app.js header--progress toggle.
+   overflow-x: clip on html/body/.app-container keeps sticky alive.
+   ─────────────────────────────────────────────────────────── */
+.app-sticky-context {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
   margin: 0 -16px;
   padding: 0 16px;
   border-bottom: 1px solid var(--border);
@@ -731,29 +752,36 @@ a {
   -webkit-backdrop-filter: blur(12px);
 }
 
+.app-header-secondary {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -16px;
+  padding: 6px 16px 0;
+}
+
 .macro-spine {
-  padding: 10px 0 8px;
+  padding: 4px 0 6px;
 }
 
 .macro-spine-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
-  margin-bottom: 6px;
-  font-size: 13px;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
 .macro-spine-protein {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .macro-spine-current {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 650;
   color: var(--accent-green);
   letter-spacing: -0.02em;
@@ -762,11 +790,13 @@ a {
 .macro-spine-target {
   color: var(--text-muted);
   font-weight: 500;
+  font-size: 12px;
 }
 
 .macro-spine-kcal {
   color: var(--text-muted);
   font-weight: 550;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -820,7 +850,7 @@ a {
 
 .protein-bar {
   width: 100%;
-  height: 4px;
+  height: 3px;
   background: var(--border);
   border-radius: 2px;
   overflow: hidden;
@@ -871,8 +901,9 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
+  margin: -6px -6px -6px 0;
   padding: 0;
   color: var(--text-muted);
   border-radius: var(--radius-sm);
@@ -986,18 +1017,29 @@ a {
 .nav-tab:focus-visible,
 .progress-chip:focus-visible,
 .date-nav-btn:focus-visible,
+.week-nav-btn:focus-visible,
 .coach-next-btn:focus-visible,
 .segment:focus-visible,
 .toggle-btn:focus-visible,
 .card-collapse-btn:focus-visible,
-.debrief-preflight-go:focus-visible {
+.debrief-preflight-go:focus-visible,
+.sign-out-btn:focus-visible,
+.auth-toggle:focus-visible,
+.session-floor-exit:focus-visible,
+.session-rest-btn:focus-visible,
+.session-close-chip:focus-visible,
+.week-open-day-btn:focus-visible,
+.food-picker-create:focus-visible,
+.save-error-retry:focus-visible {
   outline: 2px solid var(--accent-green);
   outline-offset: 2px;
 }
 
 .form-input:focus:not(:focus-visible),
 .btn:focus:not(:focus-visible),
-.nav-tab:focus:not(:focus-visible) {
+.nav-tab:focus:not(:focus-visible),
+.date-nav-btn:focus:not(:focus-visible),
+.week-nav-btn:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -1091,7 +1133,7 @@ textarea.form-input {
 }
 
 .supp-toggle.supp-focus-pulse {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-green);
   outline-offset: 2px;
   animation: supp-focus-pulse 0.6s ease-in-out 2;
 }
@@ -1948,6 +1990,7 @@ textarea.form-input {
 
 .food-picker-create {
   width: 100%;
+  min-height: 48px;
   padding: 12px;
   font-size: 14px;
   font-weight: 550;
@@ -1997,9 +2040,11 @@ textarea.form-input {
 
 .same-as-yesterday-actions .btn {
   flex: 1;
-  min-height: 36px;
+  width: auto;
+  height: auto;
+  min-height: 44px;
   font-size: 13px;
-  padding: 6px 10px;
+  padding: 8px 12px;
 }
 
 .same-as-dismiss {
@@ -2284,69 +2329,123 @@ textarea.form-input {
   background: var(--bg-card-hover);
 }
 
-/* ── Buttons ───────────────────────────────────────────────── */
+/* ── Buttons ─────────────────────────────────────────────────
+   Hierarchy: primary · secondary · tertiary (text) · destructive · .btn-sm
+   Default .btn is full-width logging CTA (48px). Compact .btn-sm is inline.
+   ─────────────────────────────────────────────────────────── */
 .btn {
+  box-sizing: border-box;
   height: 48px;
+  min-height: 48px;
   padding: 0 24px;
   border-radius: var(--radius-sm);
   font-size: 16px;
   font-weight: 600;
+  line-height: 1.2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
-  transition: all 0.2s;
+  max-width: 100%;
+  text-align: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
 }
 
-.btn:disabled {
-  opacity: 0.5;
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
   pointer-events: none;
+  cursor: not-allowed;
 }
 
+/* Primary — main action in context */
 .btn-primary {
   background: var(--accent-green);
   color: var(--bg);
+  border: 1px solid var(--accent-green);
 }
 
-.btn-primary:active {
+.btn-primary:active:not(:disabled) {
   transform: scale(0.98);
   opacity: 0.9;
 }
 
+/* Secondary — bordered, does not compete with primary */
 .btn-secondary {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
 }
 
-.btn-secondary:active {
+.btn-secondary:active:not(:disabled) {
   background: var(--bg-card-hover);
 }
 
+/* Destructive — filled */
 .btn-danger {
-  background: var(--accent-red);
+  background: var(--danger);
   color: var(--bg);
+  border: 1px solid var(--danger);
 }
 
-.btn-danger:active {
+.btn-danger:active:not(:disabled) {
   transform: scale(0.98);
   opacity: 0.9;
 }
 
+/* Destructive — outline (e.g. Clear slot) */
 .btn-danger-outline {
   background: var(--bg-card);
-  color: var(--accent-red);
-  border: 1px solid var(--accent-red);
+  color: var(--danger);
+  border: 1px solid var(--danger);
   flex: 0 0 auto;
   padding: 0 16px;
   min-width: 80px;
 }
 
+.btn-danger-outline:active:not(:disabled) {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+/* Emphasized full-width CTA */
 .btn-large {
   height: 56px;
+  min-height: 56px;
   font-size: 18px;
   border-radius: var(--radius);
+}
+
+/*
+  Compact actions — dense UI (day-shift, food sheet, plan extend, gym +set).
+  Visual height stays compact; min dimensions keep a usable mobile hit area.
+*/
+.btn.btn-sm {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Side-by-side actions in a form row (e.g. Progress scan Save / Cancel) */
+.form-row > .btn {
+  width: auto;
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.btn.is-loading {
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 /* ── Week Cards ────────────────────────────────────────────── */
@@ -2369,8 +2468,8 @@ textarea.form-input {
 
 .week-nav-btn {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -2379,6 +2478,7 @@ textarea.form-input {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
 .week-nav-btn:active {
@@ -3170,6 +3270,7 @@ textarea.form-input {
 .week-open-day-btn {
   margin-top: 12px;
   width: 100%;
+  min-height: 44px;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   font-size: 13px;
@@ -3454,12 +3555,18 @@ textarea.form-input {
 }
 
 .block-context-chip {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent-green);
-  letter-spacing: 0.2px;
-  margin-top: 2px;
-  line-height: 1.3;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.15px;
+  margin: 0 0 2px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.app-header-secondary > .block-context-chip:empty,
+.app-header-secondary > .block-context-chip.hidden {
+  display: none;
 }
 
 .block-context-chip--plan {
@@ -3582,17 +3689,27 @@ textarea.form-input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  gap: 10px;
+  padding: 8px 0;
+  margin-bottom: 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 0;
 }
 
 .coach-past-edit-label {
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.coach-past-edit-bar--editing .coach-past-edit-label {
   color: var(--text-secondary);
+}
+
+.coach-past-edit-bar #coach-past-edit-btn {
+  flex-shrink: 0;
 }
 
 .coach-readonly .coach-collapsible-card .card-body,
@@ -3958,29 +4075,31 @@ textarea.form-input {
   text-align: center;
   color: var(--accent-blue);
   font-size: 14px;
-  padding: 8px;
+  min-height: 44px;
+  padding: 12px 8px;
 }
 
 .user-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0 4px;
-  font-size: 13px;
+  padding: 2px 0;
+  font-size: 12px;
+  min-height: 36px;
 }
 
 .user-bar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 
 .save-state-indicator {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .save-state-indicator::before {
@@ -4001,9 +4120,9 @@ textarea.form-input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 8px;
-  padding: 10px 12px;
+  gap: 10px;
+  margin: 0 0 6px;
+  padding: 8px 10px;
   background: rgba(248, 113, 113, 0.12);
   border: 1px solid rgba(248, 113, 113, 0.35);
   border-radius: var(--radius-sm);
@@ -4028,28 +4147,67 @@ textarea.form-input {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
-  padding: 6px 12px;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 8px 12px;
 }
 
 .user-display {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-weight: 500;
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Tertiary — low weight header actions (Setup / Log out) */
 .sign-out-btn {
   color: var(--text-muted);
-  font-size: 13px;
-  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
 }
 
-/* ── Progress tab (body composition) ─────────────────────────── */
+.sign-out-btn:active {
+  color: var(--text-secondary);
+}
+
+/* ── Progress tab (body composition) ───────────────────────────
+   header--progress is toggled on .app-sticky-header (= sticky context).
+   Secondary chrome is a sibling — hide via adjacent-sibling selectors.
+   ─────────────────────────────────────────────────────────── */
 .header--progress .macro-spine,
 .header--progress .protein-bar-container,
-.header--progress .date-header,
-.header--progress .date-off-today-bar,
-.header--progress .gap-return-banner,
-.header--progress .day-progress {
+.header--progress .date-header {
   display: none;
+}
+
+.header--progress ~ .app-header-secondary > :not(.user-bar) {
+  display: none;
+}
+
+/* Progress: stick the secondary shell (only .user-bar remains visible) */
+.header--progress ~ .app-header-secondary {
+  position: sticky;
+  top: 0;
+  z-index: 51;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.app-sticky-header.header--progress:not(:has(#save-error-banner:not(.hidden))) {
+  border-bottom: none;
+  padding-top: 0;
+  padding-bottom: 0;
+  min-height: 0;
 }
 
 .scan-due {
@@ -4311,7 +4469,8 @@ textarea.form-input {
   padding: 10px 12px;
   border: 1px solid var(--border, rgba(255,255,255,0.08));
   border-radius: 8px;
-  background: var(--surface, transparent);
+  /* Keep transparent: prior fallback when --surface was undefined */
+  background: transparent;
   color: inherit;
   cursor: pointer;
   font-size: 0.9rem;
@@ -4403,7 +4562,7 @@ textarea.form-input {
 .lift-bar {
   width: 100%;
   max-width: 28px;
-  background: var(--accent, #60a5fa);
+  background: var(--accent-blue);
   border-radius: 4px 4px 0 0;
   min-height: 4px;
 }
@@ -4427,8 +4586,8 @@ textarea.form-input {
 .food-lookup-panel {
   margin: 8px 0 12px;
   padding: 12px;
-  border-radius: 10px;
-  background: var(--surface-2, rgba(255,255,255,0.04));
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
 }
 
 .food-lookup-head {
@@ -4575,7 +4734,7 @@ textarea.form-input {
 }
 
 .setup-error {
-  color: var(--danger, #ef4444);
+  color: var(--danger);
   font-size: 0.9rem;
   min-height: 1.2em;
   margin: 0 0 12px;
@@ -4617,16 +4776,17 @@ textarea.form-input {
   gap: 2px;
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
-  border-radius: 10px;
-  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
   text-align: left;
   cursor: pointer;
 }
 
 .setup-preset.is-active {
-  border-color: var(--accent, #2563eb);
-  box-shadow: inset 0 0 0 1px var(--accent, #2563eb);
+  border-color: var(--accent-blue);
+  box-shadow: inset 0 0 0 1px var(--accent-blue);
 }
 
 .setup-preset-title {
@@ -4660,8 +4820,8 @@ textarea.form-input {
 .session-memory-summary {
   margin: 0 0 12px;
   padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -4671,16 +4831,12 @@ textarea.form-input {
 }
 
 .session-floor-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
   z-index: 280;
-  padding: 10px 12px calc(10px + env(safe-area-inset-top, 0px));
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  background: var(--bg, #fff);
-  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.1));
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 10px 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
 }
 
 .session-floor-bar.hidden {
@@ -4698,8 +4854,16 @@ textarea.form-input {
   background: transparent;
   color: var(--text-muted);
   font-size: 0.9rem;
-  padding: 8px 4px;
+  font-weight: 500;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+}
+
+.session-floor-exit:active {
+  color: var(--text-secondary);
 }
 
 .session-floor-title {
@@ -4709,9 +4873,14 @@ textarea.form-input {
   text-align: center;
 }
 
+/* Floor Finish sits in a horizontal bar — must not inherit full-width .btn */
 .session-floor-finish {
   flex-shrink: 0;
-  padding: 8px 14px;
+  width: auto;
+  height: auto;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 16px;
   font-size: 0.85rem;
 }
 
@@ -4737,8 +4906,8 @@ textarea.form-input {
   gap: 10px;
   margin-top: 10px;
   padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
 }
 
 .session-rest.hidden {
@@ -4761,12 +4930,20 @@ textarea.form-input {
 
 .session-rest-btn {
   margin-left: auto;
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
-  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   border-radius: 6px;
-  padding: 6px 10px;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 8px 12px;
   font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
+}
+
+.session-rest-btn:active {
+  background: var(--bg-card-hover);
 }
 
 .session-close-panel {
@@ -4776,9 +4953,11 @@ textarea.form-input {
   bottom: 0;
   z-index: 290;
   padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
-  background: var(--bg, #fff);
+  background: var(--bg-card);
+  color: var(--text);
+  border-top: 1px solid var(--border);
   border-radius: 16px 16px 0 0;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
   max-width: 480px;
   margin: 0 auto;
 }
@@ -4806,17 +4985,22 @@ textarea.form-input {
 }
 
 .session-close-chip {
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
-  background: var(--surface, #fff);
-  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-pill);
+  min-height: 40px;
+  min-width: 44px;
   padding: 8px 12px;
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
 }
 
 .session-close-chip.is-active {
-  border-color: var(--accent, #2563eb);
-  background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+  border-color: var(--accent-blue);
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--accent-blue);
 }
 
 .session-close-actions {
@@ -4829,31 +5013,221 @@ textarea.form-input {
   flex: 1;
 }
 
+/* ── Session Floor focus ─────────────────────────────────────
+   body.session-floor-active is toggled by session-player.js.
+   Lifecycle unchanged: Memory → Floor → Close → Memory.
+   Date: reuse #date-display / #date-day-type (state.currentDate) — not a new clock.
+   Spacing: Floor bar is in-flow sticky (order -1); no fixed 168px inset.
+   ─────────────────────────────────────────────────────────── */
+
+/* Bottom nav + unrelated diary chrome */
 body.session-floor-active .bottom-nav,
-body.session-floor-active .app-sticky-header,
-body.session-floor-active .coach-collapsible-card:not(#training-card),
-body.session-floor-active #observation-block,
-body.session-floor-active #day-progress-strip {
+body.session-floor-active #coach-past-edit-bar,
+body.session-floor-active #coach-observation-block,
+body.session-floor-active #coach-note-card,
+body.session-floor-active #vitals-card,
+body.session-floor-active #plan-card,
+body.session-floor-active #recovery-card,
+body.session-floor-active #meals-summary-card,
+body.session-floor-active #supplements-card,
+body.session-floor-active #notes-card,
+body.session-floor-active #monday-review-card,
+body.session-floor-active #coach-debrief-export-card,
+body.session-floor-active .diary-home-label,
+body.session-floor-active #session-entry,
+body.session-floor-active #session-memory-summary {
   display: none !important;
+}
+
+/*
+  Compact date strip — .app-sticky-context stays mounted so #date-display
+  (updated by app.js updateDateDisplay → state.currentDate) stays visible.
+  Hide macros, secondary header, and date prev/next (no mid-session nav).
+*/
+body.session-floor-active .app-sticky-context {
+  display: block !important;
+  position: sticky;
+  top: 0;
+  z-index: 282;
+  margin: 0 -16px;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 16px 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.session-floor-active .app-sticky-context > :not(#date-header, #save-error-banner) {
+  display: none !important;
+}
+
+/* Existing save-error Retry must remain reachable on Floor.
+   Hidden state still uses .save-error-banner.hidden — do not unhide idle banner. */
+body.session-floor-active #save-error-banner.hidden {
+  display: none !important;
+}
+
+body.session-floor-active #save-error-banner:not(.hidden) {
+  display: flex !important;
+  margin: 0 0 8px;
+  position: relative;
+  z-index: 1;
+}
+
+body.session-floor-active .app-header-secondary {
+  display: none !important;
+}
+
+body.session-floor-active #date-header {
+  gap: 0;
+  padding: 0;
+  justify-content: center;
+}
+
+body.session-floor-active #date-prev,
+body.session-floor-active #date-next {
+  display: none !important;
+}
+
+body.session-floor-active .date-header-center {
+  gap: 2px;
+}
+
+body.session-floor-active #date-display {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+body.session-floor-active #date-day-type {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
+/* Body uses nav-height padding normally; Floor hides nav */
+body.session-floor-active {
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
 }
 
 body.session-floor-active .app-container {
   padding-top: 0;
 }
 
-body.session-floor-active #tab-coach,
-body.session-floor-active #training-card {
-  padding-top: 88px;
-}
-
-body.session-floor-active #training-card {
+/* Diary shell → single instrument surface; flex enables Floor bar order */
+body.session-floor-active .diary-sections {
+  display: flex;
+  flex-direction: column;
   border: none;
-  box-shadow: none;
+  border-radius: 0;
   background: transparent;
+  overflow: visible;
 }
 
+body.session-floor-active .diary-sections > .card,
+body.session-floor-active .diary-sections .card {
+  border-bottom: none !important;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+body.session-floor-active #tab-coach {
+  padding-top: 0;
+}
+
+/*
+  Floor chrome: DOM order is after #training-card; pull to front with order,
+  stick under the compact date strip. Height stays in-flow → no fixed inset.
+*/
+body.session-floor-active #session-floor-bar:not(.hidden) {
+  order: -1;
+  position: sticky;
+  /* Stable offset for compact date strip only (not directive/rest height) */
+  top: calc(48px + env(safe-area-inset-top, 0px));
+  z-index: 281;
+  margin: 0 0 12px;
+  padding: 8px 0 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* When Retry is showing, sit the Floor bar under banner + date strip. */
+body.session-floor-active:has(#save-error-banner:not(.hidden)) #session-floor-bar:not(.hidden) {
+  top: calc(112px + env(safe-area-inset-top, 0px));
+}
+
+/* Preserve JS Close/Exit hide — ID rule must not override .hidden */
+body.session-floor-active #session-floor-bar.hidden {
+  display: none !important;
+}
+
+body.session-floor-active #training-card {
+  order: 0;
+  padding-top: 0;
+  margin-bottom: 0;
+  border: none !important;
+  box-shadow: none;
+  background: transparent !important;
+}
+
+/* Floor bar already carries session title — drop redundant card header */
+body.session-floor-active #training-card > .card-header,
 body.session-floor-active #training-collapse {
-  display: none;
+  display: none !important;
+}
+
+body.session-floor-active #training-card .card-body {
+  padding-bottom: 8px;
+}
+
+/* Sticky Mark Done: sit above safe area (nav is hidden on Floor) */
+body.session-floor-active .training-footer--sticky {
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent, var(--bg) 28%);
+}
+
+body.session-floor-active #training-card .training-footer--sticky {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Active logging block spacing */
+body.session-floor-active .session-floor-fields {
+  padding-top: 4px;
+  padding-bottom: 12px;
+}
+
+body.session-floor-active .training-planned-hint {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/*
+  Close-mode dimming — progressive enhancement via :has().
+  Supported: Safari 15.4+, Chrome 105+, Firefox 121+, Samsung Internet 20+.
+  Fallback (no :has): Close panel remains usable; training stays undimmed.
+*/
+body.session-floor-active:has(#session-close-panel:not(.hidden)) #training-card {
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
+}
+
+body.session-floor-active:has(#session-close-panel:not(.hidden)) {
+  padding-bottom: calc(280px + env(safe-area-inset-bottom, 0px));
+}
+
+@supports not selector(:has(*)) {
+  /* Explicit no-op documentation hook — Close still works without dimming */
+  body.session-floor-active #session-close-panel:not(.hidden) {
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.55);
+  }
 }
 
 .week-plan-header {
@@ -4865,21 +5239,52 @@ body.session-floor-active #training-collapse {
 }
 
 .session-status-chip {
-  margin-top: 4px;
-  font-size: 0.75rem;
+  margin-top: 1px;
+  font-size: 11px;
   color: var(--text-muted);
   text-align: center;
+  line-height: 1.25;
 }
 
 .session-status-chip.hidden {
   display: none;
 }
 
+/* ── Phase 3.1.A.1 — Secondary header density (DOM order = visual) ── */
+
+.app-sticky-context .date-header .day-badge {
+  font-size: 11px;
+  padding: 2px 9px;
+  letter-spacing: 0.4px;
+}
+
+.app-header-secondary #block-context-chip {
+  text-align: center;
+  padding: 2px 0 0;
+}
+
+.app-header-secondary #session-status-chip {
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.app-header-secondary .user-bar {
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  margin-top: 4px;
+  padding-top: 2px;
+  padding-bottom: 4px;
+}
+
+.app-header-secondary .day-progress {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
 .day-shift-controls {
   margin: 0 0 16px;
   padding: 12px;
-  background: var(--surface-2, rgba(255, 255, 255, 0.04));
-  border-radius: 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
 }
 
 .day-shift-label {
@@ -4896,9 +5301,10 @@ body.session-floor-active #training-collapse {
   gap: 8px;
 }
 
-.day-shift-actions .btn-sm {
+.day-shift-actions .btn.btn-sm {
   font-size: 0.8rem;
-  padding: 6px 10px;
+  padding: 8px 12px;
+  min-height: 40px;
 }
 
 /* ── Diary home + Food add sheet (APP-UI) ───────────────────── */
@@ -5042,19 +5448,20 @@ body.session-floor-active #training-collapse {
   font-weight: 600;
 }
 
+/* Macro spine density — keep bar; avoid oversized current figure */
 .macro-spine {
-  padding: 12px 0 10px;
+  padding: 4px 0 6px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .macro-spine-row {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .macro-spine-current {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 650;
 }
 
 .food-add-sheet {
@@ -5179,6 +5586,548 @@ body.food-sheet-open {
   padding: 12px 0;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+/* ── Phase 3.1.B — Today section visual hierarchy (CSS-only) ──
+   Visual weight only. No section reorder / SECTION_BASE changes.
+   Levels: Context (Plan, Recovery) → Daily actions (Vitals, Training,
+   Meals) → Athletic memory (supps, notes, Monday, observations, day log).
+   Header (3.1.A.1) and Floor (2.3) unchanged.
+   ─────────────────────────────────────────────────────────── */
+
+/* Shared diary surface: slightly calmer separators */
+.diary-sections {
+  border-color: color-mix(in srgb, var(--border) 85%, transparent);
+}
+
+.diary-sections .card-header {
+  min-height: 48px;
+  padding: 10px 0;
+}
+
+.diary-sections .card-body {
+  padding: 0 0 12px;
+}
+
+.diary-sections .card-summary-inline {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Collapsed logging cards: quieter header, clear factual summary */
+.diary-sections .coach-collapsible-card.collapsed .card-header {
+  min-height: 44px;
+  padding: 8px 0;
+}
+
+.diary-sections .coach-collapsible-card.collapsed .card-title {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.diary-sections .coach-collapsible-card.collapsed .card-summary-inline {
+  color: var(--text-secondary);
+  font-weight: 550;
+}
+
+/* ── Context: Plan ─────────────────────────────────────────── */
+#plan-card .card-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--text-secondary);
+}
+
+#plan-card .directive {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.4;
+  color: var(--text);
+  border-left-color: var(--accent-green);
+  border-left-width: 3px;
+  padding: 6px 0 6px 12px;
+  margin: 4px 0 10px;
+}
+
+#plan-card #plan-training-summary {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+#plan-card .collapsible-toggle {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+
+#plan-card .day-shift-controls {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+}
+
+#plan-card .day-shift-label {
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+/* ── Context: Recovery (Rest / AR — guidance, not a training CTA) */
+#recovery-card .card-title {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.35px;
+  color: var(--accent-teal);
+}
+
+#recovery-card .card-body {
+  padding-bottom: 14px;
+}
+
+#recovery-card .recovery-today-line {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+#recovery-card {
+  /* Subtle contextual tint — not an alert */
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent-teal) 55%, transparent) !important;
+}
+
+/* ── Daily actions: Vitals / Training / Meals ───────────────── */
+#vitals-card .card-title,
+#training-card .card-title,
+#meals-summary-card .card-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.35px;
+  color: var(--text-secondary);
+}
+
+#vitals-card .form-label,
+#training-card .form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+#vitals-card .form-row {
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+#vitals-card .form-input,
+#training-card .form-input {
+  min-height: 44px;
+}
+
+#vitals-card #save-vitals {
+  margin-top: 4px;
+  width: 100%;
+}
+
+#vitals-card .card-summary,
+#vitals-card #vitals-summary {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  padding: 2px 0 8px;
+}
+
+/* Training Memory — primary action readable; completed summary quieter */
+#training-card .session-entry-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+#training-card #session-start-btn {
+  width: 100%;
+}
+
+#training-card #session-resume-btn {
+  width: 100%;
+}
+
+#training-card .session-memory-summary {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+}
+
+#training-card.collapsed .card-summary-inline {
+  font-size: 12px;
+}
+
+/* Meals — summary list as a calm diary, empty slots inviting not alarming */
+#meals-summary-card .diary-meal-row {
+  min-height: 48px;
+  padding: 8px 0;
+  border-bottom-color: color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+#meals-summary-card .diary-meal-row .name,
+#meals-summary-card .diary-meal-row-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+#meals-summary-card .diary-meal-items {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+#meals-summary-card .diary-meal-row--empty .diary-meal-row-label {
+  color: var(--text-secondary);
+  font-weight: 550;
+}
+
+#meals-summary-card .diary-meal-row-cta {
+  color: var(--accent-blue);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+#meals-summary-card .meals-day-total {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+#meals-summary-card .meals-day-total-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+
+#meals-summary-card .meals-day-total-macros {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+#meals-summary-card #go-to-food {
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* ── Athletic memory: quieter emphasis ─────────────────────── */
+#supplements-card .card-title,
+#notes-card .card-title,
+#monday-review-card .card-title,
+#coach-debrief-export-card .card-title {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+}
+
+#supplements-card .card-body,
+#notes-card .card-body,
+#monday-review-card .card-body,
+#coach-debrief-export-card .card-body {
+  padding-bottom: 10px;
+}
+
+#supplements-card .supp-toggle {
+  min-height: 44px;
+}
+
+#supplements-card .supplements-history-label,
+#supplements-card .form-hint,
+#supplements-card #supplements-d3-hint {
+  font-size: 11px;
+  color: var(--text-hint);
+}
+
+#notes-card #input-notes {
+  min-height: 72px;
+  font-size: 14px;
+}
+
+#notes-card #save-notes {
+  width: 100%;
+}
+
+#monday-review-card .monday-review-intro {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+#monday-review-card .monday-review-line {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-secondary);
+}
+
+/* Observation + coach note (inside diary-sections from Phase 3.1.C) */
+#coach-observation-block {
+  font-size: 14px;
+  font-weight: 400;
+  padding: 10px 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  color: var(--text-secondary);
+}
+
+#coach-note-card {
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+}
+
+#coach-note-card .coach-note-label {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-muted);
+}
+
+#coach-note-card .coach-note-excerpt {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+#coach-note-card .coach-note-header {
+  padding: 10px 0;
+}
+
+#coach-note-card .coach-note-loading {
+  padding: 10px 0;
+  font-size: 12px;
+}
+
+/* Day log — summary-first, checklist factual not alarming */
+#coach-debrief-export-card .tab-intro {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+#coach-debrief-export-card .debrief-preflight {
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+#coach-debrief-export-card .debrief-preflight-title {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+#coach-debrief-export-card .debrief-preflight-status {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+#coach-debrief-export-card .debrief-preflight-status.ready {
+  color: var(--accent-green);
+}
+
+#coach-debrief-export-card .debrief-preflight-item {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+#coach-debrief-export-card .debrief-preflight-item.done {
+  color: var(--text-muted);
+}
+
+#coach-debrief-export-card .debrief-incomplete-warning {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  padding: 6px 0;
+}
+
+#coach-debrief-export-card #copy-debrief {
+  width: 100%;
+}
+
+#coach-debrief-export-card .day-summary-label,
+#coach-debrief-export-card .debrief-preview-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Past-edit bar: discoverable, not competing with plan */
+#coach-past-edit-bar {
+  background: transparent;
+}
+
+/* ── Phase 3.1.E.1 — Historical context & editing-state UX ───
+   Off-today + past-edit bars stay separate; shared quiet chrome.
+   Progress on past dates is secondary, not task-urgent.
+   ─────────────────────────────────────────────────────────── */
+.day-progress--historical {
+  opacity: 0.82;
+}
+
+.day-progress--historical .day-progress-summary {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--text-muted);
+}
+
+.day-progress--historical .coach-next {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.day-progress--historical .coach-next-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.day-progress--historical .coach-next-text {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.day-progress--historical .progress-chip:not(.done) {
+  opacity: 0.88;
+}
+
+.coach-readonly .card-title {
+  color: var(--text-muted);
+}
+
+/* ── Phase 3.1.D — Progressive disclosure & completed summaries ─
+   Quieter completed/collapsed logging cards; Plan/Recovery stay context.
+   Floor/header/order untouched. No guilt/streak chrome.
+   ─────────────────────────────────────────────────────────── */
+
+/* Collapsed logging cards: compact factual strip */
+.diary-sections .coach-collapsible-card.collapsed {
+  opacity: 0.92;
+}
+
+.diary-sections .coach-collapsible-card.collapsed .card-header {
+  min-height: 40px;
+  padding: 6px 0;
+}
+
+.diary-sections .coach-collapsible-card.collapsed .card-summary-inline {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Vitals collapsed summary panel — match diary summary tone */
+#vitals-card.collapsed .vitals-summary-panel {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+#vitals-card.collapsed #vitals-summary,
+#vitals-card.collapsed .card-summary {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  padding: 0 0 4px;
+}
+
+/* Training Memory: completed summary quieter; Start/Resume stay primary when open */
+#training-card.collapsed .card-summary-inline {
+  color: var(--text-secondary);
+}
+
+#training-card .session-memory-summary:not(.hidden) {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-color: color-mix(in srgb, var(--border) 75%, transparent);
+  background: transparent;
+}
+
+/* Meals: inline progress readable while expanded or collapsed */
+#meals-summary-card .card-summary-inline:not(:empty) {
+  color: var(--text-secondary);
+}
+
+#meals-summary-card.collapsed .card-summary-inline {
+  font-weight: 550;
+}
+
+/* Empty optional Notes — present, not urgent */
+#notes-card:not(.collapsed) #input-notes:placeholder-shown {
+  min-height: 56px;
+  opacity: 0.9;
+}
+
+#notes-card:not(.collapsed) #save-notes {
+  opacity: 0.92;
+}
+
+/* Monday review — summary-first density */
+#monday-review-card .monday-review-intro {
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+#monday-review-card .monday-review-line {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#monday-review-card .monday-review-hint {
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+/* Day log — ready state factual, incomplete stays neutral (3.1.B) */
+#coach-debrief-export-card .debrief-preflight-status.ready {
+  font-weight: 600;
+}
+
+#coach-debrief-export-card .day-summary-details,
+#coach-debrief-export-card .debrief-preview-details {
+  margin-top: 8px;
+}
+
+#coach-debrief-export-card .day-summary-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Collapse affordance remains clear when completed */
+.diary-sections .coach-collapsible-card.collapsed .card-collapse-btn {
+  opacity: 0.85;
+}
+
+.diary-sections .coach-collapsible-card.collapsed .card-collapse-btn:focus-visible {
+  opacity: 1;
+}
+
+/* Plan / Recovery: never densify away — keep contextual breathing room */
+#plan-card .card-body,
+#recovery-card .card-body {
+  padding-bottom: 14px;
 }
 
 /* ── Responsive (tablet/desktop fallback) ──────────────────── */

@@ -58,6 +58,7 @@ import {
   initSessionPlayer,
   refreshSessionEntry,
   isSessionActive,
+  exitActiveSession,
 } from './session-player.js';
 import {
   scheduleAutosave,
@@ -82,6 +83,8 @@ import {
 } from './day-shift.js';
 
 let trainingAutosaveSuspended = false;
+/** After persist failure: finish Done + optional exit when Retry succeeds. */
+let pendingCompletion = null;
 
 function trainingAutosaveKey() {
   return `training:${getToday()}`;
@@ -109,6 +112,7 @@ export function initToday() {
       layoutCoachScreen();
       syncDayStatus();
     },
+    completeSession: () => completeTrainingAsDone({ exitWhenSaved: true }),
   });
   initDayShiftControls({
     onChanged: async () => {
@@ -442,7 +446,17 @@ function collectRunLogFromForm() {
 }
 
 
-async function persistTraining({ silent = true } = {}) {
+async function settlePendingCompletion(log) {
+  if (!pendingCompletion || !log?.done) return;
+  const { exitWhenSaved } = pendingCompletion;
+  pendingCompletion = null;
+  await markSessionCompleted(getToday());
+  updateDayShiftControls(state.currentPlan);
+  syncDayStatus();
+  if (exitWhenSaved) exitActiveSession();
+}
+
+async function persistTraining({ silent = true, logOverride = null } = {}) {
   const plan = state.currentPlan;
   if (!plan || isViewingFuture() || trainingAutosaveSuspended) return true;
   const canLogWorkout = !!plan.workout_plan
@@ -451,7 +465,7 @@ async function persistTraining({ silent = true } = {}) {
   if (!plan.run_type && !canLogWorkout) return true;
 
   if (plan.run_type) {
-    const log = collectRunLogFromForm();
+    const log = logOverride || collectRunLogFromForm();
     const hasContent = runLogHasContent(log) || state.runLog;
     if (!hasContent) return true;
 
@@ -459,12 +473,14 @@ async function persistTraining({ silent = true } = {}) {
       const ok = await upsertRunLog(getToday(), log);
       if (!ok) return false;
       state.runLog = log;
+      setDoneToggle(!!log.done);
       syncDayStatus();
+      await settlePendingCompletion(log);
       return true;
     }, { toastOnSuccess: !silent });
   }
 
-  const log = collectWorkoutLogFromForm();
+  const log = logOverride || collectWorkoutLogFromForm();
   const hasContent = workoutLogHasContent(log) || state.workoutLog || workoutExercisesInteracted();
   if (!hasContent) return true;
 
@@ -472,8 +488,10 @@ async function persistTraining({ silent = true } = {}) {
     const ok = await upsertWorkoutLog(getToday(), log);
     if (!ok) return false;
     state.workoutLog = log;
+    setDoneToggle(!!log.done);
     invalidateLastPerfCache();
     syncDayStatus();
+    await settlePendingCompletion(log);
     return true;
   }, { toastOnSuccess: !silent });
 }
@@ -485,17 +503,16 @@ function scheduleTrainingAutosave() {
     && plan?.day_type !== 'Gym' && plan?.day_type !== 'Bodyweight') return;
 
   scheduleAutosave(trainingAutosaveKey(), async () => {
-    await persistTraining({ silent: true });
+    return persistTraining({ silent: true });
   });
 }
 
 export async function flushTrainingAutosave() {
   const key = trainingAutosaveKey();
   if (hasPendingAutosave(key)) {
-    await flushAutosave(key);
-    return;
+    return flushAutosave(key);
   }
-  await persistTraining({ silent: true });
+  return persistTraining({ silent: true });
 }
 
 function setupTrainingAutosave() {
@@ -512,40 +529,70 @@ function setupTrainingAutosave() {
   });
 }
 
+/**
+ * Shared Gym/Run completion: existing validation, then await persist, then
+ * confirm state. Used by Mark as Done and Save & Close.
+ * Done UI follows persist success only — never optimistic.
+ */
+async function completeTrainingAsDone({ exitWhenSaved = false } = {}) {
+  const btn = document.getElementById('training-done-btn');
+  const alreadyDone = !!btn?.classList.contains('done');
+
+  if (!alreadyDone && state.currentPlan?.workout_plan) {
+    const log = { ...collectWorkoutLogFromForm(), done: true };
+    const { valid, errors } = validateWorkoutLogForDone(log);
+    if (!valid) {
+      showToast(errors[0], { variant: 'error' });
+      document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      return { ok: false, reason: 'validation', errors };
+    }
+  }
+
+  if (!alreadyDone && state.currentPlan?.run_type) {
+    tryAutoPace();
+    const log = { ...collectRunLogFromForm(), done: true };
+    const { valid, errors, warnings } = validateRunLogForDone(log);
+    if (!valid) {
+      showToast(errors[0], { variant: 'error' });
+      document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      return { ok: false, reason: 'validation', errors };
+    }
+    if (warnings.length) showToast(warnings[0]);
+  }
+
+  const completedLog = state.currentPlan?.run_type
+    ? { ...collectRunLogFromForm(), done: true }
+    : { ...collectWorkoutLogFromForm(), done: true };
+
+  cancelAutosave(trainingAutosaveKey());
+  let persisted = false;
+  try {
+    persisted = await persistTraining({ silent: true, logOverride: completedLog });
+  } catch {
+    persisted = false;
+  }
+  if (!persisted) {
+    pendingCompletion = { exitWhenSaved };
+    return { ok: false, reason: 'persist' };
+  }
+
+  pendingCompletion = null;
+  await markSessionCompleted(getToday());
+  updateDayShiftControls(state.currentPlan);
+  syncDayStatus();
+  return { ok: true };
+}
+
 function setupTrainingLog() {
-  document.getElementById('training-done-btn').addEventListener('click', () => {
+  document.getElementById('training-done-btn').addEventListener('click', async () => {
     const btn = document.getElementById('training-done-btn');
-    const wasDone = btn.classList.contains('done');
-
-    if (!wasDone && state.currentPlan?.workout_plan) {
-      const log = { ...collectWorkoutLogFromForm(), done: true };
-      const { valid, errors } = validateWorkoutLogForDone(log);
-      if (!valid) {
-        showToast(errors[0], { variant: 'error' });
-        document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
-        return;
-      }
+    if (btn.classList.contains('done')) {
+      setDoneToggle(false);
+      scheduleTrainingAutosave();
+      syncDayStatus();
+      return;
     }
-
-    if (!wasDone && state.currentPlan?.run_type) {
-      tryAutoPace();
-      const log = { ...collectRunLogFromForm(), done: true };
-      const { valid, errors, warnings } = validateRunLogForDone(log);
-      if (!valid) {
-        showToast(errors[0], { variant: 'error' });
-        document.getElementById('training-card')?.scrollIntoView({ behavior: 'auto', block: 'start' });
-        return;
-      }
-      if (warnings.length) showToast(warnings[0]);
-    }
-
-    btn.classList.toggle('done');
-    const nowDone = btn.classList.contains('done');
-    if (nowDone) {
-      markSessionCompleted(getToday()).then(() => updateDayShiftControls(state.currentPlan));
-    }
-    scheduleTrainingAutosave();
-    syncDayStatus();
+    await completeTrainingAsDone();
   });
 
   setupRpeSlider('input-run-rpe', 'run-rpe-value', scheduleTrainingAutosave);
@@ -797,9 +844,11 @@ export async function loadMealsSummary() {
   let totalProtein = 0;
   let totalCalories = 0;
   let html = '';
-  const loggedSlots = new Set(logs.map((l) => l.meal_slot));
+  const bySlot = new Map(logs.map((l) => [l.meal_slot, l]));
+  const orderedSlots = getCurrentMealSlots();
+  const seen = new Set(orderedSlots);
 
-  for (const log of logs) {
+  function renderFilledRow(log) {
     const { items, protein, calories } = macrosFromResolvedLog(log);
     const slot = log.meal_slot;
     const label = formatSlotLabel(slot);
@@ -808,10 +857,8 @@ export async function loadMealsSummary() {
     const hasUnresolved = items.some(needsMacroResolve);
     totalProtein += protein;
     totalCalories += calories;
-
     const macroLabel = formatMealMacroLabel(protein, calories, items);
-
-    html += `<div class="diary-meal-row meal-summary-item${hasUnresolved ? ' meal-summary-item--warn' : ''}" data-open-slot="${slot}" role="button" tabindex="0">
+    return `<div class="diary-meal-row meal-summary-item${hasUnresolved ? ' meal-summary-item--warn' : ''}" data-open-slot="${slot}" role="button" tabindex="0">
       <div class="meal-summary-item-main">
         <span class="name">${escapeHtml(label)}</span>
         <span class="diary-meal-items">${escapeHtml(names || noteText || '—')}</span>
@@ -822,13 +869,22 @@ export async function loadMealsSummary() {
     </div>`;
   }
 
-  for (const slot of getCurrentMealSlots()) {
-    if (loggedSlots.has(slot)) continue;
+  for (const slot of orderedSlots) {
+    const log = bySlot.get(slot);
+    if (log) {
+      html += renderFilledRow(log);
+      continue;
+    }
     const label = formatSlotLabel(slot);
     html += `<button type="button" class="diary-meal-row diary-meal-row--empty" data-open-slot="${slot}">
       <span class="diary-meal-row-label">${escapeHtml(label)}</span>
       <span class="diary-meal-row-cta">Log →</span>
     </button>`;
+  }
+
+  for (const log of logs) {
+    if (seen.has(log.meal_slot)) continue;
+    html += renderFilledRow(log);
   }
 
   list.innerHTML = html;

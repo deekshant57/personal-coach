@@ -96,7 +96,7 @@ function buildDebriefText() {
   let totalProtein = 0;
   let totalCalories = 0;
 
-  const slotOrder = ['pre-run', 'pre-workout', 'post-run', 'post-workout', 'breakfast', 'lunch', 'snack', 'dinner'];
+  const slotOrder = ['breakfast', 'lunch', 'snack', 'pre-run', 'pre-workout', 'post-run', 'post-workout', 'dinner'];
 
   for (const slot of slotOrder) {
     if (!foodLogs[slot]) continue;

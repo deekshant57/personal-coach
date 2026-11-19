@@ -11,15 +11,16 @@ When Deekshant sends `Monday — weekly debrief — DD MMM,YY` (or `Monday — w
 
 ## Before debriefing
 
-0. Read `coach/coaching-log.md` and `coach/current-block.md`
-1. Read Monday paste metrics and prior-week rollups (app fills longest run, avg sleep, knee, cigs from `week-stats.js` contract in `WEEK-STATS-SPEC.md`)
-2. Pull prior week's daily logs: runs, workouts, food, vitals — from app debrief paste or Supabase
-3. Compare **planned vs actual** mileage, sessions completed, protein/kcal patterns
-4. Read `personal-details.md` for race timeline, injury history, blood markers (triglycerides 227)
-5. **Weight:** ±0.5 kg = noise; **2+ week trends = signal** — never react to a single Monday weigh-in alone
-6. Check body comp scan if included — do not merge scan into Monday vitals (see `body-comp.mdc`)
-7. Identify meaningful events from the week: new patterns, progressions (improving trends), stagnations (expected change not happening), milestones reached. Name them explicitly.
-8. Review coaching log for previous decisions whose outcomes are now observable. Update outcomes and insights.
+0. Run **`coach-session`** evidence pull (`pull-coach-evidence.py`) — live vitals/runs/workouts/food/supplements/body/plans. Do not debrief from markdown alone.
+1. Read `coach/coaching-log.md` and `coach/current-block.md` (mission/priorities live here)
+2. Read Monday paste metrics and prior-week rollups (app fills longest run, avg sleep, knee, cigs from `week-stats.js` contract in `WEEK-STATS-SPEC.md`)
+3. Compare **planned vs actual** mileage, sessions completed, protein/kcal patterns against the pull
+4. Verify **active protocols**: supplements (no closed courses), race/countdown, calorie anchors vs current block
+5. Read `personal-details.md` for injury history, blood markers (triglycerides 227), ACTIVE supplement lines only
+6. **Weight:** ±0.5 kg = noise; **2+ week trends = signal** — never react to a single Monday weigh-in alone
+7. Check body comp scan if included — do not merge scan into Monday vitals (see `body-comp.mdc`)
+8. Identify meaningful events from the week: new patterns, progressions, stagnations, milestones. Name them explicitly.
+9. Review coaching log for previous decisions whose outcomes are now observable. Update outcomes and insights.
 
 ## Section 1 — WEEK SCORE
 

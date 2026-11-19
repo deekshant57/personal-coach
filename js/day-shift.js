@@ -1,5 +1,5 @@
 // Day-shift — move / skip / complete session + meal slot remap (Phase A)
-import { MEAL_SLOTS, SLOT_LABELS } from './data.js';
+import { SLOT_LABELS } from './data.js';
 import { state, getToday, showToast, showConfirm } from './app.js';
 import {
   patchDailyPlan,
@@ -8,21 +8,26 @@ import {
   deleteFoodLog,
 } from './supabase.js';
 import { invalidateFoodLogsCache, loadFoodData } from './food.js';
+import {
+  isTrainingDayType,
+  effectiveSlotScheme,
+  effectiveSessionWindow as resolveSessionWindow,
+  eveningTrainingSlots,
+  slotsForPlan as resolveSlotsForPlan,
+} from './meal-slots.js';
 
-const TRAINING_TYPES = new Set(['Run', 'Gym', 'Bodyweight']);
+export {
+  isTrainingDayType,
+  effectiveSlotScheme,
+  eveningTrainingSlots,
+};
 
-export function isTrainingDayType(dayType) {
-  return TRAINING_TYPES.has(dayType);
-}
-
-export function effectiveSlotScheme(plan) {
-  if (!plan) return 'Rest';
-  if (plan.slot_scheme && MEAL_SLOTS[plan.slot_scheme]) return plan.slot_scheme;
-  return MEAL_SLOTS[plan.day_type] ? plan.day_type : 'Rest';
+export function effectiveSessionWindow(plan = state.currentPlan) {
+  return resolveSessionWindow(plan);
 }
 
 export function slotsForPlan(plan) {
-  return MEAL_SLOTS[effectiveSlotScheme(plan)] || MEAL_SLOTS.Rest;
+  return resolveSlotsForPlan(plan);
 }
 
 /** True when planned vs actual session window differ (move / late log). */
@@ -35,16 +40,20 @@ export function sessionWindowDiffers(plan = state.currentPlan) {
   return actual !== planned;
 }
 
-/** Display label for a meal slot — adds “(evening session)” on pre/post when shifted. */
+/** Display label for a meal slot — qualifies pre/post when training is evening. */
 export function formatSlotLabel(slot, plan = state.currentPlan) {
   const base = SLOT_LABELS[slot] || slot;
-  if (!plan || !sessionWindowDiffers(plan)) return base;
+  if (!plan) return base;
 
-  const actual = plan.actual_session_window;
   const isPre = slot === 'pre-workout' || slot === 'pre-run';
   const isPost = slot === 'post-workout' || slot === 'post-run';
   if (!isPre && !isPost) return base;
 
+  const window = effectiveSessionWindow(plan);
+  if (window === 'evening') return `${base} (evening)`;
+  if (!sessionWindowDiffers(plan)) return base;
+
+  const actual = plan.actual_session_window;
   const windowWord = actual === 'evening' ? 'evening' : actual === 'morning' ? 'morning' : actual;
   return `${base} (${windowWord} session)`;
 }
@@ -58,9 +67,16 @@ export function slotLabelsForPlan(plan = state.currentPlan) {
   return labels;
 }
 
-/** One-line Food tab hint when session was moved. */
+/** One-line Food tab hint when session was moved or planned evening. */
 export function sessionTimingHint(plan = state.currentPlan) {
-  if (!plan || !sessionWindowDiffers(plan)) return '';
+  if (!plan) return '';
+  if (effectiveSessionWindow(plan) === 'evening') {
+    if (sessionWindowDiffers(plan)) {
+      return 'Session moved to evening — Breakfast for morning; Pre/Post for the evening session.';
+    }
+    return 'Evening session — Breakfast for morning; Pre/Post around training.';
+  }
+  if (!sessionWindowDiffers(plan)) return '';
   const planned = plan.planned_session_window || 'morning';
   const actual = plan.actual_session_window;
   return `Planned ${planned} · training ${actual} — pre/post slots still apply.`;

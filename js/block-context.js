@@ -18,9 +18,18 @@ export const BLOCK = {
   weightGoalLabel: '~73 kg',
 };
 
+function isDisplayableBlockWeek(week) {
+  return typeof week === 'number' && Number.isFinite(week);
+}
+
+function formatBlockNameWeek(b) {
+  const name = b?.name;
+  if (!isDisplayableBlockWeek(b?.week)) return `${name}`;
+  return `${name} · Week ${b.week}`;
+}
+
 export function formatBlockLabel(profile = getAthleteProfile()) {
-  const b = blockFromProfile(profile);
-  return `${b.name} · Week ${b.week}`;
+  return formatBlockNameWeek(blockFromProfile(profile));
 }
 
 export function formatBlockChip(now = new Date(), profile = getAthleteProfile()) {
@@ -29,7 +38,7 @@ export function formatBlockChip(now = new Date(), profile = getAthleteProfile())
   const weekLabel = profile.showRaceCountdown && weeks > 0
     ? ` · ${weeks} wk to race`
     : '';
-  return `${b.name} · Week ${b.week}${weekLabel}`;
+  return `${formatBlockNameWeek(b)}${weekLabel}`;
 }
 
 export function getWeeksToRace(now = new Date(), profile = getAthleteProfile()) {

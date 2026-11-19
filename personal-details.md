@@ -4,11 +4,11 @@
 
 Transform from a detrained runner/lifter into an athletic runner who lifts.
 
-Target Date: **6 September 2026**
+Target Date: open (no race deadline — Hybrid Cardio + Gym restart from 17 Nov 2026)
 
 Primary Goal:
 
-* Complete Half Marathon (21.1 km)
+* Rebuild easy cardio + keep gym strength (Half Marathon deferred; Dec 13 dropped)
 
 Secondary Goals:
 
@@ -462,19 +462,19 @@ Monitoring Required:
 # Supplement Plan
 
 Uprise D3 60K:
-Once weekly (Thursday) with fattiest meal — deficiency correction (23.4 ng/mL)
+**COURSE COMPLETE** (weekly doses logged through **30 Jul 2026**; no further weekly 60K). Do **not** prescribe in meal plans or show as an active Thursday toggle until a new Vitamin D lab. Baseline was 23.4 ng/mL (insufficient) — **retest** before deciding maintenance vs restart.
 
 Supradyn Daily:
-1 tablet daily after breakfast (covers B12 500mcg + general micronutrients)
+1 tablet daily after breakfast (covers B12 500mcg + general micronutrients) — **ACTIVE**
 
 Creatine Monohydrate:
-5 g daily with lunch
+5 g daily with lunch — **ACTIVE** (adherence slipped in restart; reinstate)
 
 Whey Protein:
-1-2 scoops daily (food log, not supplement toggle)
+1-2 scoops daily (food log, not supplement toggle) — **ACTIVE** · hard rule if under 140g protein by 8 PM
 
 Algae Omega-3:
-1–2 g EPA+DHA daily with lunch (triglycerides 227; walnuts/flax ALA alone is insufficient)
+1–2 g EPA+DHA daily with lunch (triglycerides 227; walnuts/flax ALA alone is insufficient) — **ACTIVE** (rarely logged — coach priority)
 
 ---
 

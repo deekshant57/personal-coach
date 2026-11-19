@@ -15,6 +15,13 @@ import {
   shouldStaySilent,
 } from './observation-engine.js';
 import { summarizePlanSession } from './plan-summary.js';
+import {
+  BLOCK,
+  formatBlockChip,
+  formatBlockLabel,
+  formatRestDayPlanTitle,
+  getWeeksToRace,
+} from './block-context.js';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const blockContextJs = readFileSync(join(__dir, 'block-context.js'), 'utf8');
@@ -28,16 +35,6 @@ function formatRecoveryTodayHtml({ plan, nextLabel }) {
   ];
   if (nextLabel) lines.push(`Tomorrow: ${nextLabel}`);
   return lines.map((line) => `<p class="recovery-today-line">${line}</p>`).join('');
-}
-
-function blockNameFromSource() {
-  const m = blockContextJs.match(/name:\s*'([^']+)'/);
-  return m?.[1] || '';
-}
-
-function blockWeekFromSource() {
-  const m = blockContextJs.match(/week:\s*(\d+)/);
-  return Number(m?.[1] || 0);
 }
 
 const indexHtml = readFileSync(join(__dir, '..', 'index.html'), 'utf8');
@@ -180,8 +177,29 @@ test('checklist 4c — rest day plan title pattern in block-context', () => {
   assert.ok(blockContextJs.includes('formatRestDayPlanTitle'));
   assert.ok(blockContextJs.includes('Rest day'));
   assert.ok(blockContextJs.includes('Next:'));
-  const blockName = blockNameFromSource();
-  assert.ok(blockName.includes('HM Build'));
+  // Title is profile-driven via formatBlockLabel(profile), not a hardcoded block string.
+  assert.ok(blockContextJs.includes('formatBlockLabel(profile)'));
+
+  const profile = {
+    block: { name: 'Fixture Hypertrophy', week: 3, raceDate: null, raceName: null },
+    showRaceCountdown: false,
+  };
+  const withNext = formatRestDayPlanTitle('Mon Easy 5 km', profile);
+  assert.equal(
+    withNext,
+    'Rest day · Fixture Hypertrophy · Week 3 · Next: Mon Easy 5 km',
+  );
+  assert.equal(
+    formatRestDayPlanTitle(null, profile),
+    'Rest day · Fixture Hypertrophy · Week 3',
+  );
+  assert.equal(
+    formatRestDayPlanTitle('', profile),
+    'Rest day · Fixture Hypertrophy · Week 3',
+  );
+  // Must not fall back to deprecated BLOCK / sprint-era labels when a profile is supplied.
+  assert.ok(!withNext.includes(BLOCK.name));
+  assert.ok(!withNext.includes('HM Build'));
 });
 
 test('checklist 4d — Sunday fallback plan shape is rest day', () => {
@@ -212,11 +230,79 @@ test('checklist 5c — Monday debrief requires waist', () => {
   assert.ok(dayProgress.includes('waist_inches == null'));
 });
 
-test('checklist 5d — block chip uses BLOCK.week from block-context.js', () => {
+test('checklist 5d — block chip uses profile block + optional race countdown', () => {
   assert.ok(blockContextJs.includes('formatBlockChip'));
   assert.ok(blockContextJs.includes('wk to race'));
-  assert.equal(blockWeekFromSource(), 2);
-  assert.ok(blockNameFromSource().length > 0);
+  // Source of truth is getAthleteProfile().block (via blockFromProfile), not deprecated BLOCK.
+  assert.ok(blockContextJs.includes('blockFromProfile'));
+  assert.ok(blockContextJs.includes('getAthleteProfile'));
+  assert.ok(blockContextJs.includes('profile.showRaceCountdown'));
+
+  const now = new Date('2026-11-19T12:00:00');
+  const profile = {
+    block: {
+      name: 'Profile Driven Block',
+      week: 4,
+      raceDate: '2026-12-13',
+      raceName: 'Half Marathon (Dec 13)',
+    },
+    showRaceCountdown: true,
+  };
+  const weeks = getWeeksToRace(now, profile);
+  assert.ok(weeks > 0);
+  assert.notEqual(profile.block.week, BLOCK.week);
+  assert.notEqual(profile.block.name, BLOCK.name);
+
+  const chip = formatBlockChip(now, profile);
+  assert.equal(
+    chip,
+    `Profile Driven Block · Week 4 · ${weeks} wk to race`,
+  );
+
+  const chipNoCountdown = formatBlockChip(now, {
+    ...profile,
+    showRaceCountdown: false,
+  });
+  assert.equal(chipNoCountdown, 'Profile Driven Block · Week 4');
+  assert.ok(!chipNoCountdown.includes('wk to race'));
+
+  const noRaceDate = formatBlockChip(now, {
+    block: { name: 'Restart Block', week: 1, raceDate: null },
+    showRaceCountdown: true,
+  });
+  assert.equal(noRaceDate, 'Restart Block · Week 1');
+});
+
+test('block label omits null week and keeps numeric weeks', () => {
+  const cases = [
+    [{ block: { name: 'Training', week: 4 } }, 'Training · Week 4'],
+    [{ block: { name: 'Training', week: 1 } }, 'Training · Week 1'],
+    [{ block: { name: 'Training', week: null } }, 'Training'],
+    [{ block: { name: 'Hybrid Restart', week: null } }, 'Hybrid Restart'],
+    [{ block: { name: 'Hybrid Restart', week: 3 } }, 'Hybrid Restart · Week 3'],
+    [{ block: { name: 'Hybrid Cardio + Gym — Restart', week: 1 } }, 'Hybrid Cardio + Gym — Restart · Week 1'],
+    [{ block: { name: 'Foundation — Strength + Cardio (re-entry)', week: 1 } }, 'Foundation — Strength + Cardio (re-entry) · Week 1'],
+    [{ block: { name: 'Training', week: 0 } }, 'Training · Week 0'],
+  ];
+  for (const [profile, expected] of cases) {
+    assert.equal(formatBlockLabel(profile), expected);
+    assert.equal(formatBlockChip(new Date('2026-11-19T12:00:00'), {
+      ...profile,
+      showRaceCountdown: false,
+    }), expected);
+    assert.equal(/Week null|Week undefined|Week NaN/i.test(formatBlockLabel(profile)), false);
+  }
+
+  const missingName = formatBlockLabel({ block: { week: null } });
+  assert.equal(missingName.includes('Week null'), false);
+  assert.equal(missingName.includes('Week undefined'), false);
+
+  const namedNoBlockWeek = formatBlockChip(new Date('2026-11-19T12:00:00'), {
+    block: { name: 'Training', week: null, raceDate: '2026-12-13' },
+    showRaceCountdown: true,
+  });
+  assert.equal(namedNoBlockWeek.startsWith('Training'), true);
+  assert.equal(/Week null/i.test(namedNoBlockWeek), false);
 });
 
 test('checklist 5e — Jul 6 2026 is Monday (fixture date)', () => {

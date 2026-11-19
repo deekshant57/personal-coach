@@ -16,9 +16,11 @@ alwaysApply: true
 
 ## Calorie anchors
 
-**Phase 1 (Aug–Sep 2026):** Maintenance ~2,300–2,400 kcal · 160g protein · no deficit. Recomp phase — support hypertrophy.
+**Hybrid Cardio + Gym — Restart (from 17 Nov 2026):** Maintenance ~2,300–2,400 kcal · 160g protein · no deficit. Recomp — support gym + easy cardio restart. No race cut while rebuilding.
 
-**Phase 2 (Oct–Nov 2026):** Resume deficit. Apply deficit anchors from `personal-details.md` (run-day, rest-day targets). Recalculate when weekly km crosses **25, 35, 45** or when a body comp scan triggers a BF% band change (see `body-comp.mdc`).
+**Phase 1 (Aug–Sep 2026, historical):** Maintenance ~2,300–2,400 kcal · 160g protein · no deficit.
+
+**Phase 2 HM Build (historical / only if a race block is reopened):** Resume deficit. Apply deficit anchors from `personal-details.md` (run-day, rest-day targets). Recalculate when weekly km crosses **25, 35, 45** or when a body comp scan triggers a BF% band change (see `body-comp.mdc`).
 
 State calorie brackets explicitly in plans.
 

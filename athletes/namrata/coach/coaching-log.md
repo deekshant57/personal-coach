@@ -115,3 +115,38 @@ Append-only record of coaching decisions, outcomes, and accumulated insights.
 **Athlete response:** Requested (via account owner)
 **Outcome:** DB week 24–30 verified: no consecutive upper-compound days
 **Insight:** Soft “upper” on fast day still counts as upper stimulus before Fri — cardio-only on Thu is the right fast-day call
+
+---
+
+### 19 Nov 2026 — Mid-week re-entry plan (from Fri 20)
+
+**Block:** Foundation — Strength + Cardio · re-entry
+**Context:** Account owner asked for a plan from tomorrow (Fri); mid-week so keep volume mindful. Last live `daily_plans` ended 2 Sep 2026. Template unchanged: Mon Upper · Tue Lower · Wed Cardio+Core · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest. No running; Thu fast intact.
+**Decisions:**
+- Seed Fri 20 – Sun 29 Nov into Supabase `daily_plans` (via `wire-namrata-reentry-nov2026.py`) — confidence: high
+- Fri/Sat stub = reduced re-entry (3-set mains, ~15 min cardio, RPE 4–5) — not peak Week-6 volume mid-week — confidence: high
+- Week 23–29 = clean template at beginner re-entry loads (still 3× compounds, 18–20 min cardio, RPE 5–6) — consistency > load — confidence: high
+- Nutrition anchors unchanged: training ~1,800 / 100g · Thu ~1,450 / 90g+ · rest ~1,650 / 95g+ — confidence: high
+- Never set `run_type` — confidence: high
+**Athlete response:** Pending (via account owner)
+**Outcome:** 10 days wired in app
+**Insight:** [see next entry — full log review done after owner challenge]
+
+---
+
+### 19 Nov 2026 — Full log / food / body-comp review (post-plan)
+
+**Block:** Foundation — Strength + Cardio · re-entry
+**Context:** Owner asked whether last logs, performance, body transformation, and intake were read before writing the plan. Honest answer: first pass only skimmed plan rows + thin samples. Full pull done now.
+**Evidence:**
+- Body: **one** InBody only (23 Jul — 48.2 kg, 35.9% BF, SMM 16.3 under, trunk fat over). No second scan → **no measured transformation**. Scale Jul 23–29 ~48.5–48.7; waist 31" once (27 Jul). Aug 11 vitals `78.25 kg` is garbage (wrong athlete scale) — ignore.
+- Gym: **7 logged / 24 planned** gym days Jul 23–Aug 19. Solid Week 1 (missed Fri), then long miss streak, brief return Aug 10–11, then silence. Last log 11 Aug. RPE 5–6; **no kg in exercises_json** → no load progression. Day-1 pattern: swapped to BW squats / curl / extension / shrugs when plan felt unfamiliar.
+- Food: 9 logged days (last partial 19 Aug). Good days hit ~100–125g protein (eggs + whey + paneer working). Training kcal often **under** 1,800 (~1,600–1,745). Thu 23 Jul broke fast (lunch paneer + dinner thali). Supplements almost never logged (1× Supradyn).
+**Decisions:**
+- Keep Fri–Sun reduced re-entry + habit week as written — data supports consistency > load, not a Build bump — confidence: high
+- Keep machine-swap language (hinge + glute thrust non-negotiable) — confidence: high
+- Do not change calorie/protein anchors until she logs a full week again — confidence: high
+- Flag for next debrief: second InBody when 2 clean weeks logged; fix bogus Aug 11 weight if she notices — confidence: moderate
+**Athlete response:** N/A (coach process correction)
+**Outcome:** Plan stands; coaching memory corrected
+**Insight:** Writing plans from empty DB tail without food/workout adherence is incomplete coaching — pull logs first next time

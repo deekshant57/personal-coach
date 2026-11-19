@@ -151,20 +151,20 @@
 
   <div class="app-container">
 
-    <!-- Sticky header -->
-    <div class="app-sticky-header">
-      <div class="user-bar">
-        <span class="user-display" id="user-display"></span>
-        <div class="user-bar-actions">
-          <button type="button" class="sign-out-btn" id="edit-setup-btn" title="Edit targets and week template">Setup</button>
-          <span class="save-state-indicator hidden" id="save-state-indicator" role="status" aria-live="polite">Saving…</span>
-          <button type="button" class="sign-out-btn" id="sign-out-btn">Log out</button>
-        </div>
-      </div>
-
+    <!-- Persistent sticky context (date + macros). Dual class app-sticky-header
+         retained for app.js updateTabChrome(.app-sticky-header / header--progress). -->
+    <div class="app-sticky-context app-sticky-header">
       <div class="save-error-banner hidden" id="save-error-banner" role="alert">
         <p class="save-error-message" id="save-error-message"></p>
         <button type="button" class="save-error-retry" id="save-error-retry">Retry</button>
+      </div>
+      <div class="date-header" id="date-header">
+        <button type="button" class="date-nav-btn" id="date-prev" aria-label="Previous day">&larr;</button>
+        <div class="date-header-center">
+          <div class="date-text" id="date-display"></div>
+          <div class="date-sub" id="date-day-type"></div>
+        </div>
+        <button type="button" class="date-nav-btn" id="date-next" aria-label="Next day">&rarr;</button>
       </div>
       <div class="macro-spine" id="macro-spine" aria-live="polite">
         <div class="macro-spine-row" id="protein-label">
@@ -178,23 +178,17 @@
           <div class="protein-bar-fill" id="protein-fill" style="width: 0%"></div>
         </div>
       </div>
+    </div>
 
-      <div class="date-header" id="date-header">
-        <button type="button" class="date-nav-btn" id="date-prev" aria-label="Previous day">&larr;</button>
-        <div class="date-header-center">
-          <div class="date-text" id="date-display"></div>
-          <div class="block-context-chip" id="block-context-chip"></div>
-          <div class="date-sub" id="date-day-type"></div>
-          <div class="session-status-chip hidden" id="session-status-chip"></div>
-        </div>
-        <button type="button" class="date-nav-btn" id="date-next" aria-label="Next day">&rarr;</button>
-      </div>
+    <!-- Secondary header — normal document flow -->
+    <div class="app-header-secondary">
       <div class="date-off-today-bar hidden" id="date-off-today-bar">
-        <span class="date-off-today-hint" id="date-off-today-hint">Viewing a past day</span>
+        <span class="date-off-today-hint" id="date-off-today-hint">Viewing a past date</span>
         <button type="button" class="date-goto-today-btn" id="date-today-btn">Go to today</button>
       </div>
       <div class="gap-return-banner hidden" id="gap-return-banner" role="status" aria-live="polite"></div>
-
+      <div class="block-context-chip" id="block-context-chip"></div>
+      <div class="session-status-chip hidden" id="session-status-chip"></div>
       <div class="day-progress" id="day-progress">
         <div class="coach-next hidden" id="coach-next">
           <div class="coach-next-copy">
@@ -206,6 +200,14 @@
         <div class="day-progress-summary" id="day-progress-summary">0 of 0 done</div>
         <div class="day-progress-chips" id="day-progress-chips"></div>
       </div>
+      <div class="user-bar">
+        <span class="user-display" id="user-display"></span>
+        <div class="user-bar-actions">
+          <button type="button" class="sign-out-btn" id="edit-setup-btn" title="Edit targets and week template">Setup</button>
+          <span class="save-state-indicator hidden" id="save-state-indicator" role="status" aria-live="polite">Saving…</span>
+          <button type="button" class="sign-out-btn" id="sign-out-btn">Log out</button>
+        </div>
+      </div>
     </div>
 
     <!-- ════════════════════════════════════════════════════════
@@ -215,13 +217,9 @@
       <div class="diary-home" id="diary-home">
       <h2 class="diary-home-label sr-only">Today</h2>
       <div class="coach-past-edit-bar hidden" id="coach-past-edit-bar">
-        <span class="coach-past-edit-label">Viewing a logged day</span>
+        <span class="coach-past-edit-label">Today view is read-only</span>
         <button type="button" class="btn btn-secondary btn-sm" id="coach-past-edit-btn">Edit</button>
       </div>
-
-      <div class="coach-observation-block hidden" id="coach-observation-block" role="status" aria-live="polite"></div>
-
-      <div class="coach-note-card hidden" id="coach-note-card" aria-live="polite"></div>
 
       <div class="coach-sections diary-sections" id="coach-sections">
 
@@ -533,6 +531,11 @@
         </div>
       </div>
 
+      <!-- Athletic memory: observations + coach note (sortable; IDs unchanged) -->
+      <div class="coach-observation-block hidden" id="coach-observation-block" data-coach-section="observation" role="status" aria-live="polite"></div>
+
+      <div class="coach-note-card hidden" id="coach-note-card" data-coach-section="coach_note" aria-live="polite"></div>
+
       <!-- Card: Day log export (evening debrief) -->
       <div class="card" id="coach-debrief-export-card" data-coach-section="debrief">
         <div class="card-header">
@@ -593,7 +596,7 @@
         </div>
       </div>
 
-      <div class="food-diary-block">
+      <div class="food-diary-block" id="food-diary-block">
         <div class="food-diary-head">
           <span class="food-diary-title" id="food-diary-title">Meal</span>
           <button type="button" class="btn btn-primary btn-sm" id="food-add-open">Add food</button>
@@ -608,7 +611,7 @@
 
       <div class="food-tab-spacer"></div>
 
-      <div class="food-sticky-footer">
+      <div class="food-sticky-footer" id="food-sticky-footer">
         <div class="food-footer-totals">
           <span class="food-footer-slot" id="food-slot-label">Lunch</span>
           <span class="food-footer-macros" id="food-slot-total">0g P · 0 kcal</span>

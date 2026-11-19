@@ -240,9 +240,12 @@ effectiveSlots(plan) =
    - `pre-*` → `breakfast`  
    - `post-*` → merge into `lunch` if both filled (prompt), else `lunch`  
    - `lunch`/`snack`/`dinner` keep names  
-2. If only window changes (morning → evening) but day_type stays Gym:  
-   - **Keep** pre/post-workout slots; update UI copy: “Pre-workout (evening session)”.  
-   - Do **not** force breakfast rename — that was the user pain of broken sequence without need.  
+2. If only window changes (morning → evening) but day_type stays Gym/Run:  
+   - **Keep** pre/post keys for the evening session (do not remap to Rest).  
+   - **Insert** `breakfast` and reorder chronologically:  
+     `breakfast → lunch → snack → pre-* → post-* → dinner`.  
+   - Label pre/post as “Pre-run (evening)” / “Pre-workout (evening)”.  
+   - Same layout when the day was **planned** evening from the start.  
 3. Persist food rows by **new** `meal_slot` keys; migrate JSON with a single transactional remap helper in `food.js`.  
 4. Never drop macros silently; if collision, merge quantities and append note `"merged on day-shift"`.
 
@@ -278,7 +281,7 @@ Undo: “Reset day schedule” restores `planned` + original `slot_scheme` **onl
 
 ### 5.7 Acceptance tests (Phase A)
 
-1. Plan Gym morning → Move to evening → slots still pre/post-workout; header shows moved; food saves to same slot keys.  
+1. Plan Gym/Run morning → Move to evening → slots become breakfast + lunch + snack + pre/post + dinner; pre/post labels say evening; food still saves to training slot keys (plus breakfast).  
 2. Skip session → choose rest slots → `pre-workout` log migrates to `breakfast`; protein total unchanged.  
 3. Skip → keep training slots → pre/post remain; status `skipped`.  
 4. Friend with empty `daily_plans` completes setup → 14 days seeded.  
@@ -471,6 +474,7 @@ Add success criteria:
 | 21 Aug 2026 | Plan-first > tracker-first |
 | 21 Aug 2026 | Phase A before OFF / Hevy charts |
 | 21 Aug 2026 | Move session prefers keeping training meal slots; Skip offers rest remap |
+| 19 Nov 2026 | Evening session (planned or moved) adds Breakfast and clock-orders pre/post |
 | 21 Aug 2026 | Food: staples → user library → OFF → manual; always confirm external macros |
 | 21 Aug 2026 | `athlete_profiles` is source of truth for friends; markdown coach files remain for coached athletes |
 | 18 Nov 2026 | Sport presets: Gym-only / Run-only / Hybrid; `sport_mode` + `ui_flags`; no all-gym skip |

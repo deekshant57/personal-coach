@@ -170,4 +170,59 @@ The coach reads this file before every session. It provides memory across conver
 - No squats/lunges on days before runs: Outcome — refined: hard lower OK before *easy* run after rest day; never before long/tempo; never Legs between two runs
 **Insight:** File-based plans drifted from DB; verify against DB first.
 
+### 18 Nov 2026 — Drop Dec 13 HM · Hybrid Cardio + Gym restart
+
+**Block:** Hybrid Cardio + Gym — Restart · Re-entry week (16–22 Nov) → clean week (23–29 Nov)
+**Context:** ~2 months off running. Athlete started Tue 17 upper warm-up and planned Wed 18 shoulders+legs. Chose to drop 13 Dec HM and restart running for cardio health while keeping gym. Prior Phase 1 / HM Build plans ended in DB at 28 Sep — Nov weeks were empty.
+**Decisions:**
+- Drop Dec 13 half marathon as a goal — confidence: high
+- Do **not** go gym-only — wire hybrid: gym primary + easy run re-entry — confidence: high
+- This week irregular: Rest · Upper (done) · Shoulders+Legs · Walk-jog ~3 km · Pull · Easy ~4 km · Rest — confidence: high
+- From 23 Nov: Mon Legs · Tue Easy · Wed Push · Thu Easy · Fri Pull · Sat Easy · Sun Rest — confidence: high
+- Nutrition stay at maintenance ~2,300–2,400 kcal · 160g protein (recomp, no race cut) — confidence: high
+- No speedwork for ≥4 weeks; walk-jog allowed; knee sharp-pain stop rule — confidence: high
+- Write full `daily_plans` + meals for 16–29 Nov; update `current-block.md` — confidence: high
+**Athlete response:** Accepted — requested wire-up with food suggestions
+**Outcome:** [pending — first runs + protein adherence]
+**Insight:** [pending]
+
+### 19 Nov 2026 — Meals tightened to logged foods + protein floor rule
+
+**Block:** Hybrid Cardio + Gym — Restart
+**Context:** Live-log review: Aug–Sep food days averaged ~113g P / ~1,630 kcal (2/12 days ≥140g). Athlete foods that stick: eggs, chilla, dal, paneer, whey. Requested tighter meals + hard 8 PM whey rule.
+**Decisions:**
+- Rewrite `meals_plan` for 16–29 Nov around eggs / chilla / dal / paneer / whey (+ chapati/curd) — confidence: high
+- Every day: `PROTEIN RULE — if logged protein < 140g by 8 PM, add 1 scoop whey before bed` — confidence: high
+- Append same cue to each day's `directive` — confidence: high
+- Keep maintenance calorie brackets; priority is protein floor + logging, not further cutting — confidence: high
+**Athlete response:** Accepted
+**Outcome:** [pending — check protein hit rate next debrief]
+**Insight:** [pending]
+
+### 19 Nov 2026 — Harden coach skill set (evidence-first)
+
+**Block:** Hybrid Cardio + Gym — Restart
+**Context:** Athlete demanded the coach act like a coach, not an AI agent — after plans were written without live log/food/body review and with a closed D3 course still treated as active.
+**Decisions:**
+- Rewrite `personal-coach.mdc`: evidence before advice; mission from `current-block.md` only; verify active protocols; fix stale sources in-session — confidence: high
+- Add `coach-session` skill + `pull-coach-evidence.py` as mandatory intake before coaching/plans/meals/supplements — confidence: high
+- Gate weekly + daily debrief "before" steps on the evidence pull — confidence: high
+- Update `COACH-CONTEXT.md` so cancelled races are not the live mission — confidence: high
+**Athlete response:** Requested
+**Outcome:** Skill + rules landed; next coaching turn must run the pull first
+**Insight:** Template fluency without chart review is the failure mode to prevent
+
+### 19 Nov 2026 — Uprise D3 course closed (coach miss corrected)
+
+**Block:** Hybrid Cardio + Gym — Restart
+**Context:** Athlete called out that Uprise D3 is already over. Logs confirm last `uprise_d3_60k` dose **30 Jul 2026** (prior weekly: 25 Jun, 2/9/23 Jul). Coach had left D3 in active `supplementKeys` / personal-details protocol and race chrome stale — unacceptable.
+**Decisions:**
+- Mark Uprise D3 60K **course complete** — remove from Deekshant active `supplementKeys` — confidence: high
+- Active stack only: **Supradyn · Creatine 5g · Omega-3** (+ whey via food) — confidence: high
+- No new D3 until **Vitamin D retest**; then decide maintenance vs restart — confidence: high
+- Clear Dec 13 race countdown from athlete chrome (race already dropped) — confidence: high
+**Athlete response:** Corrected coach — accepted
+**Outcome:** Profile + personal-details + log updated
+**Insight:** Always verify supplement course status from logs before writing plans; do not copy stale protocol lines.
+
 ---

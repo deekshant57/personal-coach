@@ -1,5 +1,5 @@
 // Day progress strip — P1: what's left for the selected date (saved data only)
-import { state, getCurrentMealSlots, isViewingFuture, isMonday, getToday } from './app.js';
+import { state, getCurrentMealSlots, isViewingFuture, isViewingPast, isMonday, getToday } from './app.js';
 import { isRunLogComplete } from './run-log.js';
 import { isWorkoutLogComplete } from './workout-log.js';
 import {
@@ -148,7 +148,9 @@ function computeCoachNext() {
   const readiness = computeDebriefReadiness();
   if (readiness.ready) {
     return {
-      text: 'All logged — copy day log for coach review',
+      text: isViewingPast()
+        ? 'All sections recorded — open day log'
+        : 'All logged — copy day log for coach review',
       action: 'debrief',
     };
   }
@@ -166,17 +168,28 @@ function computeCoachNext() {
   const next = readiness.tasks.find((t) => !t.done);
   if (!next) return null;
 
-  const hints = {
-    vitals: 'Log morning weight and sleep first',
-    training: next.label === 'Run' || next.label === 'Workout'
-      ? `Log ${next.label.toLowerCase()} — km, pace, RPE, knee`
-      : `${next.label} — finish required fields before marking done`,
-    meals: 'Log each meal slot on the Food tab',
-    supplements: 'Toggle supplements taken today',
-  };
+  /* Past dates: navigational, not "complete today's tasks". Today keeps action copy. */
+  const past = isViewingPast();
+  const hints = past
+    ? {
+      vitals: 'Open vitals',
+      training: next.label === 'Run' || next.label === 'Workout'
+        ? `Open ${next.label.toLowerCase()}`
+        : `Open ${next.label.toLowerCase()}`,
+      meals: 'Open meals',
+      supplements: 'Open supplements',
+    }
+    : {
+      vitals: 'Log morning weight and sleep first',
+      training: next.label === 'Run' || next.label === 'Workout'
+        ? `Log ${next.label.toLowerCase()} — km, pace, RPE, knee`
+        : `${next.label} — finish required fields before marking done`,
+      meals: 'Log each meal slot on the Food tab',
+      supplements: 'Toggle supplements taken today',
+    };
 
   return {
-    text: hints[next.id] || `Complete: ${next.label}`,
+    text: hints[next.id] || (past ? `Open ${next.label}` : `Complete: ${next.label}`),
     action: next.action,
     focusKey: next.focusKey,
     focusSlot: next.focusSlot,
@@ -217,6 +230,7 @@ function navigateToTask(action, focusKey, focusSlot) {
 function renderCoachNext() {
   const root = document.getElementById('coach-next');
   const textEl = document.getElementById('coach-next-text');
+  const labelEl = root?.querySelector('.coach-next-label');
   const btn = document.getElementById('coach-next-btn');
   if (!root || !textEl || !btn) return;
 
@@ -236,6 +250,9 @@ function renderCoachNext() {
   }
 
   root.classList.remove('hidden');
+  if (labelEl) {
+    labelEl.textContent = isViewingPast() ? 'On this day' : 'Next step';
+  }
   textEl.textContent = next.text;
   btn.dataset.action = next.action;
   btn.dataset.focusKey = next.focusKey || '';
@@ -250,15 +267,22 @@ export function updateDayProgress() {
 
   if (isViewingFuture()) {
     root.classList.add('hidden');
+    root.classList.remove('day-progress--historical');
     return;
   }
   root.classList.remove('hidden');
+  root.classList.toggle('day-progress--historical', isViewingPast());
 
   const { tasks, doneCount, totalCount, allDone } = computeDayProgress();
+  const past = isViewingPast();
 
-  summaryEl.textContent = allDone
-    ? `${doneCount} of ${totalCount} complete`
-    : `${doneCount} of ${totalCount} done`;
+  if (past) {
+    summaryEl.textContent = `On this day · ${doneCount} of ${totalCount}`;
+  } else {
+    summaryEl.textContent = allDone
+      ? `${doneCount} of ${totalCount} complete`
+      : `${doneCount} of ${totalCount} done`;
+  }
   summaryEl.classList.toggle('complete', allDone);
 
   chipsEl.innerHTML = tasks.map((task) => `

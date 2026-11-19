@@ -85,18 +85,40 @@ async function run() {
     results.push({ step: 'Login', pass: true });
 
     // ── Today: Coach tab ────────────────────────────────────────
+    // Meaningful readiness: date context loaded, and either plan directive or
+    // recovery content is present (Rest / Active Recovery may use short directives).
     await page.waitForFunction(() => {
-      const el = document.getElementById('plan-directive');
-      const t = el?.textContent?.trim() || '';
-      return t.length > 20 && !t.startsWith('Loading');
+      const dateText = document.getElementById('date-display')?.textContent?.trim() || '';
+      const dayType = document.getElementById('date-day-type')?.textContent?.trim() || '';
+      if (!dateText || !dayType) return false;
+
+      const directiveEl = document.getElementById('plan-directive');
+      const directive = directiveEl?.textContent?.trim() || '';
+      if (directiveEl && directive && !directive.startsWith('Loading')) return true;
+
+      const recovery = document.getElementById('recovery-card');
+      const recoveryVisible = recovery && !recovery.classList.contains('hidden');
+      const recoveryText = recovery?.textContent?.trim() || '';
+      if (recoveryVisible && recoveryText.length > 0 && !/Loading/i.test(recoveryText)) return true;
+
+      return false;
     }, { timeout: 30000 });
     const todayLabel = await page.locator('#date-display').innerText();
     assert(todayLabel.length > 0, 'Date display empty');
     results.push({ step: 'Coach tab loads (today)', pass: true, detail: todayLabel });
 
-    const planText = await page.locator('#plan-directive').innerText();
-    assert(planText.length > 0 && !planText.startsWith('Loading'), 'Plan not loaded');
-    results.push({ step: 'Today plan loaded', pass: true, detail: planText.slice(0, 80) });
+    const planText = (await page.locator('#plan-directive').innerText().catch(() => '')).trim();
+    const recoveryText = (await page.locator('#recovery-card').innerText().catch(() => '')).trim();
+    const dayTypeText = (await page.locator('#date-day-type').innerText().catch(() => '')).trim();
+    const planReady = planText.length > 0 && !planText.startsWith('Loading');
+    const recoveryReady = recoveryText.length > 0 && !/Loading/i.test(recoveryText)
+      && await page.locator('#recovery-card').isVisible().catch(() => false);
+    assert(planReady || recoveryReady, 'Neither plan directive nor recovery content loaded');
+    results.push({
+      step: 'Today plan loaded',
+      pass: true,
+      detail: planReady ? planText.slice(0, 80) : `${dayTypeText}: ${recoveryText.slice(0, 60)}`,
+    });
 
     const gapBanner = page.locator('#gap-return-banner');
     if (await gapBanner.isVisible()) {

@@ -2,21 +2,22 @@
 
 ## Block identity
 
-- **Name:** Foundation — Strength + Cardio
-- **Goal:** Establish consistent morning gym habits; introduce beginner strength and cardio at Fitworld; start physique work (waist, glutes/hips, arms, overall muscle)
+- **Name:** Foundation — Strength + Cardio (re-entry)
+- **Goal:** Re-establish consistent morning gym habits; beginner strength + cardio at Fitworld; physique work (waist, glutes/hips, arms, overall muscle)
 - **Started:** 23 Jul 2026 (profile + baseline InBody + Week 1)
-- **Projected end:** When consistency is solid and a progression block is warranted (~4–6 weeks — exact transition is a coaching decision)
-- **Current week:** Foundation peak window (24 Aug – 2 Sep 2026)
+- **Re-entry:** 20 Nov 2026 (mid-week stub Fri–Sun, then clean week 23–29 Nov)
+- **Projected end:** When consistency is solid and a progression block is warranted (coaching decision)
+- **Current week:** Re-entry stub 20–22 Nov · Habit week 23–29 Nov 2026
 - **Plan source of truth:** Supabase `daily_plans` (not `week-plans.py`)
 
 ## Current priorities
 
-1. **Consistency** — 6 morning sessions/week at Fitworld, sustainable for a beginner
-2. **Muscle building** — overall strength, with emphasis on glutes/hips and arms
-3. **Waist / body composition** — leaner midsection over the 3–4 month window
-4. **Cardio** — support fitness and fat loss without replacing strength work
+1. **Consistency** — show up for morning Fitworld sessions; rebuild the 6-day habit gently
+2. **Muscle building** — overall strength, with emphasis on glutes/hips and arms (load secondary to form this week)
+3. **Waist / body composition** — leaner midsection over the goal window
+4. **Cardio** — support fitness without replacing strength work
 
-When priorities conflict, state which is favored and why. No permanent hierarchy.
+When priorities conflict, **consistency > load** for this re-entry. No permanent hierarchy.
 
 ## Block parameters
 
@@ -42,21 +43,21 @@ When priorities conflict, state which is favored and why. No permanent hierarchy
 
 ## Goal timeline
 
-- **Window:** ~3–4 months from 23 Jul 2026
-- **Rough end:** late Oct – late Nov 2026
-- **Current phase:** Foundation · peak → reassessment (~2 Sep)
+- **Window:** ~3–4 months from 23 Jul 2026 (now in/near end of original window)
+- **Current phase:** Foundation re-entry (Nov 2026) — habit first, then progress loads
+- **Next decision:** After 1–2 clean weeks logged → InBody / Build block call
 
 ## Phase sketch
 
 ```
-Foundation (current) — Habit, form, beginner load, establish logging
+Foundation (Jul–Sep) — Habit, form, beginner load  [historical peak ~2 Sep]
+Foundation re-entry (current, from 20 Nov) — Reduced mid-week stub → clean habit week
   Mon Upper · Tue Lower · Wed Cardio+Core · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest
 
 Build — Progressive strength + structured cardio
   Focus: glutes/hips, arms, overall muscle; waist trend
 
 Refine — Continue progression toward physique goals
-  Focus: visible change within 3–4 month window
 
 Reassessment — New InBody + decide next block
 ```

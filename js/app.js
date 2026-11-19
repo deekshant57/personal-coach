@@ -379,17 +379,31 @@ function updateDateDisplay() {
     if (viewingFuture) {
       hintEl.textContent = 'Preview — log on the day';
     } else if (isViewingPast()) {
-      hintEl.textContent = 'Viewing a past day';
+      hintEl.textContent = 'Viewing a past date';
     }
   }
 }
 
 function updatePreviewMode() {
   const future = isViewingFuture();
-  const loggingIds = ['vitals-card', 'training-card', 'meals-summary-card', 'supplements-card', 'notes-card', 'day-progress'];
-  loggingIds.forEach((id) => {
+
+  /* Cards that are always available outside future preview. */
+  const alwaysRestore = ['vitals-card', 'meals-summary-card', 'notes-card', 'day-progress'];
+  alwaysRestore.forEach((id) => {
     document.getElementById(id)?.classList.toggle('hidden', future);
   });
+
+  /*
+    Training + supplements: hide on future only.
+    When leaving future, do NOT force-unhide — renderTrainingCard() /
+    loadSupplements() already set the correct day/profile visibility in
+    loadTodayData() before this runs. Blindly removing `hidden` was unhiding
+    training on Rest/AR and supplements when the profile hides that card.
+  */
+  if (future) {
+    document.getElementById('training-card')?.classList.add('hidden');
+    document.getElementById('supplements-card')?.classList.add('hidden');
+  }
 }
 
 // ── Load Plan for Current Date ───────────────────────────────

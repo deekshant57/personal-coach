@@ -1,5 +1,4 @@
 // Week windows + aggregates — single source for cross-day stats (P7)
-import { MEAL_SLOTS } from './data.js';
 import { isRunLogComplete } from './run-log.js';
 import {
   fetchWeekPlans,
@@ -9,6 +8,7 @@ import {
   fetchWeekWorkoutLogs,
 } from './supabase.js';
 import { resolvePlansForRange } from './plan-merge.js';
+import { slotsForPlan } from './meal-slots.js';
 
 const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -139,8 +139,7 @@ function groupFoodByDate(foodRows) {
 }
 
 function mealSlotsForPlan(plan) {
-  if (!plan?.day_type) return MEAL_SLOTS.Rest;
-  return MEAL_SLOTS[plan.day_type] || MEAL_SLOTS.Rest;
+  return slotsForPlan(plan);
 }
 
 function parseFoodItems(raw) {

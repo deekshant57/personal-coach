@@ -2,6 +2,7 @@
 import { state, isViewingFuture, showToast } from './app.js';
 import { formatRunPlanLabel } from './plan-seed.js';
 import { formatWorkoutSessionSummary } from './workout-log.js';
+import { completeThenExitSession } from './session-complete.js';
 
 const CLOSE_CHIPS = [
   { id: 'elbows', label: 'Elbows' },
@@ -20,14 +21,23 @@ let restSecondsLeft = 0;
 let restTimerId = null;
 let wakeLock = null;
 let onExitCallback = null;
+let completeSessionCallback = null;
+let closeInFlight = false;
 let directiveCollapsed = false;
 
 export function isSessionActive() {
   return sessionActive;
 }
 
-export function initSessionPlayer({ onExit } = {}) {
+/** Exit Floor → Memory after authoritative completion (including persist retry). */
+export function exitActiveSession() {
+  if (!sessionActive) return;
+  exitSession({ keepOpen: false });
+}
+
+export function initSessionPlayer({ onExit, completeSession } = {}) {
   onExitCallback = onExit || null;
+  completeSessionCallback = completeSession || null;
 
   document.getElementById('session-start-btn')?.addEventListener('click', () => {
     startSession();
@@ -239,7 +249,9 @@ function hideCloseMode() {
   document.getElementById('session-floor-bar')?.classList.remove('hidden');
 }
 
-function confirmCloseMode() {
+async function confirmCloseMode() {
+  if (closeInFlight) return;
+
   const chips = [...document.querySelectorAll('#session-close-chips .session-close-chip.is-active')]
     .map((el) => el.textContent.trim())
     .filter(Boolean);
@@ -259,19 +271,22 @@ function confirmCloseMode() {
     }
   }
 
-  // Mark done via existing training button path
-  const doneBtn = document.getElementById('training-done-btn');
-  if (doneBtn && !doneBtn.classList.contains('done')) {
-    doneBtn.click();
-    // If validation blocked Done, stay in close mode
-    if (!doneBtn.classList.contains('done')) {
-      hideCloseMode();
-      document.getElementById('session-floor-bar')?.classList.remove('hidden');
-      return;
-    }
+  closeInFlight = true;
+  try {
+    await completeThenExitSession({
+      complete: () => {
+        if (!completeSessionCallback) return Promise.resolve({ ok: false, reason: 'unavailable' });
+        return completeSessionCallback();
+      },
+      exit: () => exitSession({ keepOpen: false }),
+      onFail: () => {
+        hideCloseMode();
+        document.getElementById('session-floor-bar')?.classList.remove('hidden');
+      },
+    });
+  } finally {
+    closeInFlight = false;
   }
-
-  exitSession({ keepOpen: false });
 }
 
 function exitSession({ keepOpen }) {

@@ -9,10 +9,11 @@ When Deekshant uploads a tracker (`End of day tracker upload — DD MMM,YY`, e.g
 
 ## Before debriefing
 
-1. Read today's logs from the app debrief paste, Supabase, or pasted tracker upload
-2. Compare against **Week N Plan** for that date
+1. Run **`coach-session`** evidence pull (or at minimum today's + recent logs from Supabase / debrief paste)
+2. Compare against **that date's** `daily_plans` row (DB is source of truth)
 3. **Calculate protein and calories** from food portions logged (e.g. "2 chapati, 1 bowl dal, 100g paneer") — Deekshant does not count; you do
-4. Check `coach/coaching-log.md` for any recent decisions relevant to today's assessment
+4. Verify supplements mentioned match **ACTIVE** protocol only (no closed courses like finished Uprise D3)
+5. Check `coach/coaching-log.md` + `coach/current-block.md` for decisions relevant to today's assessment
 
 ## Section 1 — DAY SCORE
 

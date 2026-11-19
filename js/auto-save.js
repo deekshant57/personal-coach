@@ -52,7 +52,7 @@ export async function flushAutosave(key) {
   if (job.timer) clearTimeout(job.timer);
   jobs.delete(key);
   try {
-    await job.execute();
+    return await job.execute();
   } catch (err) {
     console.error('autosave flush failed:', key, err);
     throw err;
