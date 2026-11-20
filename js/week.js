@@ -60,6 +60,17 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+/** Header and session summary stay visible. Meals, coach detail, and Open day follow this flag. */
+function setWeekCardExpanded(card, expanded) {
+  card.classList.toggle('expanded', expanded);
+  const headerBtn = card.querySelector('.week-card-header');
+  const panel = card.querySelector('.week-card-panel');
+  headerBtn?.setAttribute('aria-expanded', String(expanded));
+  if (!panel) return;
+  panel.toggleAttribute('inert', !expanded);
+  panel.setAttribute('aria-hidden', String(!expanded));
+}
+
 export function initWeek(onOpenDay) {
   openDayHandler = onOpenDay;
   syncWeekViewMonday();
@@ -80,7 +91,7 @@ export function initWeek(onOpenDay) {
       let profile = getDbAthleteProfile();
       if (!profile) profile = await refreshDbAthleteProfile();
       if (!profile?.week_template?.length) {
-        showToast('Complete Setup first to extend your plan', { variant: 'error' });
+        showToast('Add a week template in Targets first', { variant: 'error' });
         return;
       }
       const result = await ensurePlansExtended(profile, { days: 14, minRemaining: 14 });
@@ -303,7 +314,7 @@ export async function loadWeekView() {
     if (plans.length === 0) {
       container.innerHTML = `
         <p class="text-muted empty-state-pad">No plan for this week</p>
-        <p class="text-muted empty-state-pad">Use <strong>Extend plan</strong> above, or edit your week template in Setup.</p>`;
+        <p class="text-muted empty-state-pad">Use <strong>Extend plan</strong> above, or edit your week template in Targets.</p>`;
       renderWeekMileageSummary(weekStats, priorWeekStats);
       renderCoachDebriefSection(coachDebrief);
       return;
@@ -316,7 +327,7 @@ export async function loadWeekView() {
     plans.forEach((plan) => {
       const isViewing = plan.date === viewingDate;
       const isActualToday = plan.date === actualToday;
-      const isExpanded = isActualToday || isViewing;
+      const isExpanded = isActualToday;
 
       let summary = '';
       if (plan.run_type) {
@@ -348,11 +359,12 @@ export async function loadWeekView() {
       const dotsHtml = renderCompactDots(dayStatus, plan);
 
       const card = document.createElement('article');
-      card.className = `week-card${isExpanded ? ' expanded' : ''}${isViewing ? ' viewing' : ''}${dayStatus?.complete ? ' complete' : ''}`;
+      const panelId = `week-panel-${plan.date}`;
+      card.className = `week-card${isViewing ? ' viewing' : ''}${dayStatus?.complete ? ' complete' : ''}`;
       card.dataset.date = plan.date;
 
       card.innerHTML = `
-      <button type="button" class="week-card-header" aria-expanded="${isExpanded}">
+      <button type="button" class="week-card-header" aria-expanded="false" aria-controls="${panelId}">
         <span class="week-card-header-left">
           <span class="week-card-chevron" aria-hidden="true"></span>
           <span class="week-card-date">${plan.day_name} · ${formatDayDisplayFromIso(plan.date)}</span>
@@ -365,16 +377,21 @@ export async function loadWeekView() {
         </span>
       </button>
       <div class="week-card-summary">${escapeHtml(summary)}</div>
-      ${plan.meals_plan ? `<div class="week-card-meals">${escapeHtml(plan.meals_plan)}</div>` : ''}
-      ${detailText ? `<div class="week-card-detail">${escapeHtml(detailText)}</div>` : ''}
-      <button type="button" class="week-open-day-btn">Open day &rarr;</button>
+      <div class="week-card-panel" id="${panelId}">
+        <div class="week-card-panel-inner">
+          ${plan.meals_plan ? `<div class="week-card-meals">${escapeHtml(plan.meals_plan)}</div>` : ''}
+          ${detailText ? `<div class="week-card-detail">${escapeHtml(detailText)}</div>` : ''}
+          <button type="button" class="week-open-day-btn">Open day &rarr;</button>
+        </div>
+      </div>
     `;
 
+      setWeekCardExpanded(card, isExpanded);
+
       const headerBtn = card.querySelector('.week-card-header');
-    headerBtn.addEventListener('click', () => {
-      const expanded = card.classList.toggle('expanded');
-      headerBtn.setAttribute('aria-expanded', String(expanded));
-    });
+      headerBtn.addEventListener('click', () => {
+        setWeekCardExpanded(card, !card.classList.contains('expanded'));
+      });
 
       card.querySelector('.week-open-day-btn').addEventListener('click', (e) => {
         e.stopPropagation();

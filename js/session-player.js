@@ -184,6 +184,15 @@ function formatRunMemoryLine(log, plan) {
   return bits.join(' · ');
 }
 
+/** Floor needs the training card body — auto-collapse must not leave an empty shell. */
+function expandTrainingCardForFloor() {
+  const card = document.getElementById('training-card');
+  if (!card) return;
+  card.classList.remove('collapsed');
+  const collapseBtn = document.getElementById('training-collapse');
+  if (collapseBtn) collapseBtn.setAttribute('aria-expanded', 'true');
+}
+
 function startSession() {
   const plan = state.currentPlan;
   if (!plan || isViewingFuture()) return;
@@ -193,6 +202,8 @@ function startSession() {
   directiveCollapsed = false;
 
   document.body.classList.add('session-floor-active');
+  expandTrainingCardForFloor();
+
   document.getElementById('session-entry')?.classList.add('hidden');
   document.getElementById('session-memory-summary')?.classList.add('hidden');
   document.getElementById('session-floor-bar')?.classList.remove('hidden');
@@ -221,6 +232,9 @@ function startSession() {
   runFields?.classList.add('session-floor-fields');
   workoutFields?.classList.add('session-floor-fields');
   footer?.classList.remove('hidden');
+
+  // Compression / layout may re-run in the same tick — keep Floor body open.
+  expandTrainingCardForFloor();
 
   requestWakeLock();
   showToast(sessionKind === 'run' ? 'Run session open' : 'Gym floor open', { variant: 'saved' });

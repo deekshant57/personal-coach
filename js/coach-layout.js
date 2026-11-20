@@ -18,6 +18,7 @@ import {
 } from './block-context.js';
 import { expandVitalsCard } from './vitals-ui.js';
 import { layoutCoachObservations } from './observation-coach.js';
+import { isSessionActive } from './session-player.js';
 
 let coachEditMode = false;
 
@@ -197,8 +198,13 @@ export function updateSectionCompression() {
   }
 
   if (isTrainingRequired()) {
-    const done = isTrainingComplete();
-    setCardCollapsed('training-card', done, { summary: formatTrainingSummary() });
+    // Floor owns the training surface — never re-collapse mid-session.
+    if (isSessionActive()) {
+      setCardCollapsed('training-card', false, { summary: formatTrainingSummary() });
+    } else {
+      const done = isTrainingComplete();
+      setCardCollapsed('training-card', done, { summary: formatTrainingSummary() });
+    }
   }
 
   const mealsTask = computeDayProgress().tasks.find((t) => t.id === 'meals');

@@ -225,4 +225,16 @@ The coach reads this file before every session. It provides memory across conver
 **Outcome:** Profile + personal-details + log updated
 **Insight:** Always verify supplement course status from logs before writing plans; do not copy stale protocol lines.
 
+### 20 Nov 2026 — Body goal confirmed: recomp, not endurance
+
+**Block:** Hybrid Cardio + Gym — Restart
+**Context:** Athlete asked current goal body type. Live `athlete_profiles.goal_primary` was still `endurance` (last write 21 Aug, race block). Scale today 75.95 kg. Dec 13 HM already dropped. Current block since 18 Nov is maintenance recomp.
+**Decisions:**
+- Body goal is **recomp** — hold ~75 kg, maintenance ~2,300–2,400 kcal, 160g protein — confidence: high
+- Endurance is not the body goal; easy runs are cardio health only, no race cut — confidence: high
+- PATCH `goal_primary` endurance → recomp; backfill default matches — confidence: high
+**Athlete response:** Asked
+**Outcome:** Profile field corrected
+**Insight:** Setup `goal_primary` lagged the 18 Nov block change. Read the block, then the profile row.
+
 ---

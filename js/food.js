@@ -118,6 +118,7 @@ export function initFood() {
   setupClearSlot();
   setupAddFoodSheet();
   document.getElementById('next-meal')?.addEventListener('click', () => goToNextMeal());
+  window.addEventListener('resize', syncFoodFooterSpacer);
   loadUserFoodLibrary()
     .then(() => refreshRecentFoods().then(() => renderFoodPicker()))
     .catch(() => renderFoodPicker());
@@ -232,10 +233,12 @@ export async function loadFoodData({ autoOpenSheet = true } = {}) {
     setOverlayLoading('food-loading-overlay', false);
     previewBanner?.classList.remove('hidden');
     loggingIds.forEach((id) => document.getElementById(id)?.classList.add('hidden'));
+    clearFutureFoodChrome();
     if (planPreview) {
       planPreview.textContent = state.currentPlan?.meals_plan || 'No meal plan for this date';
       planPreview.classList.remove('hidden');
     }
+    syncFoodFooterSpacer();
     return;
   }
 
@@ -440,10 +443,26 @@ function updatePickerRowQtys() {
   });
 }
 
+function clearFutureFoodChrome() {
+  const banner = document.getElementById('food-coach-banner');
+  if (banner) {
+    banner.classList.add('hidden');
+    banner.innerHTML = '';
+    banner.removeAttribute('aria-label');
+  }
+  const chips = document.getElementById('food-quick-chips');
+  if (chips) {
+    chips.classList.add('hidden');
+    chips.innerHTML = '';
+  }
+}
+
+/** Recent-food chips stay off the meal page. The Add sheet still lists them under Recent. */
 function renderFoodQuickChips() {
   const root = document.getElementById('food-quick-chips');
   if (!root || isViewingFuture()) {
     root?.classList.add('hidden');
+    root && (root.innerHTML = '');
     return;
   }
 
@@ -686,6 +705,25 @@ function updateFoodFooter() {
   if (clearBtn) {
     clearBtn.classList.toggle('hidden', items.length === 0 && !notes);
   }
+  syncFoodFooterSpacer();
+}
+
+function syncFoodFooterSpacer() {
+  const tab = document.getElementById('tab-food');
+  const footer = document.getElementById('food-sticky-footer');
+  if (!tab || !footer) return;
+
+  if (footer.classList.contains('hidden') || !tab.classList.contains('active')) {
+    if (footer.classList.contains('hidden')) {
+      tab.style.setProperty('--food-footer-space', '0px');
+    }
+    return;
+  }
+
+  const height = Math.ceil(footer.getBoundingClientRect().height);
+  if (height > 0) {
+    tab.style.setProperty('--food-footer-space', `${height}px`);
+  }
 }
 
 // ── Meal Slot Pills ──────────────────────────────────────────
@@ -784,7 +822,6 @@ function renderSlotState() {
   updateSlotPillStates();
   updateFoodFooter();
   renderFoodCoachBanner();
-  renderFoodQuickChips();
   renderSameAsYesterday();
 }
 

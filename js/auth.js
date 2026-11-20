@@ -24,13 +24,13 @@ async function loadProfile(userId) {
 }
 
 export function setSession(session) {
-  currentSession = session;
+  currentSession = session || null;
   if (session?.user) {
     loadProfile(session.user.id);
   } else {
     currentProfile = null;
   }
-  return session;
+  return currentSession;
 }
 
 export async function loadSession() {
@@ -43,24 +43,33 @@ export async function loadSession() {
     return currentSession;
   }
 
-  if (session) {
-    setSession(session);
-  }
-  return currentSession;
+  return setSession(session);
 }
 
+/**
+ * Auth lifecycle listener.
+ * INITIAL_SESSION only syncs module state — cold boot uses loadSession()/enterApp.
+ * SIGNED_IN covers post-login (and multi-tab); SIGNED_OUT returns to the gate.
+ */
 export function initAuthListeners(onSignedIn, onSignedOut) {
   const client = getClient();
   if (!client) return;
 
   client.auth.onAuthStateChange((event, session) => {
-    if (event === 'INITIAL_SESSION') return;
+    if (event === 'INITIAL_SESSION') {
+      setSession(session);
+      return;
+    }
 
     setSession(session);
-    if (session?.user) {
-      onSignedIn?.(session);
-    } else {
+
+    if (event === 'SIGNED_OUT' || !session?.user) {
       onSignedOut?.();
+      return;
+    }
+
+    if (event === 'SIGNED_IN') {
+      onSignedIn?.(session);
     }
   });
 }

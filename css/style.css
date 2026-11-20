@@ -3296,6 +3296,23 @@ textarea.form-input {
   margin-top: 4px;
 }
 
+.week-card-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.3s ease, opacity 0.2s ease;
+}
+
+.week-card.expanded .week-card-panel {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.week-card-panel-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .week-card-meals {
   margin-top: 10px;
   padding-top: 10px;
@@ -3307,28 +3324,13 @@ textarea.form-input {
 }
 
 .week-card-detail {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 1px solid transparent;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.7;
   white-space: pre-line;
-}
-
-.week-card-animate .week-card-detail {
-  transition: max-height 0.35s ease-in-out, opacity 0.25s ease-in-out, margin-top 0.3s ease-in-out, padding-top 0.3s ease-in-out, border-color 0.25s ease-in-out;
-}
-
-.week-card.expanded .week-card-detail {
-  max-height: 600px;
-  opacity: 1;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top-color: var(--border);
 }
 
 .food-preview-banner {
@@ -3838,8 +3840,12 @@ textarea.form-input {
 .hidden { display: none !important; }
 
 /* ── Sticky Footer (Food tab) ──────────────────────────────── */
+#tab-food {
+  --food-footer-space: 0px;
+}
+
 .food-tab-spacer {
-  height: 140px;
+  height: var(--food-footer-space);
 }
 
 .food-sticky-footer {
@@ -3886,6 +3892,27 @@ textarea.form-input {
 
 .food-footer-actions .btn-danger-outline {
   font-size: 14px;
+}
+
+/* Narrow phones: Clear and Next meal share one row so the log can scroll clear. */
+@media (max-width: 390px) {
+  .food-footer-actions {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .food-footer-actions .btn {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 15px;
+  }
+}
+
+#meal-summary,
+#food-notes-group {
+  scroll-margin-bottom: var(--food-footer-space);
 }
 
 #tab-food:not(.active) .food-sticky-footer {
@@ -5180,6 +5207,14 @@ body.session-floor-active #training-collapse {
 
 body.session-floor-active #training-card .card-body {
   padding-bottom: 8px;
+}
+
+/* Floor logging lives in .card-body — keep it open even if Memory had collapsed the card */
+body.session-floor-active #training-card.collapsed,
+body.session-floor-active #training-card.collapsed .card-body {
+  display: block !important;
+  height: auto !important;
+  overflow: visible !important;
 }
 
 /* Sticky Mark Done: sit above safe area (nav is hidden on Floor) */

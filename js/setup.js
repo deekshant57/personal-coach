@@ -321,7 +321,7 @@ export function openSetup({ edit = false } = {}) {
   const soft = document.getElementById('setup-use-defaults');
   if (soft) soft.classList.toggle('hidden', edit);
   const title = document.getElementById('setup-title');
-  if (title) title.textContent = edit ? 'Edit setup' : 'Set up your plan';
+  if (title) title.textContent = edit ? 'Targets' : 'Set up your plan';
   showSetupScreen();
 }
 

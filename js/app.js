@@ -1,6 +1,6 @@
 // Main app — tab routing, date state, initialization
 import { renderDayBadge } from './data.js';
-import { initSupabase, fetchDailyPlan, setCurrentUserId } from './supabase.js';
+import { initSupabase, fetchDailyPlan, setCurrentUserId, getCurrentUserId } from './supabase.js';
 import { loadSession, initAuthListeners, signIn, signUp, signOut, getProfile } from './auth.js';
 import { initToday, loadTodayData } from './today.js';
 import { initFood, loadFoodData, invalidateFoodLogsCache } from './food.js';
@@ -471,6 +471,7 @@ function showAuth(message = '') {
   document.getElementById('auth-screen').classList.add('show');
   document.querySelector('.app-container')?.classList.add('hidden');
   document.querySelector('.bottom-nav')?.classList.add('hidden');
+  document.getElementById('setup-screen')?.classList.remove('show');
 }
 
 function hideAuth() {
@@ -479,14 +480,9 @@ function hideAuth() {
   document.querySelector('.bottom-nav')?.classList.remove('hidden');
 }
 
-function setAuthLoading(loading) {
+/** Full-screen gate spinner — used while resolving session (not the sign-in button). */
+function setAuthGateLoading(loading) {
   setOverlayLoading('auth-loading-overlay', loading);
-  const isSignUp = document.getElementById('auth-title')?.textContent === 'Sign up';
-  setButtonLoading(
-    document.getElementById('auth-submit'),
-    loading,
-    isSignUp ? 'Sign up' : 'Sign in'
-  );
 }
 
 function setupAuth() {
@@ -550,35 +546,53 @@ function setupAuth() {
   });
 }
 
-async function enterApp(session) {
-  const active = session || (await loadSession());
-  if (!active?.user) {
-    showAuth('Sign-in succeeded but session did not start. Try again.');
-    return;
-  }
-  setCurrentUserId(active.user.id);
-  const profile = getProfile();
-  document.getElementById('user-display').textContent =
-    profile?.display_name || active.user.email;
-
-  const { needsSetup } = await ensureAthleteProfileReady();
-  if (needsSetup) {
-    document.getElementById('auth-screen').classList.remove('show');
-    openSetup({ edit: false });
-    return;
-  }
-
-  hideAuth();
-  setContentLoading(true, { overlay: true });
-  try {
-    await bootApp();
-  } finally {
-    setContentLoading(false, { overlay: true });
-  }
-}
-
 let booted = false;
 let setupInited = false;
+let enterAppInFlight = null;
+
+async function enterApp(session) {
+  if (enterAppInFlight) return enterAppInFlight;
+
+  enterAppInFlight = (async () => {
+    const active = session || (await loadSession());
+    if (!active?.user) {
+      showAuth('Sign-in succeeded but session did not start. Try again.');
+      return;
+    }
+
+    // Already in the app for this user (e.g. SIGNED_IN after form enterApp)
+    if (booted && getCurrentUserId() === active.user.id) {
+      hideAuth();
+      return;
+    }
+
+    setCurrentUserId(active.user.id);
+    const profile = getProfile();
+    document.getElementById('user-display').textContent =
+      profile?.display_name || active.user.email;
+
+    const { needsSetup } = await ensureAthleteProfileReady();
+    if (needsSetup) {
+      document.getElementById('auth-screen').classList.remove('show');
+      document.querySelector('.app-container')?.classList.add('hidden');
+      document.querySelector('.bottom-nav')?.classList.add('hidden');
+      openSetup({ edit: false });
+      return;
+    }
+
+    hideAuth();
+    setContentLoading(true, { overlay: true });
+    try {
+      await bootApp();
+    } finally {
+      setContentLoading(false, { overlay: true });
+    }
+  })().finally(() => {
+    enterAppInFlight = null;
+  });
+
+  return enterAppInFlight;
+}
 
 async function bootApp() {
   if (booted) {
@@ -627,7 +641,7 @@ async function bootApp() {
   syncAppRoute();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(`sw.js?v=35`).catch(() => {});
+    navigator.serviceWorker.register(`sw.js?v=36`).catch(() => {});
   }
 }
 
@@ -651,17 +665,16 @@ function ensureSetupInited() {
 
 // ── Init ─────────────────────────────────────────────────────
 async function init() {
-  showAuth();
-  setAuthLoading(true);
+  // First paint: loading only (overlay is-active in HTML). Never flash login.
+  setAuthGateLoading(true);
 
   try {
     await initSupabase();
   } catch (err) {
     console.error('initSupabase:', err);
+    setAuthGateLoading(false);
     showAuth('Could not load app. Check your connection and refresh.');
     return;
-  } finally {
-    setAuthLoading(false);
   }
 
   setupAuth();
@@ -669,35 +682,29 @@ async function init() {
 
   initAuthListeners(
     async (session) => {
-      setCurrentUserId(session.user.id);
-      const profile = getProfile();
-      document.getElementById('user-display').textContent =
-        profile?.display_name || session.user.email;
-      hideAuth();
-      setContentLoading(true, { overlay: true });
-      try {
-        const { needsSetup } = await ensureAthleteProfileReady();
-        if (needsSetup) {
-          setContentLoading(false, { overlay: true });
-          openSetup({ edit: false });
-          return;
-        }
-        await bootApp();
-      } finally {
-        setContentLoading(false, { overlay: true });
-      }
+      await enterApp(session);
     },
     () => {
       setCurrentUserId(null);
       clearDbAthleteProfileCache();
       booted = false;
+      setAuthGateLoading(false);
       showAuth();
     }
   );
 
-  const session = await loadSession();
-  if (session?.user) {
-    await enterApp(session);
+  try {
+    const session = await loadSession();
+    if (session?.user) {
+      await enterApp(session);
+    } else {
+      showAuth();
+    }
+  } catch (err) {
+    console.error('init session:', err);
+    showAuth('Could not restore session. Please sign in.');
+  } finally {
+    setAuthGateLoading(false);
   }
 }
 

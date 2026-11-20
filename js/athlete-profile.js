@@ -73,7 +73,7 @@ const PROFILES = {
 const SETUP_BACKFILL = {
   [DEEKSHANT_USER_ID]: {
     display_name: 'Deekshant',
-    goal_primary: 'endurance',
+    goal_primary: 'recomp',
     sport_mode: 'hybrid',
     diet_style: 'eggetarian',
     protein_target_g: 145,
