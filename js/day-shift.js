@@ -14,7 +14,12 @@ import {
   effectiveSessionWindow as resolveSessionWindow,
   eveningTrainingSlots,
   slotsForPlan as resolveSlotsForPlan,
+  postSlotForScheme,
 } from './meal-slots.js';
+import {
+  isPostAbsorbedIntoDinner,
+  shouldShowEveningPostSlot,
+} from './planned-meals.js';
 
 export {
   isTrainingDayType,
@@ -73,15 +78,24 @@ export function slotLabelsForPlan(plan = state.currentPlan) {
 /** One-line Food tab hint when session was moved or planned evening. */
 export function sessionTimingHint(plan = state.currentPlan) {
   if (!plan) return '';
-  if (effectiveSessionWindow(plan) === 'evening') {
+  const window = effectiveSessionWindow(plan);
+  if (window === 'evening') {
+    const showPost = shouldShowEveningPostSlot(plan.meals_plan);
     if (sessionWindowDiffers(plan)) {
-      return 'Session moved to evening — Breakfast for morning; Pre/Post for the evening session.';
+      return showPost
+        ? 'Session moved to evening — Breakfast for morning; Pre/Post for the evening session.'
+        : 'Session moved to evening — Breakfast for morning; Dinner is the post-session meal.';
     }
-    return 'Evening session — Breakfast for morning; Pre/Post around training.';
+    return showPost
+      ? 'Evening session — Breakfast for morning; Pre/Post around training.'
+      : 'Evening session — Breakfast for morning; Dinner is the post-session meal.';
   }
   if (!sessionWindowDiffers(plan)) return '';
   const planned = plan.planned_session_window || 'morning';
   const actual = plan.actual_session_window;
+  if (actual === 'morning' && planned === 'evening') {
+    return 'Session moved to morning — Pre/Post for the morning session.';
+  }
   return `Planned ${planned} · training ${actual} — pre/post slots still apply.`;
 }
 
@@ -220,9 +234,74 @@ async function persistPlanPatch(date, fields) {
   return true;
 }
 
+/**
+ * Merge food from one meal_slot into another, then delete the source.
+ * Preserves macros (mergeFoodLogs). No-op if source empty.
+ */
+async function mergeSlotLogsInto(date, logs, fromSlot, toSlot) {
+  if (fromSlot === toSlot) return false;
+  const fromLog = (logs || []).find((l) => l.meal_slot === fromSlot);
+  if (!fromLog) return false;
+  const fromItems = parseItems(fromLog.items);
+  const fromNotes = (fromLog.custom_text || '').trim();
+  if (!fromItems.length && !fromNotes) return false;
+
+  const toLog = (logs || []).find((l) => l.meal_slot === toSlot);
+  const merged = toLog
+    ? mergeFoodLogs(toLog, fromLog)
+    : {
+      items: fromItems,
+      custom_text: fromNotes || null,
+      total_protein: fromLog.total_protein,
+      total_calories: fromLog.total_calories,
+    };
+
+  const ok = await upsertFoodLog(
+    date,
+    toSlot,
+    merged.items,
+    merged.custom_text,
+    merged.total_protein,
+    merged.total_calories,
+  );
+  if (!ok) return false;
+  await deleteFoodLog(date, fromSlot);
+  return true;
+}
+
+/**
+ * Morning↔evening window moves: migrate logs so disappearing pills do not orphan food.
+ * - Morning → evening + post absorbed: post → dinner
+ * - Evening → morning: breakfast → post
+ */
+export async function migrateFoodLogsForSessionWindow(date, plan, fromWindow, toWindow) {
+  if (!plan || fromWindow === toWindow) return { migrated: false };
+  const scheme = effectiveSlotScheme(plan);
+  const post = postSlotForScheme(scheme === 'Rest' ? plan.day_type : scheme);
+  const logs = await fetchFoodLogs(date);
+  if (!logs?.length) return { migrated: false };
+
+  let migrated = false;
+
+  if (fromWindow !== 'evening' && toWindow === 'evening') {
+    if (isPostAbsorbedIntoDinner(plan.meals_plan)) {
+      migrated = await mergeSlotLogsInto(date, logs, post, 'dinner') || migrated;
+    }
+  }
+
+  if (fromWindow === 'evening' && toWindow === 'morning') {
+    migrated = await mergeSlotLogsInto(date, logs, 'breakfast', post) || migrated;
+  }
+
+  if (migrated) invalidateFoodLogsCache();
+  return { migrated };
+}
+
 export async function moveSession(date, toWindow) {
   const plan = state.currentPlan;
   if (!plan || !isTrainingDayType(plan.day_type)) return false;
+
+  const fromWindow = effectiveSessionWindow(plan) || 'morning';
 
   const fields = {
     actual_session_window: toWindow,
@@ -232,7 +311,13 @@ export async function moveSession(date, toWindow) {
   };
 
   const ok = await persistPlanPatch(date, fields);
-  if (ok) showToast(`Session moved to ${toWindow}`);
+  if (ok) {
+    if (fromWindow !== toWindow) {
+      await migrateFoodLogsForSessionWindow(date, plan, fromWindow, toWindow);
+      await loadFoodData();
+    }
+    showToast(`Session moved to ${toWindow}`);
+  }
   return ok;
 }
 

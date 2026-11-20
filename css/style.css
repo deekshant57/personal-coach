@@ -3855,7 +3855,8 @@ textarea.form-input {
 }
 
 .food-tab-spacer {
-  height: var(--food-footer-space);
+  /* Footer sits above bottom nav; body already pads for nav. Spacer = footer only. */
+  height: calc(var(--food-footer-space) + 12px);
 }
 
 .food-sticky-footer {
@@ -3922,7 +3923,10 @@ textarea.form-input {
 
 #meal-summary,
 #food-notes-group {
-  scroll-margin-bottom: var(--food-footer-space);
+  /* scrollIntoView uses the visual viewport (includes nav). Clear footer + nav. */
+  scroll-margin-bottom: calc(
+    var(--food-footer-space) + var(--nav-height) + var(--safe-bottom) + 12px
+  );
 }
 
 #tab-food:not(.active) .food-sticky-footer {
@@ -4214,8 +4218,8 @@ textarea.form-input {
   color: var(--text-secondary);
 }
 
-/* Account control — initials in the date row. The email / targets / logout
-   row used to sit on every tab, including Food. */
+/* Account control — initials in the sticky row on Progress only.
+   Food / Today / Plan keep date + macros without account chrome. */
 .profile-btn {
   flex-shrink: 0;
   width: 36px;
@@ -4227,10 +4231,14 @@ textarea.form-input {
   font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.02em;
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 0;
+}
+
+.header--progress .profile-btn:not(.profile-btn--spacer) {
+  display: inline-flex;
 }
 
 .profile-btn--spacer {
@@ -4375,8 +4383,8 @@ textarea.form-input {
 
 /* ── Progress tab (body composition) ───────────────────────────
    header--progress is toggled on .app-sticky-header (= sticky context).
-   Date and macros hide. The account card lives in the tab; the initials
-   button stays in the sticky row so logout is still one tap away.
+   Date and macros hide. Account card lives in the tab; initials button
+   shows in the sticky row on this tab only.
    ─────────────────────────────────────────────────────────── */
 .header--progress .macro-spine,
 .header--progress .protein-bar-container {

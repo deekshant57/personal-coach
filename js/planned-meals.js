@@ -40,22 +40,52 @@ function findSlot(lines, slot) {
   return lines.find((line) => labelMatches(line.label, slot)) || null;
 }
 
+function planMealShape(mealsPlan) {
+  const lines = mealLines(mealsPlan);
+  return {
+    breakfastLine: findSlot(lines, 'breakfast'),
+    postLine: findSlot(lines, 'post-workout') || findSlot(lines, 'post-run'),
+    dinnerLine: findSlot(lines, 'dinner'),
+    lines,
+  };
+}
+
+/**
+ * Evening typical gym/run: post was the morning plate (no breakfast line)
+ * and dinner exists → Dinner is the post-session meal; omit Post pill.
+ */
+export function isPostAbsorbedIntoDinner(mealsPlan) {
+  const { breakfastLine, postLine, dinnerLine } = planMealShape(mealsPlan);
+  return !!(postLine && !breakfastLine && dinnerLine?.foods);
+}
+
+/**
+ * Whether evening layout should include a Post · eve pill.
+ * False when absorbed into dinner, or when the plan has no post line.
+ */
+export function shouldShowEveningPostSlot(mealsPlan) {
+  const { breakfastLine, postLine, dinnerLine } = planMealShape(mealsPlan);
+  if (!postLine) return false;
+  // B1/B2: morning plate moved to breakfast → dinner is post-session
+  if (!breakfastLine && dinnerLine?.foods) return false;
+  // B3 (split) or B4 (dinner empty): keep Post
+  return true;
+}
+
 /**
  * Foods to show for a slot. Evening training retimes the morning plate
- * onto breakfast and points post-session at dinner.
+ * onto breakfast; when post would duplicate dinner, Dinner alone is post-session.
  * @returns {{ foods: string, context: string }}
  */
 export function plannedMealForSlot(mealsPlan, slot, { evening = false } = {}) {
-  const lines = mealLines(mealsPlan);
+  const { breakfastLine, postLine, dinnerLine, lines } = planMealShape(mealsPlan);
   const direct = findSlot(lines, slot);
 
   if (!evening) {
     return direct ? { foods: direct.foods, context: '' } : { foods: '', context: '' };
   }
 
-  const breakfastLine = findSlot(lines, 'breakfast');
-  const postLine = findSlot(lines, 'post-workout') || findSlot(lines, 'post-run');
-  const dinnerLine = findSlot(lines, 'dinner');
+  const showPost = shouldShowEveningPostSlot(mealsPlan);
 
   if (slot === 'breakfast') {
     const morning = breakfastLine || postLine;
@@ -71,14 +101,16 @@ export function plannedMealForSlot(mealsPlan, slot, { evening = false } = {}) {
   }
 
   if (slot === 'post-workout' || slot === 'post-run') {
-    const movedToBreakfast = direct && !breakfastLine && postLine === direct;
-    if (movedToBreakfast) {
-      return {
-        foods: dinnerLine?.foods || '',
-        context: 'Dinner is the post-session meal.',
-      };
-    }
+    // Absorbed plans omit this slot from the pill list; if called, show written post only.
     return direct ? { foods: direct.foods, context: '' } : { foods: '', context: '' };
+  }
+
+  if (slot === 'dinner') {
+    const foods = dinnerLine?.foods || direct?.foods || '';
+    const context = showPost ? '' : 'Post-session meal.';
+    if (!foods && !context) return { foods: '', context: '' };
+    if (!foods) return { foods: '', context: '' };
+    return { foods, context };
   }
 
   return direct ? { foods: direct.foods, context: '' } : { foods: '', context: '' };
@@ -111,9 +143,13 @@ export function formatMealsPlanDisplay(mealsPlan, {
   if (!mealsPlan) return '';
   if (!evening) return mealsPlan;
 
-  const slotList = slots?.length
+  let slotList = slots?.length
     ? slots
     : ['breakfast', 'lunch', 'snack', 'pre-workout', 'post-workout', 'dinner'];
+
+  if (!slots?.length && !shouldShowEveningPostSlot(mealsPlan)) {
+    slotList = slotList.filter((s) => s !== 'post-workout' && s !== 'post-run');
+  }
 
   const rawLines = mealsPlan.split('\n').map((l) => l.trim()).filter(Boolean);
   const out = [];

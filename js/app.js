@@ -20,7 +20,7 @@ import { initSaveState, clearSaveState } from './save-state.js';
 import { mergePlanWithFallback } from './plan-merge.js';
 import { ensureAthleteProfileReady, clearDbAthleteProfileCache, getDbAthleteProfile } from './athlete-profile.js';
 import { initSetup, openSetup } from './setup.js';
-import { initAccount, refreshAccountChrome } from './account.js';
+import { initAccount, refreshAccountChrome, closeProfileSheet } from './account.js';
 import { ensurePlansExtended } from './plan-seed.js';
 import { slotsForPlan, renderSessionStatusChip } from './day-shift.js';
 import {
@@ -213,6 +213,8 @@ function updateTabChrome(activeTab) {
   document.querySelector('.app-sticky-header')?.classList.toggle('header--progress', isProgress);
   // Next Step + day chips belong on Today only (Food/Plan keep macros + date).
   document.getElementById('day-progress')?.classList.toggle('hidden', !isToday);
+  // Account icon / sheet are Progress-only.
+  if (!isProgress) closeProfileSheet();
 }
 
 function setupTabs() {
@@ -651,7 +653,7 @@ async function bootApp() {
   syncAppRoute();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(`sw.js?v=38`).catch(() => {});
+    navigator.serviceWorker.register(`sw.js?v=39`).catch(() => {});
   }
 }
 

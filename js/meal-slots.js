@@ -1,5 +1,6 @@
 // Pure meal-slot resolution (no app/food imports — safe for week-stats)
 import { MEAL_SLOTS } from './data.js';
+import { shouldShowEveningPostSlot } from './planned-meals.js';
 
 const TRAINING_TYPES = new Set(['Run', 'Gym', 'Bodyweight']);
 
@@ -27,18 +28,27 @@ export function effectiveSessionWindow(plan) {
 }
 
 /** Clock-order slots for evening training: morning meal + pre/post around the session. */
-export function eveningTrainingSlots(scheme) {
+export function eveningTrainingSlots(scheme, mealsPlan = null) {
   const key = MEAL_SLOTS[scheme] ? scheme : 'Gym';
   const pre = key === 'Run' ? 'pre-run' : 'pre-workout';
   const post = key === 'Run' ? 'post-run' : 'post-workout';
-  return ['breakfast', 'lunch', 'snack', pre, post, 'dinner'];
+  const slots = ['breakfast', 'lunch', 'snack', pre, post, 'dinner'];
+  if (mealsPlan != null && !shouldShowEveningPostSlot(mealsPlan)) {
+    return slots.filter((s) => s !== post);
+  }
+  return slots;
 }
 
 export function slotsForPlan(plan) {
   const scheme = effectiveSlotScheme(plan);
   const base = MEAL_SLOTS[scheme] || MEAL_SLOTS.Rest;
   if (effectiveSessionWindow(plan) === 'evening') {
-    return eveningTrainingSlots(scheme);
+    return eveningTrainingSlots(scheme, plan?.meals_plan ?? null);
   }
   return base;
+}
+
+/** Training post slot key for a day type / scheme. */
+export function postSlotForScheme(schemeOrDayType) {
+  return schemeOrDayType === 'Run' ? 'post-run' : 'post-workout';
 }

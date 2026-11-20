@@ -260,6 +260,10 @@ function renderCoachNext() {
   btn.dataset.focusSlot = next.focusSlot || '';
 }
 
+function isTodayTabActive() {
+  return document.querySelector('.nav-tab.active')?.dataset?.tab === 'coach';
+}
+
 export function updateDayProgress() {
   const root = document.getElementById('day-progress');
   const summaryEl = document.getElementById('day-progress-summary');
@@ -271,7 +275,8 @@ export function updateDayProgress() {
     root.classList.remove('day-progress--historical');
     return;
   }
-  root.classList.remove('hidden');
+  // Content may refresh while Food/Plan is open — never force-show off Today (UX-03).
+  root.classList.toggle('hidden', !isTodayTabActive());
   root.classList.toggle('day-progress--historical', isViewingPast());
 
   const { tasks, doneCount, totalCount, allDone } = computeDayProgress();

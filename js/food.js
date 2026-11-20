@@ -767,10 +767,20 @@ function syncFoodFooterSpacer() {
     return;
   }
 
-  const height = Math.ceil(footer.getBoundingClientRect().height);
+  // Use offset from viewport bottom to footer top when possible — covers
+  // footer height + any layout gap above the nav on narrow phones.
+  const rect = footer.getBoundingClientRect();
+  const fromBottom = Math.ceil(window.innerHeight - rect.top);
+  const height = Math.max(Math.ceil(rect.height), fromBottom > 0 ? fromBottom - estimateBottomNavClearance() : 0);
   if (height > 0) {
     tab.style.setProperty('--food-footer-space', `${height}px`);
   }
+}
+
+function estimateBottomNavClearance() {
+  const nav = document.querySelector('.bottom-nav');
+  if (!nav) return 56;
+  return Math.ceil(nav.getBoundingClientRect().height) || 56;
 }
 
 // ── Meal Slot Pills ──────────────────────────────────────────

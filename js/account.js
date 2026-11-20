@@ -1,4 +1,4 @@
-// Account sheet (any tab) and the Progress account card.
+// Account sheet + Progress account card (Progress tab only).
 // Email, targets, and logout stay off the Food / Today / Plan logging chrome.
 import { getProfile, getSession } from './auth.js';
 import { getDbAthleteProfile } from './athlete-profile.js';
