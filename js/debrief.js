@@ -115,8 +115,8 @@ function buildDebriefText() {
     text += `  (no meals logged)\n`;
   }
 
-  text += `- **Protein:** ${totalProtein ? Math.round(totalProtein) : 'not logged'}g (calculated) / **Calories:** ${totalCalories ? `~${Math.round(totalCalories)}` : 'not logged'} kcal\n`;
-  text += `- **Sleep:** ${valOrMissing(vitals.sleep_hours, 'h')} / **Cigs:** ${valOrMissing(vitals.cigarettes)} / **Weight:** ${vitals.weight_kg != null ? `${vitals.weight_kg} kg` : 'not logged'}\n`;
+  text += `- Protein: ${totalProtein ? `${Math.round(totalProtein)}g (calculated)` : 'not logged'} / Calories: ${totalCalories ? `~${Math.round(totalCalories)} kcal` : 'not logged'}\n`;
+  text += `- Sleep: ${valOrMissing(vitals.sleep_hours, 'h')} / Cigs: ${valOrMissing(vitals.cigarettes)} / Weight: ${vitals.weight_kg != null ? `${vitals.weight_kg} kg` : 'not logged'}\n`;
 
   text += `\n## Supplements\n`;
   text += `- **Date:** ${dateLabel}\n`;

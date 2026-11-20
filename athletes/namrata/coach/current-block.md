@@ -7,7 +7,7 @@
 - **Started:** 23 Jul 2026 (profile + baseline InBody + Week 1)
 - **Re-entry:** 20 Nov 2026 (mid-week stub Fri–Sun, then clean week 23–29 Nov)
 - **Projected end:** When consistency is solid and a progression block is warranted (coaching decision)
-- **Current week:** Re-entry stub 20–22 Nov · Habit week 23–29 Nov 2026
+- **Current week:** Restart week 16–22 Nov (Tue upper done, Wed skipped, Thu legs+shoulders done, Fri cardio+core, Sat glutes, Sun rest) · Template week 23–29 Nov 2026
 - **Plan source of truth:** Supabase `daily_plans` (not `week-plans.py`)
 
 ## Current priorities
@@ -51,8 +51,8 @@ When priorities conflict, **consistency > load** for this re-entry. No permanent
 
 ```
 Foundation (Jul–Sep) — Habit, form, beginner load  [historical peak ~2 Sep]
-Foundation re-entry (current, from 20 Nov) — Reduced mid-week stub → clean habit week
-  Mon Upper · Tue Lower · Wed Cardio+Core · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest
+Foundation re-entry (current) — Restart week 16–22 Nov adjusted to what she did, then template week 23–29
+  Standing split: Mon Upper · Tue Lower · Wed Cardio+Core · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest
 
 Build — Progressive strength + structured cardio
   Focus: glutes/hips, arms, overall muscle; waist trend

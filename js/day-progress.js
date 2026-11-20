@@ -13,7 +13,8 @@ import { getAthleteProfile } from './athlete-profile.js';
 function isVitalsComplete() {
   const v = state.vitals;
   if (!v) return false;
-  return v.weight_kg != null || v.sleep_hours != null;
+  // Morning weigh-in is the primary vital; sleep alone is not "done".
+  return v.weight_kg != null;
 }
 
 function isTrainingRequired() {

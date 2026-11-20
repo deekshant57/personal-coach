@@ -1,7 +1,7 @@
 // Main app — tab routing, date state, initialization
 import { renderDayBadge } from './data.js';
 import { initSupabase, fetchDailyPlan, setCurrentUserId, getCurrentUserId } from './supabase.js';
-import { loadSession, initAuthListeners, signIn, signUp, signOut, getProfile } from './auth.js';
+import { loadSession, initAuthListeners, signIn, signUp, signOut } from './auth.js';
 import { initToday, loadTodayData } from './today.js';
 import { initFood, loadFoodData, invalidateFoodLogsCache } from './food.js';
 import { initWeek, loadWeekView, syncWeekViewMonday } from './week.js';
@@ -20,6 +20,7 @@ import { initSaveState, clearSaveState } from './save-state.js';
 import { mergePlanWithFallback } from './plan-merge.js';
 import { ensureAthleteProfileReady, clearDbAthleteProfileCache, getDbAthleteProfile } from './athlete-profile.js';
 import { initSetup, openSetup } from './setup.js';
+import { initAccount, refreshAccountChrome } from './account.js';
 import { ensurePlansExtended } from './plan-seed.js';
 import { slotsForPlan, renderSessionStatusChip } from './day-shift.js';
 import {
@@ -58,12 +59,12 @@ export function formatToday() {
   return formatDate(new Date());
 }
 
-/** User-facing date: DD MMM,YY (e.g. 24 Jun,26). */
+/** User-facing date: D MMM YYYY (e.g. 20 Nov 2026). */
 export function formatDayDisplay(d) {
-  const day = String(d.getDate()).padStart(2, '0');
+  const day = d.getDate();
   const month = MONTH_ABBR[d.getMonth()];
-  const year = String(d.getFullYear()).slice(-2);
-  return `${day} ${month},${year}`;
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
 }
 
 export function formatDayDisplayFromIso(iso) {
@@ -208,7 +209,10 @@ function setupHorizontalWheelScroll() {
 
 function updateTabChrome(activeTab) {
   const isProgress = activeTab === 'progress';
+  const isToday = activeTab === 'coach';
   document.querySelector('.app-sticky-header')?.classList.toggle('header--progress', isProgress);
+  // Next Step + day chips belong on Today only (Food/Plan keep macros + date).
+  document.getElementById('day-progress')?.classList.toggle('hidden', !isToday);
 }
 
 function setupTabs() {
@@ -223,7 +227,7 @@ function syncAppRoute() {
   writeAppRoute(getActiveTab(), state.currentDate, { todayIso: formatToday() });
 }
 
-function switchToTab(tabName, { skipRouteSync = false, skipFlush = false, skipTabLoad = false, foodAutoOpenSheet = true } = {}) {
+function switchToTab(tabName, { skipRouteSync = false, skipFlush = false, skipTabLoad = false, foodAutoOpenSheet = false } = {}) {
   if (!isValidAppTab(tabName)) return;
 
   if (!skipFlush) flushAutosavesInBackground();
@@ -388,10 +392,15 @@ function updatePreviewMode() {
   const future = isViewingFuture();
 
   /* Cards that are always available outside future preview. */
-  const alwaysRestore = ['vitals-card', 'meals-summary-card', 'notes-card', 'day-progress'];
+  const alwaysRestore = ['vitals-card', 'meals-summary-card', 'notes-card'];
   alwaysRestore.forEach((id) => {
     document.getElementById(id)?.classList.toggle('hidden', future);
   });
+  /* day-progress is Today-only chrome; do not unhide it on Food/Plan/Progress. */
+  document.getElementById('day-progress')?.classList.toggle(
+    'hidden',
+    future || getActiveTab() !== 'coach',
+  );
 
   /*
     Training + supplements: hide on future only.
@@ -536,14 +545,16 @@ function setupAuth() {
     }
   });
 
-  document.getElementById('sign-out-btn').addEventListener('click', async () => {
-    await signOut();
-    setCurrentUserId(null);
-    clearDbAthleteProfileCache();
-    document.getElementById('setup-screen')?.classList.remove('show');
-    booted = false;
-    showAuth();
-  });
+  initAccount({ onSignOut: signOutAndReset });
+}
+
+async function signOutAndReset() {
+  await signOut();
+  setCurrentUserId(null);
+  clearDbAthleteProfileCache();
+  document.getElementById('setup-screen')?.classList.remove('show');
+  booted = false;
+  showAuth();
 }
 
 let booted = false;
@@ -563,15 +574,14 @@ async function enterApp(session) {
     // Already in the app for this user (e.g. SIGNED_IN after form enterApp)
     if (booted && getCurrentUserId() === active.user.id) {
       hideAuth();
+      refreshAccountChrome();
       return;
     }
 
     setCurrentUserId(active.user.id);
-    const profile = getProfile();
-    document.getElementById('user-display').textContent =
-      profile?.display_name || active.user.email;
 
     const { needsSetup } = await ensureAthleteProfileReady();
+    refreshAccountChrome();
     if (needsSetup) {
       document.getElementById('auth-screen').classList.remove('show');
       document.querySelector('.app-container')?.classList.add('hidden');
@@ -641,7 +651,7 @@ async function bootApp() {
   syncAppRoute();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(`sw.js?v=36`).catch(() => {});
+    navigator.serviceWorker.register(`sw.js?v=38`).catch(() => {});
   }
 }
 

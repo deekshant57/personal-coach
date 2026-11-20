@@ -83,7 +83,7 @@ export function setupModalFocusTraps() {
 /** Focus trap for the Food Add bottom sheet (class `.open`, not `.show`). */
 export function setupSheetFocusTrap(sheetEl, { onEscape } = {}) {
   if (!sheetEl) return;
-  const panel = sheetEl.querySelector('.food-add-sheet-panel') || sheetEl;
+  const panel = sheetEl.querySelector('.food-add-sheet-panel, .profile-sheet-panel') || sheetEl;
 
   sheetEl.addEventListener('keydown', (e) => {
     if (!sheetEl.classList.contains('open')) return;

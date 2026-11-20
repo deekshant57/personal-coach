@@ -50,12 +50,15 @@ export function formatSlotLabel(slot, plan = state.currentPlan) {
   if (!isPre && !isPost) return base;
 
   const window = effectiveSessionWindow(plan);
-  if (window === 'evening') return `${base} (evening)`;
+  if (window === 'evening') {
+    if (isPre) return base.startsWith('Pre-run') ? 'Pre-run · eve' : 'Pre · eve';
+    return base.startsWith('Post-run') ? 'Post-run · eve' : 'Post · eve';
+  }
   if (!sessionWindowDiffers(plan)) return base;
 
   const actual = plan.actual_session_window;
-  const windowWord = actual === 'evening' ? 'evening' : actual === 'morning' ? 'morning' : actual;
-  return `${base} (${windowWord} session)`;
+  const windowWord = actual === 'evening' ? 'eve' : actual === 'morning' ? 'am' : actual;
+  return `${isPre ? (base.startsWith('Pre-run') ? 'Pre-run' : 'Pre') : (base.startsWith('Post-run') ? 'Post-run' : 'Post')} · ${windowWord}`;
 }
 
 /** Slot label map for food analysis / debrief (keys unchanged). */
@@ -370,22 +373,65 @@ export function updateDayShiftControls(plan) {
 
   const planned = plan.planned_session_window || 'morning';
   const status = plan.session_status || 'planned';
+  const actual = plan.actual_session_window;
   const moveEve = document.getElementById('day-shift-evening');
   const moveMorn = document.getElementById('day-shift-morning');
   const skipBtn = document.getElementById('day-shift-skip');
   const resetBtn = document.getElementById('day-shift-reset');
+  const actions = wrap.querySelector('.day-shift-actions');
+  const labelEl = wrap.querySelector('.day-shift-label');
+
+  // Hide a move action once the session is already in that window —
+  // planned and still on plan, or already moved/completed there.
+  const alreadyEvening = actual === 'evening' || (planned === 'evening' && status === 'planned');
+  const alreadyMorning = actual === 'morning' || (planned === 'morning' && status === 'planned');
+  const logDone = !!(state.workoutLog?.done || state.runLog?.done);
+  const sessionDone = status === 'completed' || logDone;
 
   if (moveEve) {
-    moveEve.classList.toggle('hidden', planned === 'evening' && status === 'planned');
+    moveEve.classList.toggle('hidden', alreadyEvening);
     moveEve.disabled = status === 'skipped';
   }
   if (moveMorn) {
-    moveMorn.classList.toggle('hidden', planned === 'morning' && status === 'planned');
+    moveMorn.classList.toggle('hidden', alreadyMorning);
     moveMorn.disabled = status === 'skipped';
   }
-  if (skipBtn) skipBtn.disabled = status === 'skipped';
+  if (skipBtn) {
+    skipBtn.disabled = status === 'skipped';
+    skipBtn.classList.toggle('hidden', sessionDone);
+  }
   if (resetBtn) {
     resetBtn.classList.toggle('hidden', status === 'planned' && !plan.actual_session_window);
+  }
+
+  // Completed sessions: collapse schedule controls so Next Step / facts lead.
+  wrap.classList.toggle('day-shift-controls--compact', sessionDone);
+  if (labelEl) {
+    labelEl.textContent = sessionDone ? 'Adjust schedule' : 'Session timing';
+    if (sessionDone) {
+      labelEl.setAttribute('role', 'button');
+      labelEl.tabIndex = 0;
+      labelEl.setAttribute('aria-expanded', String(wrap.classList.contains('day-shift-controls--open')));
+    } else {
+      labelEl.removeAttribute('role');
+      labelEl.removeAttribute('tabindex');
+      labelEl.removeAttribute('aria-expanded');
+      wrap.classList.remove('day-shift-controls--open');
+    }
+  }
+  if (actions && sessionDone && !wrap.dataset.shiftToggleBound) {
+    const toggle = () => {
+      wrap.classList.toggle('day-shift-controls--open');
+      labelEl?.setAttribute('aria-expanded', String(wrap.classList.contains('day-shift-controls--open')));
+    };
+    labelEl?.addEventListener('click', toggle);
+    labelEl?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
+    });
+    wrap.dataset.shiftToggleBound = '1';
   }
 
   renderSessionStatusChip(plan);

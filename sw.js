@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coach-v36';
+const CACHE_NAME = 'coach-v38';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,10 @@ const ASSETS = [
   './js/auth.js',
   './js/athlete-profile.js',
   './js/setup.js',
+  './js/account.js',
   './js/plan-seed.js',
+  './js/planned-meals.js',
+  './js/meal-slots.js',
   './js/session-player.js',
   './js/day-shift.js',
   './js/exercise-library.js',
@@ -111,10 +114,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML / JS / CSS — network first so UI updates show after deploy/refresh
+  // HTML / JS / CSS — network first, bypass HTTP disk cache so module graphs stay fresh
   if (event.request.mode === 'navigate' || isShellRequest(url)) {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: 'no-cache' })
         .then((res) => {
           if (res.ok) {
             const clone = res.clone();

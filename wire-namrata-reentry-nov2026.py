@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Wire Namrata re-entry plans into daily_plans (Fri 20 – Sun 29 Nov 2026).
+"""Wire Namrata re-entry plans into daily_plans (Mon 16 – Sun 29 Nov 2026).
 
-Mid-week start: Fri/Sat are reduced re-entry sessions (not peak Week-6 volume).
+Restart week (16–22): Tue upper done, Wed skipped, Thu legs+shoulders done,
+Fri cardio+core, Sat glutes, Sun rest.
 Next week (23–29): clean template at beginner re-entry loads.
 
 Usage:
@@ -216,62 +217,130 @@ def rest(day_name, directive, meals):
     }
 
 
+# Friday make-up. Shoulders were Thursday; legs were Thursday. Upper waits until Monday.
+FRI_CARDIO_CORE = (
+    'WARM-UP (5 min): treadmill walk easy · '
+    'CARDIO (25–30 min): incline walk OR cycle OR elliptical · conversational · RPE 4–5 · '
+    'CORE: Plank 3×30–40s · Side plank 2×20s/side · Dead bug 2×8/side · Bird dog 2×8/side · '
+    'NO lat pulldown / rows / chest / shoulder press / curls / shrugs — shoulders were yesterday · '
+    'NO squats / leg press / RDL / hip thrust / lunges — Saturday is glutes · '
+    '40–45 min · RPE 4–5 · '
+    'COOL-DOWN: hip flexor 30s/side → child’s pose 30s → chest doorway 30s/side'
+)
+
+# Saturday after Thursday legs. Glutes, not a second shoulder day, not a hard quad day.
+SAT_GLUTES = (
+    'WARM-UP (8 min): treadmill walk easy 5 min → hip circles 10/side → '
+    'bodyweight squats 1×10 (slow) → glute bridges 1×10 → 1 light warm-up set of the RDL · '
+    'Dumbbell RDL 3×10 (light) · Hip thrust or glute bridge 3×12 · '
+    'Cable kickback or abduction 2×12–15 · Calf raise 2×12 · '
+    'Leg curl 2×12 if you want one machine — skip leg press and lunges if quads are sore · '
+    'NO shoulder press, lateral raise, or shrugs · '
+    'CARDIO — 15 min incline walk or cycle (easy) · '
+    '40–50 min · RPE 4–5 · hinge + hip thrust stay in · '
+    'COOL-DOWN (5 min): hip flexor stretch 30s/side → figure-4 glute stretch 30s/side → child\'s pose 30s'
+)
+
+
+def mark(row, status, actual=None):
+    row['session_status'] = status
+    if actual is not None:
+        row['actual_session_window'] = actual
+    return row
+
+
 def build_plans():
     plans = {}
 
-    # ── Stub: Fri–Sun (mid-week re-entry, reduced) ──
+    # ── This week, corrected to the restart: Mon 16 – Sun 22 ──
+    # Tue upper done, Wed skipped, Thu legs+shoulders done.
+    # Fri = missed cardio+core. Sat = glutes. Sun = rest.
+    plans['2026-11-16'] = rest(
+        'Mon',
+        'Off. Restart began Tuesday. Nothing to make up.',
+        MEALS_REST,
+    )
+    plans['2026-11-17'] = mark(gym(
+        'Tue',
+        'Upper — chest, back, biceps, triceps (done)',
+        'DONE. Chest, back, biceps, triceps. No shoulder work this day.',
+        'Counted. Restart day. Shoulders were not in this session. Do not repeat chest, back, or arms on Friday.',
+        MEALS_TRAIN,
+    ), 'completed', 'morning')
+    plans['2026-11-18'] = mark(gym(
+        'Wed',
+        'Skipped — no session',
+        'Missed. No workout.',
+        'Missed. Not made up with extra lifting. Friday is cardio + core instead.',
+        MEALS_TRAIN,
+        water='2L',
+    ), 'skipped', 'skipped')
+    plans['2026-11-19'] = mark(gym(
+        'Thu',
+        'Lower + shoulders (done — off plan)',
+        'DONE. Legs and shoulders. This replaced easy cardio.',
+        'Counted. Legs and shoulders are done for this week. Thursday fast still applied: '
+        'milk, fruit, dry fruits, whey; chapati, dal, and sabzi at dinner only. '
+        'Do not repeat shoulders on Friday or Saturday.',
+        MEALS_THU,
+        calories=1450,
+        protein=90,
+    ), 'completed', 'morning')
     plans['2026-11-20'] = gym(
         'Fri',
-        'Upper / arms + cardio — Fitworld (re-entry)',
-        UPPER_REENTRY,
-        'Re-entry Fri. Mid-week start — reduced sets + shorter cardio. RPE 4–5. '
-        'Show up, own the machines, leave reps in reserve. No chasing old loads.',
+        'Cardio + core — Fitworld (make-up)',
+        FRI_CARDIO_CORE,
+        'Shoulders and legs were yesterday. No upper lifts and no leg work. '
+        'This is the Wednesday session. Easy. RPE 4–5. Saturday is glutes.',
         MEALS_TRAIN,
+        water='2L',
     )
     plans['2026-11-21'] = gym(
         'Sat',
-        'Lower / glutes + cardio — Fitworld (re-entry)',
-        LOWER_REENTRY,
-        'Re-entry Sat. Glute + hinge focus at easy load. Keep hinge + thrust even if you swap '
-        'curl/extension. RPE 4–5. Protect tomorrow’s rest.',
+        'Lower / glutes — Fitworld (easy, no shoulders)',
+        SAT_GLUTES,
+        'Glutes, not another shoulder day and not a hard quad day. Legs were Thursday. '
+        'RDL and hip thrust stay. Skip leg press and lunges if stairs feel sore. RPE 4–5.',
         MEALS_TRAIN,
     )
     plans['2026-11-22'] = rest(
         'Sun',
-        'Fitworld closed. Rest. Protect sleep after Fri/Sat re-entry. Optional easy outdoor walk.',
+        'Fitworld closed. Rest. Monday is upper, including shoulders. Optional easy outdoor walk.',
         MEALS_REST,
     )
 
-    # ── Clean week: Mon 23 – Sun 29 (habit week, still re-entry loads) ──
+    # ── Next week: back on the template. Mon 23 – Sun 29 ──
     plans['2026-11-23'] = gym(
         'Mon',
         'Upper / arms + cardio — Fitworld',
         UPPER,
-        'Week 1 re-entry upper. Controlled reps. Consistency > load.',
+        'Clean week. Full upper, including shoulder press and lateral raises. '
+        'Shoulders belong on this day, not on leg day. Controlled reps. RPE 5–6.',
         MEALS_TRAIN,
     )
     plans['2026-11-24'] = gym(
         'Tue',
         'Lower / glutes + cardio — Fitworld',
         LOWER,
-        'Week 1 re-entry lower/glutes. Form clean before adding plates.',
+        'Lower / glutes. Saturday was light glutes and Sunday was rest, so this is the normal gap. '
+        'Same loads, do not add plates. Hinge and hip thrust stay. No shoulders.',
         MEALS_TRAIN,
     )
     plans['2026-11-25'] = gym(
         'Wed',
         'Cardio + core — Fitworld (no upper compounds, no legs)',
         CARDIO_CORE,
-        'Wednesday buffer — cardio + core only. Not another upper day '
-        '(Thu is fast/light; Fri is full upper). Keep easy if sleep was short.',
+        'Cardio + core only. Not an upper day and not a leg day. Thursday is the fast. '
+        'Keep it easy if sleep was short.',
         MEALS_TRAIN,
         water='2L',
     )
     plans['2026-11-26'] = gym(
         'Thu',
-        'Easy cardio — Fitworld (Thursday fast · no upper compounds)',
+        'Easy cardio — Fitworld (Thursday fast · no lifting)',
         EASY_CARDIO_THU,
-        'THURSDAY FAST DAY — easiest training of the week. Easy cardio only. '
-        'No upper lifts. Solid food only at dinner. Do not chase anything.',
+        'THURSDAY FAST. Easy cardio only. Last Thursday was legs and shoulders — that does not repeat. '
+        'No presses, no rows, no leg machines. Solid food only at dinner.',
         MEALS_THU,
         calories=1450,
         protein=90,
@@ -280,14 +349,14 @@ def build_plans():
         'Fri',
         'Upper / arms + cardio — Fitworld',
         UPPER,
-        'Quality upper of the week. Controlled reps. Arms + back emphasis.',
+        'Quality upper of the week. Chest, back, shoulders, and arms. Controlled reps. RPE 5–6.',
         MEALS_TRAIN,
     )
     plans['2026-11-28'] = gym(
         'Sat',
         'Lower / glutes + cardio — Fitworld',
         LOWER,
-        'Quality lower/glute of the week. Hinge + thrust non-negotiable.',
+        'Quality lower / glutes. Hinge and hip thrust stay in. No shoulders.',
         MEALS_TRAIN,
     )
     plans['2026-11-29'] = rest(

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Coach</title>
   <link rel="icon" href="icons/icon-192.png" type="image/png">
-  <link rel="stylesheet" href="css/style.css?v=36">
+  <link rel="stylesheet" href="css/style.css?v=38">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
@@ -46,8 +46,35 @@
   <!-- Setup wizard (Phase A) -->
   <div class="setup-screen" id="setup-screen">
     <div class="setup-card">
+      <div class="setup-toolbar">
+        <button type="button" class="setup-close hidden" id="setup-close">Close</button>
+      </div>
       <h2 class="setup-title" id="setup-title">Set up your plan</h2>
-      <p class="setup-lead">Pick how you train, set targets, then logging makes sense.</p>
+      <p class="setup-lead" id="setup-lead">Pick how you train, set targets, then logging makes sense.</p>
+
+      <div class="setup-summary hidden" id="setup-summary">
+        <dl class="setup-summary-list">
+          <div class="setup-summary-row">
+            <dt>Training</dt>
+            <dd id="setup-sum-training"></dd>
+          </div>
+          <div class="setup-summary-row">
+            <dt>Protein</dt>
+            <dd id="setup-sum-protein"></dd>
+          </div>
+          <div class="setup-summary-row">
+            <dt>Calories</dt>
+            <dd id="setup-sum-calories"></dd>
+          </div>
+          <div class="setup-summary-row">
+            <dt>Week</dt>
+            <dd class="setup-summary-week" id="setup-sum-week"></dd>
+          </div>
+        </dl>
+        <button type="button" class="btn btn-secondary btn-large" id="setup-edit">Edit</button>
+      </div>
+
+      <div id="setup-form">
 
       <section class="setup-section">
         <h3 class="setup-section-title">How you train</h3>
@@ -138,7 +165,9 @@
 
       <p class="setup-error" id="setup-error"></p>
       <button type="button" class="btn btn-primary btn-large" id="setup-submit">Save &amp; continue</button>
+      <button type="button" class="auth-toggle hidden" id="setup-cancel">Cancel</button>
       <button type="button" class="auth-toggle" id="setup-use-defaults">Use preset defaults</button>
+      </div>
     </div>
   </div>
 
@@ -159,12 +188,15 @@
         <button type="button" class="save-error-retry" id="save-error-retry">Retry</button>
       </div>
       <div class="date-header" id="date-header">
+        <span class="profile-btn profile-btn--spacer" aria-hidden="true"></span>
         <button type="button" class="date-nav-btn" id="date-prev" aria-label="Previous day">&larr;</button>
         <div class="date-header-center">
           <div class="date-text" id="date-display"></div>
           <div class="date-sub" id="date-day-type"></div>
         </div>
         <button type="button" class="date-nav-btn" id="date-next" aria-label="Next day">&rarr;</button>
+        <span class="save-state-indicator hidden" id="save-state-indicator" role="status" aria-live="polite">Saving…</span>
+        <button type="button" class="profile-btn" id="profile-open" aria-haspopup="dialog" aria-label="Account"></button>
       </div>
       <div class="macro-spine" id="macro-spine" aria-live="polite">
         <div class="macro-spine-row" id="protein-label">
@@ -199,14 +231,6 @@
         </div>
         <div class="day-progress-summary" id="day-progress-summary">0 of 0 done</div>
         <div class="day-progress-chips" id="day-progress-chips"></div>
-      </div>
-      <div class="user-bar">
-        <span class="user-display" id="user-display"></span>
-        <div class="user-bar-actions">
-          <button type="button" class="sign-out-btn" id="edit-setup-btn" title="Edit targets and week template">Targets</button>
-          <span class="save-state-indicator hidden" id="save-state-indicator" role="status" aria-live="polite">Saving…</span>
-          <button type="button" class="sign-out-btn" id="sign-out-btn">Log out</button>
-        </div>
       </div>
     </div>
 
@@ -583,23 +607,28 @@
       <div class="meal-slots" id="meal-slots"></div>
       <div class="text-muted meal-hint" id="meal-hint"></div>
 
-      <div class="same-as-yesterday hidden" id="same-as-yesterday">
-        <div class="same-as-yesterday-content">
-          <span class="same-as-yesterday-label" id="same-as-label">Yesterday's lunch:</span>
-          <span class="same-as-yesterday-items" id="same-as-items"></span>
-        </div>
-        <div class="same-as-yesterday-actions">
-          <button type="button" class="btn btn-secondary" id="same-as-use">Use same</button>
-          <button type="button" class="btn btn-secondary same-as-dismiss" id="same-as-dismiss">Dismiss</button>
-        </div>
-      </div>
-
       <div class="food-diary-block" id="food-diary-block">
         <div class="food-diary-head">
           <span class="food-diary-title" id="food-diary-title">Meal</span>
           <button type="button" class="btn btn-primary btn-sm" id="food-add-open">Add food</button>
         </div>
+        <div class="food-planned hidden" id="food-planned">
+          <p class="food-planned-kicker">Planned</p>
+          <p class="food-planned-context hidden" id="food-planned-context"></p>
+          <p class="food-planned-foods hidden" id="food-planned-foods"></p>
+        </div>
+        <p class="food-logged-kicker">Logged</p>
         <div class="meal-summary" id="meal-summary"></div>
+        <div class="same-as-yesterday hidden" id="same-as-yesterday">
+          <div class="same-as-yesterday-content">
+            <span class="same-as-yesterday-label" id="same-as-label">Yesterday's meal:</span>
+            <span class="same-as-yesterday-items" id="same-as-items"></span>
+          </div>
+          <div class="same-as-yesterday-actions">
+            <button type="button" class="btn btn-secondary" id="same-as-use">Use same</button>
+            <button type="button" class="btn btn-secondary same-as-dismiss" id="same-as-dismiss">Dismiss</button>
+          </div>
+        </div>
       </div>
 
       <div class="form-group mt-12" id="food-notes-group">
@@ -632,9 +661,11 @@
         </div>
         <div class="food-search-wrap" id="food-search-wrap">
           <input type="search" class="form-input food-search-input" id="food-search" placeholder="Search all foods…" autocomplete="off" enterkeyhint="search">
-          <div class="food-lookup-actions">
-            <input type="text" class="form-input food-barcode-input" id="food-barcode" placeholder="Barcode" inputmode="numeric" autocomplete="off">
-            <button type="button" class="btn btn-secondary btn-sm" id="food-barcode-go">Scan code</button>
+          <button type="button" class="btn btn-secondary btn-sm food-barcode-reveal" id="food-barcode-reveal">Enter barcode</button>
+          <div class="food-lookup-actions food-barcode-row hidden" id="food-barcode-row">
+            <label class="sr-only" for="food-barcode">Product barcode</label>
+            <input type="text" class="form-input food-barcode-input" id="food-barcode" placeholder="Product barcode" inputmode="numeric" autocomplete="off">
+            <button type="button" class="btn btn-secondary btn-sm" id="food-barcode-go">Look up</button>
           </div>
         </div>
         <div class="food-lookup-panel hidden" id="food-lookup-panel">
@@ -675,6 +706,7 @@
       <div class="week-nutrition-summary hidden" id="week-nutrition-summary"></div>
       <div class="coach-debrief-card hidden" id="coach-debrief-card"></div>
       <div id="week-cards"></div>
+      <button type="button" class="plan-targets-link" id="plan-targets-link">Targets</button>
     </div>
 
     <!-- ════════════════════════════════════════════════════════
@@ -900,8 +932,45 @@
         </div>
       </div>
 
+      <h3 class="trends-domain-title">Account</h3>
+      <div class="card account-card" id="progress-account">
+        <div class="card-body">
+          <p class="account-name" id="progress-account-name"></p>
+          <p class="account-email" id="progress-account-email"></p>
+          <button type="button" class="account-targets" id="progress-targets-btn">
+            <span>Targets</span>
+            <span class="account-targets-meta">
+              <span id="progress-targets-hint"></span>
+              <span aria-hidden="true">›</span>
+            </span>
+          </button>
+          <button type="button" class="sign-out-btn account-logout" id="progress-sign-out-btn">Log out</button>
+        </div>
+      </div>
+
           </div>
 
+  </div>
+
+  <div class="profile-sheet" id="profile-sheet" aria-hidden="true">
+    <button type="button" class="profile-sheet-backdrop" id="profile-sheet-backdrop" aria-label="Close"></button>
+    <div class="profile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="profile-sheet-title">
+      <div class="profile-sheet-grab" aria-hidden="true"></div>
+      <div class="profile-sheet-header">
+        <h3 class="profile-sheet-title" id="profile-sheet-title">Account</h3>
+        <button type="button" class="btn btn-secondary btn-sm" id="profile-sheet-close">Close</button>
+      </div>
+      <p class="account-name" id="profile-sheet-name"></p>
+      <p class="account-email" id="profile-sheet-email"></p>
+      <button type="button" class="account-targets" id="profile-targets-btn">
+        <span>Targets</span>
+        <span class="account-targets-meta">
+          <span id="profile-targets-hint"></span>
+          <span aria-hidden="true">›</span>
+        </span>
+      </button>
+      <button type="button" class="sign-out-btn account-logout" id="sign-out-btn">Log out</button>
+    </div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
@@ -999,7 +1068,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=36"></script>
+  <script type="module" src="js/app.js?v=38"></script>
 </body>
 </html>
 

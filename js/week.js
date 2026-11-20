@@ -24,6 +24,9 @@ import {
 } from './week-stats.js';
 import { getAthleteProfile, getDbAthleteProfile, refreshDbAthleteProfile } from './athlete-profile.js';
 import { formatRunPlanLabel, ensurePlansExtended } from './plan-seed.js';
+import { effectiveSessionWindow, slotsForPlan } from './meal-slots.js';
+import { formatSlotLabel } from './day-shift.js';
+import { formatMealsPlanDisplay } from './planned-meals.js';
 
 const TRAINING_BLOCK_START = new Date(2026, 5, 22); // Mon 22 Jun 2026 — Week 1
 
@@ -334,8 +337,12 @@ export async function loadWeekView() {
         summary = formatRunPlanLabel(plan) || plan.run_type;
       } else if (plan.workout_plan) {
         summary = plan.workout_plan;
+      } else if (plan.day_type === 'Active Recovery') {
+        summary = plan.directive || 'Active Recovery';
+      } else if (plan.day_type === 'Rest') {
+        summary = plan.directive || 'Rest';
       } else {
-        summary = plan.workout_detail || 'Rest';
+        summary = plan.directive || plan.workout_detail || plan.day_type || 'Rest';
       }
 
       const detailParts = [];
@@ -379,7 +386,11 @@ export async function loadWeekView() {
       <div class="week-card-summary">${escapeHtml(summary)}</div>
       <div class="week-card-panel" id="${panelId}">
         <div class="week-card-panel-inner">
-          ${plan.meals_plan ? `<div class="week-card-meals">${escapeHtml(plan.meals_plan)}</div>` : ''}
+          ${plan.meals_plan ? `<div class="week-card-meals">${escapeHtml(formatMealsPlanDisplay(plan.meals_plan, {
+            evening: effectiveSessionWindow(plan) === 'evening',
+            slots: slotsForPlan(plan),
+            formatLabel: (slot) => formatSlotLabel(slot, plan),
+          }))}</div>` : ''}
           ${detailText ? `<div class="week-card-detail">${escapeHtml(detailText)}</div>` : ''}
           <button type="button" class="week-open-day-btn">Open day &rarr;</button>
         </div>

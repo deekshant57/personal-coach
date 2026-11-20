@@ -55,7 +55,7 @@ function isTrainingRequired() {
 
 function isVitalsComplete() {
   const v = state.vitals;
-  return !!(v && (v.weight_kg != null || v.sleep_hours != null));
+  return !!(v && v.weight_kg != null);
 }
 
 function isTrainingComplete() {
@@ -176,7 +176,9 @@ function setCardCollapsed(cardId, collapsed, { summary = '' } = {}) {
   card.classList.toggle('collapsed', collapsed);
   const collapseBtn = card.querySelector('.card-collapse-btn');
   if (collapseBtn) {
+    const title = card.querySelector('.card-title')?.textContent?.trim() || 'section';
     collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+    collapseBtn.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} ${title}`);
   }
 }
 
@@ -341,7 +343,9 @@ export function setupCoachLayout() {
       const card = btn.closest('.card');
       if (!card || card.id === 'vitals-card') return;
       const collapsed = card.classList.toggle('collapsed');
+      const title = card.querySelector('.card-title')?.textContent?.trim() || 'section';
       btn.setAttribute('aria-expanded', String(!collapsed));
+      btn.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} ${title}`);
     });
   });
 }

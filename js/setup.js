@@ -27,9 +27,82 @@ const DAY_LABELS = [
 
 const DAY_TYPES = ['Gym', 'Run', 'Bodyweight', 'Active Recovery', 'Rest'];
 
+const SPORT_LABELS = {
+  gym: 'Gym-only',
+  run: 'Run-only',
+  hybrid: 'Hybrid',
+};
+
+const GOAL_LABELS = {
+  general: 'General fitness',
+  fat_loss: 'Fat loss',
+  recomp: 'Recomp',
+  strength: 'Strength',
+  endurance: 'Endurance',
+};
+
+const WEEK_TYPE_SHORT = {
+  'Active Recovery': 'Recovery',
+  Bodyweight: 'BW',
+};
+
+const WEEK_DAY_ORDER = [
+  { weekday: 1, name: 'Mon' },
+  { weekday: 2, name: 'Tue' },
+  { weekday: 3, name: 'Wed' },
+  { weekday: 4, name: 'Thu' },
+  { weekday: 5, name: 'Fri' },
+  { weekday: 6, name: 'Sat' },
+  { weekday: 0, name: 'Sun' },
+];
+
+const CREATE_LEAD = 'Pick how you train, set targets, then logging makes sense.';
+const EDIT_LEAD = 'Updates apply when you save. Days that already have a plan stay as they are.';
+
 let onCompleteCallback = null;
 let editMode = false;
+let screenMode = 'create';
 let selectedSportMode = 'gym';
+
+/** Read-only copy for the Targets summary, Plan link, and account rows. */
+export function describeTargets(profile) {
+  if (!profile) {
+    return {
+      training: '—',
+      protein: '—',
+      calories: '—',
+      week: '—',
+      link: 'Targets',
+      hint: '',
+    };
+  }
+
+  const mode = deriveSportMode(profile);
+  const sport = SPORT_LABELS[mode] || 'Gym-only';
+  const goal = GOAL_LABELS[profile.goal_primary] || 'General fitness';
+  const protein = Number(profile.protein_target_g);
+  const proteinText = Number.isFinite(protein) ? `${protein}g` : '—';
+  const train = Number(profile.calorie_target_training);
+  const rest = Number(profile.calorie_target_rest);
+  const calories = `${Number.isFinite(train) ? train.toLocaleString() : '—'} training · ${Number.isFinite(rest) ? rest.toLocaleString() : '—'} rest`;
+  const template = profile.week_template?.length
+    ? profile.week_template
+    : weekTemplateForSportMode(mode, profile.default_session_window || 'morning');
+  const week = WEEK_DAY_ORDER.map(({ weekday, name }) => {
+    const entry = template.find((e) => Number(e.weekday) === weekday);
+    const type = entry?.day_type || 'Rest';
+    return `${name} ${WEEK_TYPE_SHORT[type] || type}`;
+  }).join(' · ');
+
+  return {
+    training: `${sport} · ${goal}`,
+    protein: proteinText,
+    calories,
+    week,
+    link: proteinText === '—' ? `Targets · ${sport}` : `Targets · ${proteinText} · ${sport}`,
+    hint: proteinText === '—' ? sport : `${proteinText} · ${sport}`,
+  };
+}
 
 function setupScreen() {
   return document.getElementById('setup-screen');
@@ -43,6 +116,54 @@ function showSetupScreen() {
 
 function hideSetupScreen() {
   setupScreen()?.classList.remove('show');
+}
+
+function leaveSetupScreen() {
+  hideSetupScreen();
+  document.querySelector('.app-container')?.classList.remove('hidden');
+  document.querySelector('.bottom-nav')?.classList.remove('hidden');
+}
+
+function renderSummary() {
+  const described = describeTargets(getDbAthleteProfile());
+  const training = document.getElementById('setup-sum-training');
+  const protein = document.getElementById('setup-sum-protein');
+  const calories = document.getElementById('setup-sum-calories');
+  const week = document.getElementById('setup-sum-week');
+  if (training) training.textContent = described.training;
+  if (protein) protein.textContent = described.protein;
+  if (calories) calories.textContent = described.calories;
+  if (week) week.textContent = described.week;
+}
+
+function applyScreenMode(mode) {
+  screenMode = mode;
+  const isCreate = mode === 'create';
+  const isView = mode === 'view';
+  const isEditing = mode === 'editing';
+
+  document.getElementById('setup-summary')?.classList.toggle('hidden', !isView);
+  document.getElementById('setup-form')?.classList.toggle('hidden', isView);
+  document.getElementById('setup-close')?.classList.toggle('hidden', isCreate);
+  document.getElementById('setup-cancel')?.classList.toggle('hidden', !isEditing);
+  document.getElementById('setup-use-defaults')?.classList.toggle('hidden', !isCreate);
+
+  const title = document.getElementById('setup-title');
+  if (title) title.textContent = isCreate ? 'Set up your plan' : 'Targets';
+
+  const lead = document.getElementById('setup-lead');
+  if (lead) {
+    lead.classList.toggle('hidden', isView);
+    lead.textContent = isCreate ? CREATE_LEAD : EDIT_LEAD;
+  }
+
+  const submit = document.getElementById('setup-submit');
+  if (submit && !submit.classList.contains('is-loading')) {
+    submit.textContent = isCreate ? 'Save & continue' : 'Save';
+  }
+
+  if (isView) renderSummary();
+  setupScreen()?.scrollTo?.(0, 0);
 }
 
 function readTemplateFromForm() {
@@ -232,9 +353,7 @@ async function saveSetup({ markComplete, seed }) {
     await seedPlansFromProfile(profile, { days: 14 });
   }
 
-  const display = document.getElementById('user-display');
-  if (display && payload.display_name) display.textContent = payload.display_name;
-
+  document.dispatchEvent(new CustomEvent('coach-account-refresh'));
   return true;
 }
 
@@ -262,15 +381,20 @@ export function initSetup({ onComplete } = {}) {
 
   document.getElementById('setup-submit')?.addEventListener('click', async () => {
     const btn = document.getElementById('setup-submit');
-    setButtonLoading(btn, true, 'Save & continue');
+    const idleLabel = screenMode === 'create' ? 'Save & continue' : 'Save';
+    setButtonLoading(btn, true, idleLabel);
     try {
       const ok = await saveSetup({ markComplete: true, seed: true });
-      if (ok) {
+      if (!ok) return;
+      if (screenMode === 'editing') {
+        applyScreenMode('view');
+        document.getElementById('setup-close')?.focus();
+      } else {
         hideSetupScreen();
         onCompleteCallback?.({ editMode });
       }
     } finally {
-      setButtonLoading(btn, false, 'Save & continue');
+      setButtonLoading(btn, false, idleLabel);
     }
   });
 
@@ -303,8 +427,30 @@ export function initSetup({ onComplete } = {}) {
     }
   });
 
-  document.getElementById('edit-setup-btn')?.addEventListener('click', () => {
-    openSetup({ edit: true });
+  document.getElementById('setup-edit')?.addEventListener('click', () => {
+    applyScreenMode('editing');
+  });
+
+  document.getElementById('setup-cancel')?.addEventListener('click', () => {
+    const profile = getDbAthleteProfile();
+    if (profile) fillFormFromProfile(profile);
+    applyScreenMode('view');
+    document.getElementById('setup-close')?.focus();
+  });
+
+  document.getElementById('setup-close')?.addEventListener('click', () => {
+    const profile = getDbAthleteProfile();
+    if (profile) fillFormFromProfile(profile);
+    leaveSetupScreen();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !isSetupVisible()) return;
+    if (screenMode === 'editing') {
+      document.getElementById('setup-cancel')?.click();
+      return;
+    }
+    if (screenMode === 'view') document.getElementById('setup-close')?.click();
   });
 }
 
@@ -318,11 +464,9 @@ export function openSetup({ edit = false } = {}) {
     fillFormFromProfile(null);
     applySportPreset('gym', { overwriteGoal: true });
   }
-  const soft = document.getElementById('setup-use-defaults');
-  if (soft) soft.classList.toggle('hidden', edit);
-  const title = document.getElementById('setup-title');
-  if (title) title.textContent = edit ? 'Targets' : 'Set up your plan';
+  applyScreenMode(edit ? 'view' : 'create');
   showSetupScreen();
+  if (edit) document.getElementById('setup-close')?.focus();
 }
 
 export function isSetupVisible() {

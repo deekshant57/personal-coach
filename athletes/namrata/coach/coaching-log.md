@@ -150,3 +150,19 @@ Append-only record of coaching decisions, outcomes, and accumulated insights.
 **Athlete response:** N/A (coach process correction)
 **Outcome:** Plan stands; coaching memory corrected
 **Insight:** Writing plans from empty DB tail without food/workout adherence is incomplete coaching — pull logs first next time
+
+---
+
+### 20 Nov 2026 — Restart week corrected to what she actually did
+
+**Block:** Foundation — Strength + Cardio · re-entry
+**Context:** Owner report, not an app log. Restart began Tue 17 (upper: chest, back, biceps, triceps — no shoulders). Wed 18 skipped. Thu 19 was legs and shoulders, on the fast day. She will train Fri 20 and Sat 21. Live plan had Fri as upper and Sat as lower.
+**Decisions:**
+- Do not put upper on Fri — shoulders were yesterday — confidence: high
+- Fri 20 = cardio + core (the missed Wednesday). No upper, no legs — confidence: high
+- Sat 21 = easy glutes (RDL + hip thrust). No shoulders. Skip leg press and lunges if quads are sore — confidence: high
+- Record Mon 16 off, Tue 17 and Thu 19 completed, Wed 18 skipped. Thursday fast food stays on Thu 19 — confidence: high
+- Next week 23–29 returns to the template. Shoulders live on Mon and Fri. Thu 26 is easy cardio only — last Thursday’s legs and shoulders do not repeat — confidence: high
+**Athlete response:** Pending (via account owner)
+**Outcome:** `daily_plans` 16–29 Nov rewritten
+**Insight:** A restart week gets corrected forward. The standing split does not move to match one off-plan Thursday

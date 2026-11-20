@@ -80,7 +80,10 @@ import {
   markSessionCompleted,
   formatSlotLabel,
   slotLabelsForPlan,
+  effectiveSessionWindow,
+  slotsForPlan,
 } from './day-shift.js';
+import { formatMealsPlanDisplay } from './planned-meals.js';
 
 let trainingAutosaveSuspended = false;
 /** After persist failure: finish Done + optional exit when Retry succeeds. */
@@ -116,6 +119,7 @@ export function initToday() {
   });
   initDayShiftControls({
     onChanged: async () => {
+      renderPlanCard();
       await loadFoodData();
       syncDayStatus();
       layoutCoachScreen();
@@ -362,10 +366,19 @@ function renderPlanCard() {
     if (cues) summary += `\n${cues}`;
   } else if (plan.workout_plan) {
     summary = plan.workout_plan;
+  } else if (plan.day_type === 'Active Recovery') {
+    summary = plan.directive && plan.directive !== 'Active Recovery' ? '' : 'Active Recovery';
   } else {
     summary = 'Rest day';
   }
-  document.getElementById('plan-training-summary').textContent = summary;
+  // Avoid duplicating the directive line (e.g. Lower / Lower).
+  const directiveText = (plan.directive || '').trim();
+  const summaryEl = document.getElementById('plan-training-summary');
+  if (summaryEl) {
+    const dup = summary && directiveText && summary.trim() === directiveText;
+    summaryEl.textContent = dup ? '' : summary;
+    summaryEl.classList.toggle('hidden', !summaryEl.textContent);
+  }
 
   // Warm-up / cool-down (exercises only — not cadence cues or main workout sets)
   let warmup = '';
@@ -387,14 +400,19 @@ function renderPlanCard() {
     warmupContent.classList.remove('open');
   }
 
-  // Meals
-  document.getElementById('plan-meals-content').textContent = plan.meals_plan || '';
-  const expandMeals = isViewingFuture() && !!plan.meals_plan;
+  // Meals — evening training uses the same retiming as the Food card
+  const mealsText = formatMealsPlanDisplay(plan.meals_plan, {
+    evening: effectiveSessionWindow(plan) === 'evening',
+    slots: slotsForPlan(plan),
+    formatLabel: (slot) => formatSlotLabel(slot, plan),
+  });
+  document.getElementById('plan-meals-content').textContent = mealsText;
+  const expandMeals = isViewingFuture() && !!mealsText;
   const mealsToggle = document.getElementById('plan-meals-toggle');
   const mealsContent = document.getElementById('plan-meals-content');
   mealsToggle.classList.toggle('open', expandMeals);
   mealsContent.classList.toggle('open', expandMeals);
-  mealsToggle.classList.toggle('hidden', !plan.meals_plan);
+  mealsToggle.classList.toggle('hidden', !mealsText);
 
   // Update protein target
   const target = plan.protein_target || 145;
@@ -957,12 +975,20 @@ function loadNotes() {
 
 // ── Collapsibles ─────────────────────────────────────────────
 function setupCollapsibles() {
-  document.querySelectorAll('.collapsible-toggle:not(#scan-form-toggle)').forEach(toggle => {
+  document.querySelectorAll('.collapsible-toggle:not(#scan-form-toggle)').forEach((toggle) => {
+    const label = (toggle.textContent || 'section').trim();
+    const syncName = () => {
+      const open = toggle.classList.contains('open');
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', `${open ? 'Collapse' : 'Expand'} ${label}`);
+    };
+    syncName();
     toggle.addEventListener('click', () => {
       const content = toggle.nextElementSibling;
       if (!content?.classList.contains('collapsible-content')) return;
       toggle.classList.toggle('open');
       content.classList.toggle('open');
+      syncName();
     });
   });
 }

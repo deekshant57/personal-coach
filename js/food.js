@@ -11,7 +11,7 @@ import {
   macrosFromResolvedLog,
 } from './food-macros.js';
 import { autoResolveFoodLogsForDate } from './food-resolve.js';
-import { state, getToday, getCurrentMealSlots, showToast, showConfirm, isViewingFuture, formatDate, switchToTab } from './app.js';
+import { state, getToday, getCurrentMealSlots, showToast, showConfirm, isViewingFuture, isViewingPast, formatDate, formatDayDisplay, switchToTab } from './app.js';
 import { upsertFoodLog, fetchFoodLogs, deleteFoodLog, fetchWeekFoodLogs } from './supabase.js';
 import { loadMealsSummary } from './today.js';
 import { setOverlayLoading, setButtonLoading } from './spinner.js';
@@ -34,7 +34,8 @@ import {
   hasPendingAutosave,
 } from './auto-save.js';
 import { setupSheetFocusTrap } from './modal-focus.js';
-import { formatSlotLabel, sessionTimingHint, slotLabelsForPlan, sessionWindowDiffers } from './day-shift.js';
+import { formatSlotLabel, sessionTimingHint, slotLabelsForPlan, sessionWindowDiffers, effectiveSessionWindow, slotsForPlan } from './day-shift.js';
+import { plannedMealForSlot, formatMealsPlanDisplay } from './planned-meals.js';
 
 // ── Local State ──────────────────────────────────────────────
 let activeSlot = '';
@@ -51,7 +52,6 @@ const STAPLES_DEFAULT_CAP = 12;
 const QUICK_CHIP_CAP = 6;
 
 let foodCatalogById = new Map();
-let foodSheetAutoOpenedDate = null;
 let recentFoodsCache = [];
 
 let foodLogsCache = { date: null, logs: null };
@@ -119,10 +119,35 @@ export function initFood() {
   setupAddFoodSheet();
   document.getElementById('next-meal')?.addEventListener('click', () => goToNextMeal());
   window.addEventListener('resize', syncFoodFooterSpacer);
+  setupFoodSheetViewport();
   loadUserFoodLibrary()
     .then(() => refreshRecentFoods().then(() => renderFoodPicker()))
     .catch(() => renderFoodPicker());
   registerAutosaveFlush({ food: flushFoodAutosaves });
+}
+
+function setupFoodSheetViewport() {
+  const sheet = document.getElementById('food-add-sheet');
+  if (!sheet) return;
+
+  const sync = () => {
+    if (!sheet.classList.contains('open')) {
+      sheet.style.removeProperty('--food-keyboard-inset');
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) {
+      sheet.style.setProperty('--food-keyboard-inset', '0px');
+      return;
+    }
+    const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    sheet.style.setProperty('--food-keyboard-inset', `${inset}px`);
+  };
+
+  window.visualViewport?.addEventListener('resize', sync);
+  window.visualViewport?.addEventListener('scroll', sync);
+  window.addEventListener('resize', sync);
+  sheet._syncViewport = sync;
 }
 
 function getSlotPayload(slot) {
@@ -220,7 +245,7 @@ function notifyFoodChanged(slot = activeSlot) {
   scheduleFoodSlotAutosave(slot);
 }
 
-export async function loadFoodData({ autoOpenSheet = true } = {}) {
+export async function loadFoodData({ autoOpenSheet = false } = {}) {
   const future = isViewingFuture();
   const previewBanner = document.getElementById('food-preview-banner');
   const planPreview = document.getElementById('food-plan-preview');
@@ -235,7 +260,12 @@ export async function loadFoodData({ autoOpenSheet = true } = {}) {
     loggingIds.forEach((id) => document.getElementById(id)?.classList.add('hidden'));
     clearFutureFoodChrome();
     if (planPreview) {
-      planPreview.textContent = state.currentPlan?.meals_plan || 'No meal plan for this date';
+      const plan = state.currentPlan;
+      planPreview.textContent = formatMealsPlanDisplay(plan?.meals_plan, {
+        evening: effectiveSessionWindow(plan) === 'evening',
+        slots: slotsForPlan(plan),
+        formatLabel: (slot) => formatSlotLabel(slot, plan),
+      }) || 'No meal plan for this date';
       planPreview.classList.remove('hidden');
     }
     syncFoodFooterSpacer();
@@ -455,6 +485,19 @@ function clearFutureFoodChrome() {
     chips.classList.add('hidden');
     chips.innerHTML = '';
   }
+  // Clear hidden logging DOM so a CSS glitch cannot leak another day's data.
+  const summary = document.getElementById('meal-summary');
+  if (summary) summary.innerHTML = '';
+  const notes = document.getElementById('food-notes');
+  if (notes) notes.value = '';
+  const plannedCtx = document.getElementById('food-planned-context');
+  const plannedFoods = document.getElementById('food-planned-foods');
+  if (plannedCtx) plannedCtx.textContent = '';
+  if (plannedFoods) plannedFoods.textContent = '';
+  document.getElementById('food-planned')?.classList.add('hidden');
+  document.getElementById('same-as-yesterday')?.classList.add('hidden');
+  const footerMacros = document.getElementById('food-slot-total');
+  if (footerMacros) footerMacros.textContent = '';
 }
 
 /** Recent-food chips stay off the meal page. The Add sheet still lists them under Recent. */
@@ -693,12 +736,16 @@ function updateFoodFooter() {
   if (totalEl) totalEl.textContent = `${totalP}g P · ${totalC} kcal`;
   if (labelEl) labelEl.textContent = formatSlotLabel(activeSlot) || activeSlot || 'Meal';
   const diaryTitle = document.getElementById('food-diary-title');
-  if (diaryTitle) diaryTitle.textContent = formatSlotLabel(activeSlot) || activeSlot || 'Meal';
+  if (diaryTitle) {
+    const slotName = formatSlotLabel(activeSlot) || activeSlot || 'Meal';
+    diaryTitle.textContent = isViewingPast()
+      ? `${slotName} · ${formatDayDisplay(state.currentDate)}`
+      : slotName;
+  }
 
   const nextBtn = document.getElementById('next-meal');
-  const nextSlot = getFirstUnfilledSlot({ fallbackToFirst: false });
   if (nextBtn) {
-    nextBtn.classList.toggle('hidden', !nextSlot || nextSlot === activeSlot);
+    nextBtn.classList.toggle('hidden', !getNextChronologicalSlot());
   }
 
   const clearBtn = document.getElementById('clear-slot');
@@ -798,21 +845,34 @@ function renderFoodCoachBanner() {
   banner.innerHTML = `<span class="food-data-banner-label">Data note</span><span>${escapeHtml(issue.label)} — ${escapeHtml(issue.message.replace(`${issue.label}: `, ''))}</span>`;
 }
 
+function renderPlannedMeal(plan) {
+  const root = document.getElementById('food-planned');
+  const contextEl = document.getElementById('food-planned-context');
+  const foodsEl = document.getElementById('food-planned-foods');
+  if (!root || !contextEl || !foodsEl) return;
+
+  const evening = effectiveSessionWindow(plan) === 'evening';
+  const planned = plannedMealForSlot(plan?.meals_plan, activeSlot, { evening });
+  const foods = planned.foods || '';
+  const context = planned.context || '';
+
+  contextEl.textContent = context;
+  foodsEl.textContent = foods;
+  contextEl.classList.toggle('hidden', !context);
+  foodsEl.classList.toggle('hidden', !foods);
+  root.classList.toggle('hidden', !context && !foods);
+}
+
 function renderSlotState() {
   const plan = state.currentPlan;
   const hint = document.getElementById('meal-hint');
   const timing = sessionTimingHint(plan);
-  let plannedLine = '';
-  if (plan?.meals_plan) {
-    const lines = plan.meals_plan.split('\n');
-    const slotLabel = SLOT_LABELS[activeSlot]?.toLowerCase() || activeSlot;
-    const match = lines.find((l) => l.toLowerCase().includes(slotLabel));
-    plannedLine = match ? `Planned: ${match.split('—')[1]?.trim() || match}` : '';
-  }
   if (hint) {
-    hint.textContent = [timing, plannedLine].filter(Boolean).join(' · ');
+    hint.textContent = timing;
     hint.classList.toggle('meal-hint--session', !!timing);
+    hint.classList.toggle('hidden', !timing);
   }
+  renderPlannedMeal(plan);
 
   const items = slotItems[activeSlot] || [];
   updatePickerRowQtys();
@@ -891,7 +951,7 @@ async function renderSameAsYesterday() {
     return;
   }
 
-  const slotLabel = (SLOT_LABELS[activeSlot] || activeSlot).toLowerCase();
+  const slotLabel = (formatSlotLabel(activeSlot) || SLOT_LABELS[activeSlot] || activeSlot).toLowerCase();
   document.getElementById('same-as-label').textContent = `Yesterday's ${slotLabel}:`;
   const names = yItems.map((i) => formatFoodLabel(i, i.qty || 1)).join(', ');
   document.getElementById('same-as-items').textContent = names || yNotes;
@@ -971,6 +1031,12 @@ function setupAddFoodSheet() {
   document.getElementById('food-add-open')?.addEventListener('click', open);
   document.getElementById('food-add-sheet-close')?.addEventListener('click', close);
   document.getElementById('food-add-sheet-backdrop')?.addEventListener('click', close);
+  document.getElementById('food-barcode-reveal')?.addEventListener('click', () => {
+    const row = document.getElementById('food-barcode-row');
+    row?.classList.remove('hidden');
+    document.getElementById('food-barcode-reveal')?.classList.add('hidden');
+    document.getElementById('food-barcode')?.focus({ preventScroll: true });
+  });
   document.getElementById('food-picker-create')?.addEventListener('click', () => {
     const q = (document.getElementById('food-search')?.value || '').trim();
     openCustomModal(null, {
@@ -988,15 +1054,23 @@ function setupAddFoodSheet() {
 function openAddFoodSheet() {
   const sheet = document.getElementById('food-add-sheet');
   if (!sheet) return;
+  const title = document.getElementById('food-add-sheet-title');
+  const slotName = formatSlotLabel(activeSlot) || activeSlot || 'meal';
+  if (title) title.textContent = `Add to ${slotName}`;
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden', 'false');
   document.body.classList.add('food-sheet-open');
+  document.getElementById('food-barcode-row')?.classList.add('hidden');
   refreshRecentFoods().then(() => {
     renderFoodPicker();
     renderFoodQuickChips();
   });
+  sheet._syncViewport?.();
   requestAnimationFrame(() => {
-    document.getElementById('food-search')?.focus();
+    const search = document.getElementById('food-search');
+    if (!search) return;
+    // Focus without scrolling the page under the sheet.
+    search.focus({ preventScroll: true });
   });
 }
 
@@ -1006,7 +1080,10 @@ function closeAddFoodSheet() {
   sheet.classList.remove('open');
   sheet.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('food-sheet-open');
+  sheet.style.removeProperty('--food-keyboard-inset');
   hideLookupPanel();
+  document.getElementById('food-barcode-row')?.classList.add('hidden');
+  document.getElementById('food-barcode-reveal')?.classList.remove('hidden');
   document.getElementById('food-add-open')?.focus();
 }
 
@@ -1125,7 +1202,6 @@ function setupMealSummaryActions() {
 function renderMealSummary() {
   const container = document.getElementById('meal-summary');
   const items = slotItems[activeSlot] || [];
-
   if (items.length === 0) {
     const notes = (slotNotes[activeSlot] || '').trim();
     if (notes) {
@@ -1138,7 +1214,7 @@ function renderMealSummary() {
       </div>`;
       return;
     }
-    container.innerHTML = '<span class="text-muted text-sm-muted">No items added yet</span>';
+    container.innerHTML = '<span class="text-muted text-sm-muted">No items logged yet</span>';
     return;
   }
 
@@ -1151,41 +1227,43 @@ function renderMealSummary() {
     totalP += p;
     totalC += c;
     const unresolved = needsMacroResolve(item);
+    const custom = isCustomItem(item);
 
-    if (isCustomItem(item)) {
-      html += `<div class="meal-summary-item meal-summary-item-custom${unresolved ? ' meal-summary-item--warn' : ''}" data-item-id="${item.id}">
-        <div class="meal-summary-item-main">
-          <span class="name">${formatFoodLabel(item, item.qty)}</span>
-          <span class="protein">${unresolved ? formatMealMacroLabel(p, c, [item]) : `${p}g P · ${c} kcal`}</span>
+    html += `<div class="meal-summary-item${custom ? ' meal-summary-item-custom' : ''}${unresolved ? ' meal-summary-item--warn' : ''}" data-item-id="${item.id}">
+      <div class="meal-summary-item-main">
+        <span class="name">${formatFoodLabel(item, item.qty)}</span>
+        <span class="protein">${unresolved ? formatMealMacroLabel(p, c, [item]) : `${p}g P · ${c} kcal`}</span>
+      </div>
+      <div class="meal-summary-item-controls">
+        <div class="meal-summary-stepper">
+          <button type="button" class="qty-btn meal-qty-minus" data-item-id="${item.id}" aria-label="Remove one ${item.name}">−</button>
+          <span class="meal-qty">${item.qty}</span>
+          <button type="button" class="qty-btn meal-qty-plus" data-item-id="${item.id}" aria-label="Add one ${item.name}">+</button>
         </div>
-        <div class="meal-summary-item-controls">
-          <div class="meal-summary-stepper">
-            <button type="button" class="qty-btn meal-qty-minus" data-item-id="${item.id}" aria-label="Remove one ${item.name}">−</button>
-            <span class="meal-qty">${item.qty}</span>
-            <button type="button" class="qty-btn meal-qty-plus" data-item-id="${item.id}" aria-label="Add one ${item.name}">+</button>
-          </div>
-          <button type="button" class="meal-edit-btn" data-item-id="${item.id}">Edit</button>
-          <button type="button" class="remove-btn meal-remove-btn" data-item-id="${item.id}" aria-label="Remove ${item.name}">&times;</button>
-        </div>
-      </div>`;
-      return;
-    }
-
-    html += `<div class="meal-summary-item">
-      <span class="name">${formatFoodLabel(item, item.qty)}</span>
-      <span class="protein">${p}g P · ${c} kcal</span>
+        ${custom ? `<button type="button" class="meal-edit-btn" data-item-id="${item.id}">Edit</button>` : ''}
+        <button type="button" class="remove-btn meal-remove-btn" data-item-id="${item.id}" aria-label="Remove ${item.name}">&times;</button>
+      </div>
     </div>`;
   });
 
-  html += `<div class="meal-summary-item meal-summary-total">
-    <span class="name">Slot total</span>
-    <span class="protein">${totalP}g P · ${totalC} kcal</span>
-  </div>`;
+  // Day macros live in the header; avoid a second "slot total" line (F12).
+  void totalP;
+  void totalC;
 
   container.innerHTML = html;
 }
 
 // ── Next meal ────────────────────────────────────────────────
+function getNextChronologicalSlot() {
+  const slots = getCurrentMealSlots();
+  const idx = slots.indexOf(activeSlot);
+  if (idx < 0) return getFirstUnfilledSlot({ fallbackToFirst: false });
+  for (let i = idx + 1; i < slots.length; i += 1) {
+    if (!filledSlots.has(slots[i])) return slots[i];
+  }
+  return null;
+}
+
 async function goToNextMeal() {
   persistActiveSlotNotes();
   await flushFoodSlot(activeSlot);
@@ -1197,7 +1275,7 @@ async function goToNextMeal() {
     return;
   }
 
-  const nextSlot = getFirstUnfilledSlot({ fallbackToFirst: false });
+  const nextSlot = getNextChronologicalSlot();
   if (nextSlot) {
     await selectSlot(nextSlot, { skipGuard: true });
   }
@@ -1261,7 +1339,7 @@ function updateTotalProtein() {
 }
 
 // ── Load Existing Logs ───────────────────────────────────────
-async function loadExistingLogs({ autoOpenSheet = true } = {}) {
+async function loadExistingLogs({ autoOpenSheet = false } = {}) {
   const date = getToday();
   cancelAutosavesByPrefix(`food:${date}:`);
 
@@ -1300,17 +1378,8 @@ async function loadExistingLogs({ autoOpenSheet = true } = {}) {
   updateTotalProtein();
   foodAutosaveSuspended = false;
 
-  const today = getToday();
-  if (
-    autoOpenSheet
-    && !isViewingFuture()
-    && foodSheetAutoOpenedDate !== today
-    && activeSlot
-    && !filledSlots.has(activeSlot)
-  ) {
-    foodSheetAutoOpenedDate = today;
-    requestAnimationFrame(() => openAddFoodSheet());
-  }
+  // Add Food opens only on explicit tap (UX-04 / F13).
+  void autoOpenSheet;
 }
 
 function scrollFoodDiaryIntoView(slot) {
