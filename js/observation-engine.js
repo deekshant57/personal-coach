@@ -1,6 +1,7 @@
 // Level 1–2 observations only — Bible S9, S11 (Sprint 5)
 import { eventLabel } from './meaningful-event-labels.js';
 import { summarizePlanSession } from './plan-summary.js';
+import { sessionWindowFact } from './meal-slots.js';
 
 export const FORBIDDEN_PATTERNS = [
   /\byou should\b/i,
@@ -33,8 +34,11 @@ export function validateObservation(text) {
 
 function formatPlanDemand(plan) {
   const session = summarizePlanSession(plan);
-  if (!session) return null;
-  return `Today's session: ${session}.`;
+  const windowFact = sessionWindowFact(plan);
+  if (session && windowFact) return `Today's session: ${session}. ${windowFact}`;
+  if (session) return `Today's session: ${session}.`;
+  if (windowFact) return windowFact;
+  return null;
 }
 
 /**

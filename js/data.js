@@ -8,10 +8,10 @@ export const FOOD_ITEMS = [
   { id: 'whey',     name: 'Whey',        protein: 24, calories: 120, fat: 2,  emoji: '\u{1F4AA}', unit: 'scoop' },
   { id: 'banana',   name: 'Banana',      protein: 1,  calories: 105, fat: 0,  emoji: '\u{1F34C}', unit: '1' },
   { id: 'toast',    name: 'Toast',       protein: 3,  calories: 80,  fat: 1,  emoji: '\u{1F35E}', unit: '1' },
-  { id: 'walnuts',  name: 'Walnuts',     protein: 3,  calories: 130, fat: 13, emoji: '\u{1F330}', unit: '10' },
-  { id: 'peanuts',  name: 'Peanuts',     protein: 7,  calories: 170, fat: 14, emoji: '\u{1F95C}', unit: '30g' },
+  { id: 'walnuts',  name: 'Walnuts',     protein: 3,  calories: 130, fat: 13, emoji: '\u{1F330}', unit: '10', serving: '10 halves' },
+  { id: 'peanuts',  name: 'Peanuts',     protein: 7,  calories: 170, fat: 14, emoji: '\u{1F95C}', unit: '30g', serving: '~25 peanuts' },
   { id: 'flaxseed', name: 'Flaxseed',    protein: 2,  calories: 55,  fat: 4,  emoji: '\u{1F331}', unit: 'tbsp' },
-  { id: 'dates',    name: 'Dates',       protein: 1,  calories: 40,  fat: 0,  emoji: '\u{1F334}', unit: '2' },
+  { id: 'dates',    name: 'Dates',       protein: 1,  calories: 40,  fat: 0,  emoji: '\u{1F334}', unit: '2', serving: '2 pieces' },
   { id: 'chana',    name: 'Chana',       protein: 15, calories: 210, fat: 5,  emoji: '\u{1FAD8}', unit: 'bowl' },
   { id: 'salad',    name: 'Salad',       protein: 2,  calories: 30,  fat: 1,  emoji: '\u{1F957}', unit: '1' },
   { id: 'veggies',  name: 'Veggies',     protein: 3,  calories: 50,  fat: 1,  emoji: '\u{1F966}', unit: '1' },
@@ -78,16 +78,33 @@ export const FOOD_ITEMS = [
   { id: 'guava', name: 'Guava', protein: 2, calories: 70, fat: 1, emoji: '\u{1F345}', unit: '1' },
   { id: 'papaya', name: 'Papaya', protein: 1, calories: 60, fat: 0, emoji: '\u{1F34D}', unit: 'bowl' },
   { id: 'pomegranate', name: 'Pomegranate', protein: 2, calories: 80, fat: 1, emoji: '\u{1F347}', unit: 'bowl' },
-  { id: 'almonds', name: 'Almonds', protein: 6, calories: 160, fat: 14, emoji: '\u{1F95C}', unit: '20g' },
-  { id: 'cashews', name: 'Cashews', protein: 5, calories: 160, fat: 12, emoji: '\u{1F95C}', unit: '20g' },
+  { id: 'almonds', name: 'Almonds', protein: 6, calories: 160, fat: 14, emoji: '\u{1F95C}', unit: '20g', serving: '~15 almonds' },
+  { id: 'cashews', name: 'Cashews', protein: 5, calories: 160, fat: 12, emoji: '\u{1F95C}', unit: '20g', serving: '~10 cashews' },
   { id: 'ghee', name: 'Ghee', protein: 0, calories: 112, fat: 13, emoji: '\u{1F9C8}', unit: '1 tbsp' },
   { id: 'peanut_butter', name: 'Peanut Butter', protein: 8, calories: 190, fat: 16, emoji: '\u{1F95C}', unit: '2 tbsp' },
   { id: 'protein_bar', name: 'Protein Bar', protein: 20, calories: 220, fat: 8, emoji: '\u{1F36B}', unit: '1' },
-  { id: 'idli', name: 'Idli', protein: 4, calories: 80, fat: 1, emoji: '\u{1F35A}', unit: '2' },
-  { id: 'medu_vada', name: 'Medu Vada', protein: 6, calories: 200, fat: 10, emoji: '\u{1F35A}', unit: '2' },
-  { id: 'appam', name: 'Appam', protein: 4, calories: 160, fat: 4, emoji: '\u{1F35A}', unit: '2' },
+  { id: 'idli', name: 'Idli', protein: 4, calories: 80, fat: 1, emoji: '\u{1F35A}', unit: '2', serving: '2 pieces' },
+  { id: 'medu_vada', name: 'Medu Vada', protein: 6, calories: 200, fat: 10, emoji: '\u{1F35A}', unit: '2', serving: '2 pieces' },
+  { id: 'appam', name: 'Appam', protein: 4, calories: 160, fat: 4, emoji: '\u{1F35A}', unit: '2', serving: '2 pieces' },
   { id: 'puttu', name: 'Puttu', protein: 5, calories: 220, fat: 3, emoji: '\u{1F35A}', unit: '1' },
 ];
+
+function foodRef(item) {
+  if (!item?.id) return null;
+  return FOOD_ITEMS.find((f) => f.id === item.id) || null;
+}
+
+/** Resolve catalog/custom unit string for an item */
+export function resolveItemUnit(item) {
+  if (item?.unit) return item.unit;
+  return foodRef(item)?.unit || '1';
+}
+
+/** Resolve optional household serving hint (e.g. "~15 almonds") */
+export function resolveItemServing(item) {
+  if (item?.serving) return item.serving;
+  return foodRef(item)?.serving || null;
+}
 
 /** Sum protein and calories from a food_log items array */
 export function sumItemsMacros(items) {
@@ -115,23 +132,52 @@ export function macrosFromFoodLog(log) {
   };
 }
 
-/** Human-readable portion label for summaries and debrief */
-export function formatFoodLabel(item, qty) {
-  const ref = FOOD_ITEMS.find(f => f.id === item.id);
-  const unit = ref?.unit;
-  const name = item.name;
-  if (!unit || unit === '1') return `${qty}× ${name}`;
-  if (/^\d+g$/.test(unit)) {
-    const gramsPerUnit = parseInt(unit, 10);
-    return `${qty}× ${name} (${gramsPerUnit * qty}g)`;
-  }
-  return `${qty}× ${name} (${qty} ${unit})`;
+/** Short unit label for picker / tiles */
+export function formatUnitDisplay(unit) {
+  if (!unit || unit === '1') return '1 piece';
+  if (/^\d+$/.test(unit)) return `${unit} pieces`;
+  return unit;
 }
 
-/** Short unit label for food grid tiles */
-export function formatUnitDisplay(unit) {
-  if (!unit || unit === '1') return 'each';
-  return unit;
+/**
+ * Serving line for search/picker rows — always answers "per what?"
+ * e.g. "20g · ~15 almonds", "1 piece", "bowl"
+ */
+export function formatServingLabel(item) {
+  const unit = resolveItemUnit(item);
+  const serving = resolveItemServing(item);
+  const unitText = formatUnitDisplay(unit);
+  if (serving) {
+    if (unitText === serving) return serving;
+    if (/^\d+g$/.test(unit)) return `${unit} · ${serving}`;
+    return serving;
+  }
+  return unitText;
+}
+
+/** Human-readable portion label for summaries and debrief */
+export function formatFoodLabel(item, qty) {
+  const unit = resolveItemUnit(item);
+  const serving = resolveItemServing(item);
+  const name = item.name;
+  const q = qty || 1;
+
+  if (!unit || unit === '1') return `${q}× ${name}`;
+
+  if (/^\d+g$/.test(unit)) {
+    const grams = parseInt(unit, 10) * q;
+    if (q === 1 && serving) return `${q}× ${name} (${unit}, ${serving})`;
+    return `${q}× ${name} (${grams}g)`;
+  }
+
+  if (/^\d+$/.test(unit)) {
+    const pieces = parseInt(unit, 10) * q;
+    if (serving && q === 1) return `${q}× ${name} (${serving})`;
+    return `${q}× ${name} (${pieces} pieces)`;
+  }
+
+  if (q === 1) return `${q}× ${name} (${unit})`;
+  return `${q}× ${name} (${q} × ${unit})`;
 }
 
 // Meal slot labels by day type

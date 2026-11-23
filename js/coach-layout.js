@@ -326,7 +326,12 @@ export function layoutCoachScreen() {
   layoutCoachObservations();
 }
 
+let coachLayoutInited = false;
+
 export function setupCoachLayout() {
+  if (coachLayoutInited) return;
+  coachLayoutInited = true;
+
   document.getElementById('coach-past-edit-btn')?.addEventListener('click', () => {
     enableCoachEditMode();
     expandVitalsCard();

@@ -43,7 +43,42 @@ Target Look:
 
 ---
 
-## Current Body Metrics (InBody 260 — 23 Jul 2026)
+## Current Body Metrics (InBody — 16 Sep 2026)
+
+Source: Owner-reported key metrics · Fitworld · 16.09.2026  
+*(Partial printout — weight / SMM / PBF only. Full segmental + visceral not provided.)*
+
+Height:
+154 cm
+
+Weight:
+49.2 kg
+
+Skeletal Muscle Mass (SMM):
+17.1 kg
+
+Percent Body Fat (PBF):
+34.5%
+
+Body Fat Mass (estimated = weight × PBF):
+~17.0 kg
+
+### Delta vs baseline (23 Jul 2026 → 16 Sep 2026, ~8 weeks)
+
+| Metric | 23 Jul | 16 Sep | Δ |
+|--------|-------|--------|---|
+| Weight | 48.2 kg | 49.2 kg | **+1.0 kg** |
+| SMM | 16.3 kg | 17.1 kg | **+0.8 kg** |
+| PBF | 35.9% | 34.5% | **−1.4 pp** |
+| Fat mass | 17.3 kg | ~17.0 kg | ~−0.3 kg |
+
+**Read:** Recomp direction — most of the scale gain is muscle; fat % down with fat mass roughly flat. Matches the primary goal (build muscle + leaner look), not a failed cut.
+
+Also stored in Supabase `body_comp_scans` (`scan_date` 2026-09-16). Coaching calorie/protein anchors unchanged until a clean logging week + next full InBody.
+
+---
+
+## Baseline Body Metrics (InBody 260 — 23 Jul 2026)
 
 Source: FITWORLD GYM, Pune · Test 23.07.2026 07:23
 
@@ -114,7 +149,7 @@ SMI:
 * Right leg: 2.6 kg (normal)
 * Left leg: 2.6 kg (normal)
 
-### Machine weight-control suggestion (InBody — not yet adopted as coaching targets)
+### Machine weight-control suggestion (InBody — not adopted as coaching targets)
 
 * Target weight (machine): 51.0 kg
 * Weight control: +2.8 kg
@@ -122,9 +157,7 @@ SMI:
 * Muscle control: +8.4 kg
 * Recommended calorie intake (machine): 2147 kcal
 
-**Coaching note:** Machine suggestions are recorded as scan data only. Coaching calorie/protein anchors are set in the Nutrition section below (23 Jul 2026). Revisit after the next InBody.
-
-Also stored in Supabase `body_comp_scans` for this user (scan_date 2026-07-23).
+Stored in Supabase `body_comp_scans` (`scan_date` 2026-07-23).
 
 ---
 

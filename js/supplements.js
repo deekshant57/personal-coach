@@ -194,7 +194,12 @@ export async function loadSupplements() {
   syncSupplementStatus();
 }
 
+let supplementsInited = false;
+
 export function initSupplements() {
+  if (supplementsInited) return;
+  supplementsInited = true;
+
   document.getElementById('save-supplements')?.addEventListener('click', saveSupplements);
 
   document.querySelectorAll('.supp-toggle').forEach((btn) => {

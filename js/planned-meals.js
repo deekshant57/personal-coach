@@ -51,6 +51,15 @@ function planMealShape(mealsPlan) {
 }
 
 /**
+ * Evening breakfast shows the morning plate taken from the post line
+ * (plan has post, no separate breakfast line).
+ */
+export function eveningBreakfastUsesPostPlate(mealsPlan) {
+  const { breakfastLine, postLine } = planMealShape(mealsPlan);
+  return !!(postLine && !breakfastLine);
+}
+
+/**
  * Evening typical gym/run: post was the morning plate (no breakfast line)
  * and dinner exists → Dinner is the post-session meal; omit Post pill.
  */

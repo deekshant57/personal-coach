@@ -247,7 +247,7 @@ effectiveSlots(plan) =
    - Label pre/post as “Pre · eve” / “Post · eve” (or Pre-run / Post-run · eve).  
    - Same layout when the day was **planned** evening from the start.  
    - **Post absorb (Food tab):** When the written plan has a post line, no breakfast line, and dinner has foods, the morning plate moves to Breakfast and **Dinner alone** is the post-session meal — **omit** the Post pill so the same plate is never shown twice. Keep Post when the plan already has Breakfast + distinct Post, or when dinner is empty.  
-   - **Log migrate on window move:** morning → evening with absorb merges `post-*` → `dinner`; evening → morning merges `breakfast` → `post-*`. Never drop macros silently (reuse merge helper; note `"merged on day-shift"` on collision).  
+   - **Log migrate on window move:** morning → evening with absorb merges `post-*` → `breakfast` (matches Breakfast = morning plate); evening → morning merges `breakfast` → `post-*`. Already-split plans (Breakfast + Post) do not remap. Never drop macros silently (reuse merge helper; note `"merged on day-shift"` on collision).  
 3. Skip→rest persists food rows by **new** `meal_slot` keys via `remapFoodSlotsForDate`.  
 4. Never drop macros silently; if collision, merge quantities and append note `"merged on day-shift"`.
 
@@ -283,7 +283,7 @@ Undo: “Reset day schedule” restores `planned` + original `slot_scheme` **onl
 
 ### 5.7 Acceptance tests (Phase A)
 
-1. Plan Gym/Run morning → Move to evening (typical plan) → slots become breakfast + lunch + snack + pre · eve + dinner (**no** Post); Breakfast shows old post foods; Dinner shows dinner once with “Post-session meal.”; any morning post log merges into dinner.  
+1. Plan Gym/Run morning → Move to evening (typical plan) → slots become breakfast + lunch + snack + pre · eve + dinner (**no** Post); Breakfast shows old post foods; Dinner shows dinner once with “Post-session meal.”; any morning post log merges into breakfast.  
 2. Move back to morning → morning slots restore; breakfast log merges into post; planned foods match the written plan again.  
 3. Already-split evening plan (Breakfast + Post + Dinner) → keep Post · eve with its own foods.  
 4. Skip session → choose rest slots → `pre-workout` log migrates to `breakfast`; protein total unchanged.  
@@ -480,6 +480,7 @@ Add success criteria:
 | 21 Aug 2026 | Move session prefers keeping training meal slots; Skip offers rest remap |
 | 19 Nov 2026 | Evening session (planned or moved) adds Breakfast and clock-orders pre/post |
 | 20 Nov 2026 | Evening Food tab: absorb Post into Dinner when they would duplicate; merge logs on morning↔evening moves |
+| 23 Nov 2026 | Absorb migrate is post↔breakfast (round-trip safe); Supradyn evening hint; day-shift refreshes meals summary |
 | 21 Aug 2026 | Food: staples → user library → OFF → manual; always confirm external macros |
 | 21 Aug 2026 | `athlete_profiles` is source of truth for friends; markdown coach files remain for coached athletes |
 | 18 Nov 2026 | Sport presets: Gym-only / Run-only / Hybrid; `sport_mode` + `ui_flags`; no all-gym skip |

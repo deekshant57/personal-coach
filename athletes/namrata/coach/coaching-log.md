@@ -166,3 +166,34 @@ Append-only record of coaching decisions, outcomes, and accumulated insights.
 **Athlete response:** Pending (via account owner)
 **Outcome:** `daily_plans` 16–29 Nov rewritten
 **Insight:** A restart week gets corrected forward. The standing split does not move to match one off-plan Thursday
+
+---
+
+### 23 Nov 2026 — InBody 16 Sep logged (owner report)
+
+**Block:** Foundation — Strength + Cardio · re-entry
+**Context:** Owner shared mid-block InBody keys from **16 Sep 2026**: weight 49.2 kg · SMM 17.1 kg · PBF 34.5%. Partial — no segmental / visceral / full printout. Prior DB had only 23 Jul baseline.
+**Evidence vs 23 Jul:** weight +1.0 kg · SMM +0.8 kg · PBF −1.4 pp · fat mass ~flat (−0.3 kg est.)
+**Decisions:**
+- Upsert `body_comp_scans` for 2026-09-16; update `personal-details.md` + `current-block.md` — confidence: high
+- Treat as recomp progress during Foundation peak window — do **not** cut calories on scale-up alone — confidence: high
+- Keep current re-entry plan + anchors; next full InBody after 1–2 clean logged weeks — confidence: high
+- If a photo/PDF of the full sheet appears later, backfill segmental + visceral — confidence: moderate
+**Athlete response:** Owner provided metrics
+**Outcome:** Second scan now in DB + athlete files
+**Insight:** Scale went up for the right reason (muscle). Fat % improved without needing a deficit narrative.
+
+---
+
+### 23 Nov 2026 — Partner-align Upper/Lower with Deekshant
+
+**Block:** Foundation — Strength + Cardio · re-entry
+**Context:** Neither trained Mon morning yet. Owner asked to match Upper/Lower on days both lift. Deekshant template fixed: Mon Legs · Wed Push · Fri Pull (runs Tue/Thu/Sat). Namrata Thu fast locked cardio-only. InBody does not require a load/calorie change.
+**Decisions:**
+- Shift Namrata standing template → **Mon Lower · Tue Cardio+Core · Wed Upper · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest** — confidence: high
+- PATCH `daily_plans` 23–29 Nov; leave Deekshant unchanged — confidence: high
+- Keep full Upper Wed+Fri (not Push/Pull split) so each upper muscle still 2×/week; day-type still matches his gym days — confidence: high
+- Sat Lower stays hers solo (he runs) — second glute day preserved — confidence: high
+**Athlete response:** Requested (via account owner)
+**Outcome:** Week 23–29 rewritten in DB; `current-block.md` + `COACH-CONTEXT.md` updated
+**Insight:** She adapts to his gym calendar — his Legs/run sequencing should not move for partner sync

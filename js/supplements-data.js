@@ -1,5 +1,6 @@
 // Supplement definitions + schedule helpers (filtered per athlete profile)
 import { getAthleteProfile } from './athlete-profile.js';
+import { effectiveSessionWindow } from './meal-slots.js';
 
 export const D3_WEEKDAY = 4; // Thursday (0 = Sun)
 
@@ -62,8 +63,11 @@ export function getNextD3Date(fromDate = new Date()) {
   return d;
 }
 
-/** When to take Supradyn based on today's plan. */
+/** When to take Supradyn based on today's plan / session window. */
 export function getSupradynTimingHint(plan) {
+  if (effectiveSessionWindow(plan) === 'evening') {
+    return 'After breakfast — first meal';
+  }
   if (plan?.run_type) return 'After post-run meal (~7:30)';
   if (plan?.workout_plan) return 'After workout (~7:45)';
   return 'After breakfast (~8:00)';

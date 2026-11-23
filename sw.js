@@ -1,8 +1,9 @@
-const CACHE_NAME = 'coach-v39';
+const CACHE_NAME = 'coach-v41';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
+  './js/main.js',
   './js/app.js',
   './js/app-route.js',
   './js/auth.js',

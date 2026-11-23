@@ -1,5 +1,5 @@
 // Day progress strip — P1: what's left for the selected date (saved data only)
-import { state, getCurrentMealSlots, isViewingFuture, isViewingPast, isMonday, getToday } from './app.js';
+import { state, getCurrentMealSlots, isViewingFuture, isViewingPast, isMonday, getToday, switchToTab } from './app.js';
 import { isRunLogComplete } from './run-log.js';
 import { isWorkoutLogComplete } from './workout-log.js';
 import {
@@ -60,7 +60,7 @@ function formatSupplementChipLabel(task) {
 }
 
 export function focusSupplementToggle(focusKey) {
-  document.querySelector('.nav-tab[data-tab="coach"]')?.click();
+  switchToTab('coach');
 
   requestAnimationFrame(() => {
     const card = document.getElementById('supplements-card');
@@ -204,7 +204,7 @@ function navigateToTask(action, focusKey, focusSlot) {
   }
 
   if (action === 'debrief') {
-    document.querySelector('.nav-tab[data-tab="coach"]')?.click();
+    switchToTab('coach');
     requestAnimationFrame(() => scrollToDebriefExport());
     return;
   }
@@ -214,7 +214,7 @@ function navigateToTask(action, focusKey, focusSlot) {
     return;
   }
 
-  document.querySelector('.nav-tab[data-tab="coach"]')?.click();
+  switchToTab('coach');
 
   requestAnimationFrame(() => {
     if (action === 'vitals') {

@@ -7,7 +7,7 @@
 - **Started:** 23 Jul 2026 (profile + baseline InBody + Week 1)
 - **Re-entry:** 20 Nov 2026 (mid-week stub Fri–Sun, then clean week 23–29 Nov)
 - **Projected end:** When consistency is solid and a progression block is warranted (coaching decision)
-- **Current week:** Restart week 16–22 Nov (Tue upper done, Wed skipped, Thu legs+shoulders done, Fri cardio+core, Sat glutes, Sun rest) · Template week 23–29 Nov 2026
+- **Current week:** 23–29 Nov 2026 — partner-aligned with Deekshant gym days (Mon Lower · Wed Upper · Fri Upper)
 - **Plan source of truth:** Supabase `daily_plans` (not `week-plans.py`)
 
 ## Current priorities
@@ -21,11 +21,12 @@ When priorities conflict, **consistency > load** for this re-entry. No permanent
 
 ## Block parameters
 
-- **Venue:** Fitworld Gym, Pune only
+- **Venue:** Fitworld Gym, Pune only (Deekshant may be All Time — day-type sync, not necessarily same floor)
 - **Modes:** Gym strength + cardio (**no running**)
 - **Frequency:** 6 days/week morning at Fitworld; **Sunday always rest** (gym closed)
-- **Weekly template:** Mon Upper · Tue Lower · **Wed Cardio+Core** · **Thu Easy cardio (fast)** · Fri Upper · Sat Lower · Sun Rest
-- **Sequencing rule:** Do **not** stack upper compounds on consecutive days (Wed/Thu were fixed 21 Aug 2026). Thu fast = easiest day — cardio only, no strength compounds. Fri is the quality upper session.
+- **Weekly template:** **Mon Lower** · Tue Cardio+Core · **Wed Upper** · **Thu Easy cardio (fast)** · **Fri Upper** · Sat Lower · Sun Rest
+- **Partner sync:** Align Upper/Lower with Deekshant’s gym days (Mon Legs · Wed Push · Fri Pull). Her Tue/Sat are solo (he runs). Thu fast stays hers alone.
+- **Sequencing rule:** Do **not** stack upper compounds on consecutive days. Thu fast = easiest day — cardio only, no strength compounds. Wed + Fri Uppers with Thu easy between is OK.
 - **Level:** Beginner
 - **Diet:** Eggetarian; **fast every Thursday**; whey ON Gold Standard isolate
 - **Thursday protocol:** Milk + fruit + dry fruits + whey OK; chapati/dal/veg once at dinner only
@@ -45,14 +46,16 @@ When priorities conflict, **consistency > load** for this re-entry. No permanent
 
 - **Window:** ~3–4 months from 23 Jul 2026 (now in/near end of original window)
 - **Current phase:** Foundation re-entry (Nov 2026) — habit first, then progress loads
-- **Next decision:** After 1–2 clean weeks logged → InBody / Build block call
+- **Body comps:** Baseline 23 Jul (48.2 kg · SMM 16.3 · PBF 35.9%) · Mid 16 Sep (49.2 · 17.1 · 34.5%) — recomp direction; no scan since Sep / gap return
+- **Next decision:** After 1–2 clean weeks logged → full InBody + Build block call
 
 ## Phase sketch
 
 ```
 Foundation (Jul–Sep) — Habit, form, beginner load  [historical peak ~2 Sep]
-Foundation re-entry (current) — Restart week 16–22 Nov adjusted to what she did, then template week 23–29
-  Standing split: Mon Upper · Tue Lower · Wed Cardio+Core · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest
+Foundation re-entry (current) — Partner-aligned from 23 Nov
+  Standing split: Mon Lower · Tue Cardio+Core · Wed Upper · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest
+  Syncs Upper/Lower with Deekshant Mon Legs / Wed Push / Fri Pull
 
 Build — Progressive strength + structured cardio
   Focus: glutes/hips, arms, overall muscle; waist trend

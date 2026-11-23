@@ -7,17 +7,16 @@ import {
   upsertFoodLog,
   deleteFoodLog,
 } from './supabase.js';
-import { invalidateFoodLogsCache, loadFoodData } from './food.js';
+import { invalidateFoodLogsCache, loadFoodData, flushFoodAutosaves } from './food.js';
 import {
   isTrainingDayType,
   effectiveSlotScheme,
   effectiveSessionWindow as resolveSessionWindow,
   eveningTrainingSlots,
   slotsForPlan as resolveSlotsForPlan,
-  postSlotForScheme,
+  sessionWindowMigrateActions,
 } from './meal-slots.js';
 import {
-  isPostAbsorbedIntoDinner,
   shouldShowEveningPostSlot,
 } from './planned-meals.js';
 
@@ -25,6 +24,7 @@ export {
   isTrainingDayType,
   effectiveSlotScheme,
   eveningTrainingSlots,
+  sessionWindowMigrateActions,
 };
 
 export function effectiveSessionWindow(plan = state.currentPlan) {
@@ -41,7 +41,8 @@ export function sessionWindowDiffers(plan = state.currentPlan) {
   const actual = plan.actual_session_window;
   const planned = plan.planned_session_window || 'morning';
   if (!actual || actual === 'skipped') return false;
-  if (planned === 'flexible') return false;
+  // Flexible has no fixed window — evening actual is still noteworthy for UI.
+  if (planned === 'flexible') return actual === 'evening';
   return actual !== planned;
 }
 
@@ -271,26 +272,24 @@ async function mergeSlotLogsInto(date, logs, fromSlot, toSlot) {
 
 /**
  * Morning↔evening window moves: migrate logs so disappearing pills do not orphan food.
- * - Morning → evening + post absorbed: post → dinner
- * - Evening → morning: breakfast → post
+ * Absorb plans: post ↔ breakfast (matches evening Breakfast = morning plate).
+ * Already-split (B3): no remap — breakfast and post both stay.
  */
 export async function migrateFoodLogsForSessionWindow(date, plan, fromWindow, toWindow) {
-  if (!plan || fromWindow === toWindow) return { migrated: false };
-  const scheme = effectiveSlotScheme(plan);
-  const post = postSlotForScheme(scheme === 'Rest' ? plan.day_type : scheme);
-  const logs = await fetchFoodLogs(date);
+  const actions = sessionWindowMigrateActions(plan, fromWindow, toWindow);
+  if (!actions.length) return { migrated: false };
+
+  let logs = await fetchFoodLogs(date);
   if (!logs?.length) return { migrated: false };
 
   let migrated = false;
-
-  if (fromWindow !== 'evening' && toWindow === 'evening') {
-    if (isPostAbsorbedIntoDinner(plan.meals_plan)) {
-      migrated = await mergeSlotLogsInto(date, logs, post, 'dinner') || migrated;
+  for (const { from, to } of actions) {
+    const did = await mergeSlotLogsInto(date, logs, from, to);
+    if (did) {
+      migrated = true;
+      // Refresh local view after each merge so chained actions see updates
+      logs = await fetchFoodLogs(date);
     }
-  }
-
-  if (fromWindow === 'evening' && toWindow === 'morning') {
-    migrated = await mergeSlotLogsInto(date, logs, 'breakfast', post) || migrated;
   }
 
   if (migrated) invalidateFoodLogsCache();
@@ -302,6 +301,9 @@ export async function moveSession(date, toWindow) {
   if (!plan || !isTrainingDayType(plan.day_type)) return false;
 
   const fromWindow = effectiveSessionWindow(plan) || 'morning';
+
+  // Persist in-progress Food edits before slot keys change
+  await flushFoodAutosaves();
 
   const fields = {
     actual_session_window: toWindow,
@@ -327,6 +329,8 @@ export async function moveSession(date, toWindow) {
 export async function skipSession(date, slotMode = 'rest') {
   const plan = state.currentPlan;
   if (!plan || !isTrainingDayType(plan.day_type)) return false;
+
+  await flushFoodAutosaves();
 
   const fromScheme = effectiveSlotScheme(plan);
   const toScheme = slotMode === 'rest' ? 'Rest' : plan.day_type;
@@ -371,21 +375,39 @@ export async function resetDaySchedule(date) {
   const plan = state.currentPlan;
   if (!plan) return false;
 
+  const fromWindow = effectiveSessionWindow(plan);
+  let plannedWindow = plan.planned_session_window || 'morning';
+  if (plannedWindow === 'flexible') plannedWindow = 'morning';
+
   const logs = await fetchFoodLogs(date);
   const hasFood = (logs || []).some((l) => {
     const items = parseItems(l.items);
     return items.length > 0 || !!l.custom_text;
   });
+  const needsRemap = !!(
+    hasFood
+    && fromWindow
+    && fromWindow !== plannedWindow
+    && sessionWindowMigrateActions(plan, fromWindow, plannedWindow).length
+  );
 
   if (hasFood) {
     const ok = await showConfirm(
-      'Food logs stay in current meal slots. Only session timing status resets to planned.',
+      needsRemap
+        ? 'Food logs will move back to match the planned meal slots (e.g. Breakfast → Post).'
+        : 'Food logs stay in current meal slots. Only session timing status resets to planned.',
       {
         title: 'Reset day schedule?',
-        okLabel: 'Reset status',
+        okLabel: needsRemap ? 'Reset & move food' : 'Reset status',
       }
     );
     if (!ok) return false;
+  }
+
+  await flushFoodAutosaves();
+
+  if (needsRemap) {
+    await migrateFoodLogsForSessionWindow(date, plan, fromWindow, plannedWindow);
   }
 
   const fields = {

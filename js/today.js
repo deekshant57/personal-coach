@@ -121,6 +121,7 @@ export function initToday() {
     onChanged: async () => {
       renderPlanCard();
       await loadFoodData();
+      await loadMealsSummary();
       syncDayStatus();
       layoutCoachScreen();
     },

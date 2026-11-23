@@ -35,8 +35,9 @@ After writing Week N+1:
 ## Coaching stance
 
 * Beginner · Fitworld only · 6 training days/week · strength + cardio · **no running**
-* Weekly template: **Mon Upper · Tue Lower · Wed Cardio+Core · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest**
-* No back-to-back upper compound days; Thu fast stays cardio-only
+* Weekly template: **Mon Lower · Tue Cardio+Core · Wed Upper · Thu Easy cardio (fast) · Fri Upper · Sat Lower · Sun Rest**
+* Partner-aligned Upper/Lower with Deekshant gym days (Mon Legs · Wed Push · Fri Pull); Thu fast stays cardio-only
+* No back-to-back upper compound days
 * Sunday always Rest (gym closed)
 * Goal window: ~3–4 months (late Oct – late Nov 2026)
 * Physique: leaner waist, fuller hips/glutes, toned arms, overall muscle

@@ -8,7 +8,6 @@ import { initWeek, loadWeekView, syncWeekViewMonday } from './week.js';
 import { initDebrief, refreshDebrief, refreshDebriefIfActive } from './debrief.js';
 import { initProgress, loadProgressView, loadBodyCompForDate } from './progress.js';
 import { initDayProgress, updateDayProgress } from './day-progress.js';
-import { initSupplements } from './supplements.js';
 import { setupCoachLayout, resetCoachEditModeForDate } from './coach-layout.js';
 import { setupObservationCoach } from './observation-coach.js';
 import { setButtonLoading, setOverlayLoading, skeletonPlanHtml } from './spinner.js';
@@ -220,7 +219,14 @@ function updateTabChrome(activeTab) {
 function setupTabs() {
   document.querySelectorAll('.nav-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      switchToTab(tab.dataset.tab);
+      const tabName = tab.dataset.tab;
+      // Re-tap active Today while off calendar today → snap back (same as "Go to today").
+      // Programmatic callers must use switchToTab('coach'), not .click(), so they keep the selected date.
+      if (tabName === 'coach' && getActiveTab() === 'coach' && !isViewingToday()) {
+        goToCalendarToday();
+        return;
+      }
+      switchToTab(tabName);
     });
   });
 }
@@ -286,6 +292,12 @@ function setupAppRoute() {
 }
 
 // ── Date Navigation ──────────────────────────────────────────
+async function goToCalendarToday() {
+  await flushAllAutosaves();
+  state.currentDate = new Date();
+  await onDateChange();
+}
+
 function setupDateNav() {
   document.getElementById('date-prev').addEventListener('click', async () => {
     await flushAllAutosaves();
@@ -302,10 +314,8 @@ function setupDateNav() {
     state.currentDate = d;
     onDateChange();
   });
-  document.getElementById('date-today-btn').addEventListener('click', async () => {
-    await flushAllAutosaves();
-    state.currentDate = new Date();
-    onDateChange();
+  document.getElementById('date-today-btn').addEventListener('click', () => {
+    goToCalendarToday();
   });
 }
 
@@ -653,7 +663,7 @@ async function bootApp() {
   syncAppRoute();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(`sw.js?v=39`).catch(() => {});
+    navigator.serviceWorker.register(`sw.js?v=40`).catch(() => {});
   }
 }
 
@@ -676,6 +686,14 @@ function ensureSetupInited() {
 }
 
 // ── Init ─────────────────────────────────────────────────────
+// Started from js/main.js only. globalThis guard survives any accidental
+// dual evaluation of this module (e.g. legacy app.js?v= script tags).
+export function startApp() {
+  if (globalThis.__pcAppStarted) return;
+  globalThis.__pcAppStarted = true;
+  void init();
+}
+
 async function init() {
   // First paint: loading only (overlay is-active in HTML). Never flash login.
   setAuthGateLoading(true);
@@ -719,5 +737,3 @@ async function init() {
     setAuthGateLoading(false);
   }
 }
-
-document.addEventListener('DOMContentLoaded', init);

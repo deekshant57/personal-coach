@@ -1,7 +1,7 @@
 // Debrief export — pre-flight checklist + copy CTA (lives on Coach tab)
-import { state, getToday, formatDayDisplayFromIso, isMonday, isViewingFuture, showToast } from './app.js';
+import { state, getToday, formatDayDisplayFromIso, isMonday, isViewingFuture, showToast, switchToTab } from './app.js';
 import { formatFoodLabel } from './data.js';
-import { formatSlotLabel } from './day-shift.js';
+import { formatSlotLabel, slotsForPlan } from './day-shift.js';
 import { computeDebriefReadiness } from './day-progress.js';
 import { buildBodyCompDebriefSection } from './progress.js';
 import { getMondayCheckInLine } from './week-stats.js';
@@ -96,14 +96,18 @@ function buildDebriefText() {
   let totalProtein = 0;
   let totalCalories = 0;
 
-  const slotOrder = ['breakfast', 'lunch', 'snack', 'pre-run', 'pre-workout', 'post-run', 'post-workout', 'dinner'];
+  const planSlots = slotsForPlan(plan);
+  const slotOrder = [
+    ...planSlots,
+    ...Object.keys(foodLogs).filter((s) => !planSlots.includes(s)),
+  ];
 
   for (const slot of slotOrder) {
     if (!foodLogs[slot]) continue;
     const data = foodLogs[slot];
     const items = data.items || [];
     const names = items.map((i) => formatFoodLabel(i, i.qty || 1).toLowerCase()).join(', ');
-    const label = formatSlotLabel(slot);
+    const label = formatSlotLabel(slot, plan);
     text += `  ${label}: ${names || data.customText || '(empty)'}`;
     if (data.customText && names) text += ` — ${data.customText}`;
     text += `\n`;
@@ -155,10 +159,10 @@ async function copyToClipboard(text) {
 
 function navigateToTask(action) {
   if (action === 'meals') {
-    document.querySelector('.nav-tab[data-tab="food"]')?.click();
+    switchToTab('food');
     return;
   }
-  document.querySelector('.nav-tab[data-tab="coach"]')?.click();
+  switchToTab('coach');
   requestAnimationFrame(() => {
     if (action === 'vitals') {
       expandVitalsCard();

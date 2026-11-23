@@ -1,5 +1,13 @@
 // Food tab — tap grid, meal slots, protein calculation
-import { FOOD_ITEMS, SLOT_LABELS, formatFoodLabel, sumItemsMacros } from './data.js';
+import {
+  FOOD_ITEMS,
+  SLOT_LABELS,
+  formatFoodLabel,
+  formatServingLabel,
+  resolveItemUnit,
+  resolveItemServing,
+  sumItemsMacros,
+} from './data.js';
 import {
   resolveLogItems,
   itemFromNotesOnly,
@@ -35,7 +43,12 @@ import {
 } from './auto-save.js';
 import { setupSheetFocusTrap } from './modal-focus.js';
 import { formatSlotLabel, sessionTimingHint, slotLabelsForPlan, sessionWindowDiffers, effectiveSessionWindow, slotsForPlan } from './day-shift.js';
-import { plannedMealForSlot, formatMealsPlanDisplay } from './planned-meals.js';
+import { postSlotForScheme, effectiveSlotScheme } from './meal-slots.js';
+import {
+  plannedMealForSlot,
+  formatMealsPlanDisplay,
+  eveningBreakfastUsesPostPlate,
+} from './planned-meals.js';
 
 // ── Local State ──────────────────────────────────────────────
 let activeSlot = '';
@@ -53,9 +66,21 @@ const QUICK_CHIP_CAP = 6;
 
 let foodCatalogById = new Map();
 let recentFoodsCache = [];
+let foodUiBound = false;
+let qtyActionLockUntil = 0;
+let customModalDraftSnapshot = null;
 
 let foodLogsCache = { date: null, logs: null };
 let yesterdayLogsCache = { forDate: null, logs: null };
+
+const QTY_ACTION_LOCK_MS = 280;
+
+function beginQtyAction() {
+  const now = Date.now();
+  if (now < qtyActionLockUntil) return false;
+  qtyActionLockUntil = now + QTY_ACTION_LOCK_MS;
+  return true;
+}
 
 const FOOD_HINT_DISMISSED_KEY = 'food_hint_dismissed';
 const SAME_AS_DISMISSED_PREFIX = 'same_as_dismissed';
@@ -81,7 +106,7 @@ function syncFoodGridHintVisibility() {
   hint.classList.toggle('hidden', dismissed);
   if (!dismissed) {
     const q = (document.getElementById('food-search')?.value || '').trim();
-    if (!q) hint.textContent = 'Tap a food to add · use − / + for quantity';
+    if (!q) hint.textContent = 'Search or pick a food · serving size is listed under each name';
   }
 }
 
@@ -108,6 +133,14 @@ function isCustomItem(item) {
 
 // ── Init ─────────────────────────────────────────────────────
 export function initFood() {
+  if (foodUiBound) {
+    loadUserFoodLibrary()
+      .then(() => refreshRecentFoods().then(() => renderFoodPicker()))
+      .catch(() => renderFoodPicker());
+    return;
+  }
+  foodUiBound = true;
+
   setupCustomModal();
   setupMealSummaryActions();
   setupDirtySlotGuard();
@@ -239,8 +272,16 @@ export async function flushFoodSlot(slot) {
   return true;
 }
 
-function notifyFoodChanged(slot = activeSlot) {
-  renderSlotState();
+function notifyFoodChanged(slot = activeSlot, { patchedItemId = null } = {}) {
+  if (patchedItemId) {
+    patchPickerRowQty(patchedItemId);
+    patchMealSummaryItem(patchedItemId);
+    updateSlotPillStates();
+    updateFoodFooter();
+    renderFoodCoachBanner();
+  } else {
+    renderSlotState();
+  }
   updateTotalProtein();
   scheduleFoodSlotAutosave(slot);
 }
@@ -366,35 +407,49 @@ function updatePickerEmptyState(matchCount, q) {
   if (noLocal) {
     hint.textContent = 'No match in Your foods, Recent, or Staples.';
   } else if (!q) {
-    hint.textContent = 'Tap a food to add · use − / + for quantity';
+    hint.textContent = 'Search or pick a food · serving size is listed under each name';
   } else {
-    hint.textContent = `${matchCount} match${matchCount === 1 ? '' : 'es'}`;
+    hint.textContent = `${matchCount} match${matchCount === 1 ? '' : 'es'} · macros are per serving shown`;
   }
 }
 
 function bindPickerRow(row, item) {
   foodCatalogById.set(item.id, item);
-  const addFromRow = () => addItem(item);
+  const addFromRow = () => {
+    if (!beginQtyAction()) return;
+    addItem(item);
+  };
 
   row.querySelector('.food-picker-main')?.addEventListener('click', addFromRow);
   row.querySelector('.food-picker-plus')?.addEventListener('click', (e) => {
+    e.preventDefault();
     e.stopPropagation();
+    if (!beginQtyAction()) return;
     addItem(item);
   });
   row.querySelector('.food-picker-minus')?.addEventListener('click', (e) => {
+    e.preventDefault();
     e.stopPropagation();
+    if (!beginQtyAction()) return;
     removeItem(item);
   });
 }
 
+function pickerThumbHtml(item) {
+  const glyph = item.emoji || (item.fromLibrary || item.library ? '★' : '·');
+  return `<span class="food-picker-thumb" aria-hidden="true">${glyph}</span>`;
+}
+
 function pickerRowHtml(item, qty) {
   const hasQty = qty > 0;
+  const serving = formatServingLabel(item);
   return `
     <div class="food-picker-row${hasQty ? ' food-picker-row--active' : ''}" data-id="${escapeHtml(item.id)}">
       <button type="button" class="food-picker-main">
-        <span class="food-picker-emoji">${item.emoji || (item.library ? '★' : '·')}</span>
+        ${pickerThumbHtml(item)}
         <span class="food-picker-text">
           <span class="food-picker-name">${escapeHtml(item.name)}</span>
+          <span class="food-picker-serving">${escapeHtml(serving)}</span>
           <span class="food-picker-macros">${item.protein}g P · ${item.calories} kcal</span>
         </span>
       </button>
@@ -458,6 +513,41 @@ function findPickerItem(id) {
   return FOOD_ITEMS.find((i) => i.id === id) || null;
 }
 
+function replacePickerRow(row, item, qty) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = pickerRowHtml(item, qty);
+  const fresh = wrap.firstElementChild;
+  bindPickerRow(fresh, item);
+  row.replaceWith(fresh);
+  return fresh;
+}
+
+/** In-place qty update when possible — avoids mid-click DOM replace (+2 bug). */
+function patchPickerRowQty(itemId) {
+  const row = document.querySelector(`.food-picker-row[data-id="${CSS.escape(itemId)}"]`);
+  if (!row) return;
+  const item = findPickerItem(itemId);
+  if (!item) return;
+  foodCatalogById.set(itemId, item);
+  const qty = getSlotItemQty(itemId);
+  const hasQty = qty > 0;
+  const wasHasQty = row.classList.contains('food-picker-row--active');
+
+  if (hasQty && wasHasQty) {
+    const qtyEl = row.querySelector('.food-picker-qty');
+    if (qtyEl) qtyEl.textContent = String(qty);
+    return;
+  }
+
+  // Structure change (0 ↔ n): defer so the current tap cannot hit the new button.
+  window.requestAnimationFrame(() => {
+    const live = document.querySelector(`.food-picker-row[data-id="${CSS.escape(itemId)}"]`);
+    if (!live) return;
+    const liveItem = findPickerItem(itemId) || item;
+    replacePickerRow(live, liveItem, getSlotItemQty(itemId));
+  });
+}
+
 function updatePickerRowQtys() {
   document.querySelectorAll('.food-picker-row[data-id]').forEach((row) => {
     const id = row.dataset.id;
@@ -465,11 +555,17 @@ function updatePickerRowQtys() {
     if (!item) return;
     foodCatalogById.set(id, item);
     const qty = getSlotItemQty(id);
-    const wrap = document.createElement('div');
-    wrap.innerHTML = pickerRowHtml(item, qty);
-    const fresh = wrap.firstElementChild;
-    bindPickerRow(fresh, item);
-    row.replaceWith(fresh);
+    const hasQty = qty > 0;
+    const wasHasQty = row.classList.contains('food-picker-row--active');
+    if (hasQty === wasHasQty) {
+      if (hasQty) {
+        const qtyEl = row.querySelector('.food-picker-qty');
+        if (qtyEl) qtyEl.textContent = String(qty);
+      }
+      return;
+    }
+    // Structure change: replace immediately on full slot render (not mid-tap).
+    replacePickerRow(row, item, qty);
   });
 }
 
@@ -539,7 +635,8 @@ function setupFoodLookup() {
     openCustomModal(null, {
       title: 'Create custom',
       hint: 'Approve macros before adding. Save to Your foods for next time.',
-      draft: { name: q, source: 'manual' },
+      // null draft lets outside-tap snapshot restore; only prefill when searching
+      draft: q ? { name: q, source: 'manual' } : null,
     });
   });
 
@@ -928,6 +1025,14 @@ async function getYesterdayLogs() {
   return yesterdayLogsCache.logs;
 }
 
+/** Evening breakfast often shows yesterday's post plate — offer that log. */
+function sameAsYesterdaySourceSlot(plan, slot) {
+  if (slot !== 'breakfast' || effectiveSessionWindow(plan) !== 'evening') return slot;
+  if (!eveningBreakfastUsesPostPlate(plan?.meals_plan)) return slot;
+  const scheme = effectiveSlotScheme(plan);
+  return postSlotForScheme(scheme === 'Rest' ? plan.day_type : scheme);
+}
+
 async function renderSameAsYesterday() {
   const banner = document.getElementById('same-as-yesterday');
   if (!banner || isViewingFuture()) {
@@ -948,7 +1053,8 @@ async function renderSameAsYesterday() {
   }
 
   const logs = await getYesterdayLogs();
-  const yesterdayLog = logs.find((l) => l.meal_slot === activeSlot);
+  const sourceSlot = sameAsYesterdaySourceSlot(state.currentPlan, activeSlot);
+  const yesterdayLog = logs.find((l) => l.meal_slot === sourceSlot);
   if (!yesterdayLog) {
     banner.classList.add('hidden');
     return;
@@ -961,7 +1067,10 @@ async function renderSameAsYesterday() {
     return;
   }
 
-  const slotLabel = (formatSlotLabel(activeSlot) || SLOT_LABELS[activeSlot] || activeSlot).toLowerCase();
+  const sourceLabel = (formatSlotLabel(sourceSlot) || SLOT_LABELS[sourceSlot] || sourceSlot).toLowerCase();
+  const slotLabel = sourceSlot === activeSlot
+    ? sourceLabel
+    : `${sourceLabel} (morning plate)`;
   document.getElementById('same-as-label').textContent = `Yesterday's ${slotLabel}:`;
   const names = yItems.map((i) => formatFoodLabel(i, i.qty || 1)).join(', ');
   document.getElementById('same-as-items').textContent = names || yNotes;
@@ -1137,17 +1246,28 @@ function addItem(foodItem) {
   const existing = slotItems[activeSlot].find((i) => i.id === foodItem.id);
   if (existing) {
     existing.qty += 1;
-  } else {
-    slotItems[activeSlot].push({
-      id: foodItem.id,
-      name: foodItem.name,
-      qty: 1,
-      protein: foodItem.protein,
-      calories: foodItem.calories,
-      fat: foodItem.fat ?? 0,
-    });
+    if (!existing.unit) existing.unit = resolveItemUnit(foodItem);
+    if (!existing.serving) {
+      const serving = resolveItemServing(foodItem);
+      if (serving) existing.serving = serving;
+    }
+    notifyFoodChanged(activeSlot, { patchedItemId: foodItem.id });
+    return;
   }
-  notifyFoodChanged();
+
+  const serving = resolveItemServing(foodItem);
+  slotItems[activeSlot].push({
+    id: foodItem.id,
+    name: foodItem.name,
+    qty: 1,
+    protein: foodItem.protein,
+    calories: foodItem.calories,
+    fat: foodItem.fat ?? 0,
+    unit: resolveItemUnit(foodItem),
+    ...(serving ? { serving } : {}),
+  });
+  // Patch path defers picker structure change so the same tap cannot +2.
+  notifyFoodChanged(activeSlot, { patchedItemId: foodItem.id });
 }
 
 function removeItem(foodItem) {
@@ -1157,7 +1277,11 @@ function removeItem(foodItem) {
     existing.qty -= 1;
     if (existing.qty <= 0) {
       slotItems[activeSlot] = slotItems[activeSlot].filter((i) => i.id !== foodItem.id);
+      notifyFoodChanged();
+      return;
     }
+    notifyFoodChanged(activeSlot, { patchedItemId: foodItem.id });
+    return;
   }
   notifyFoodChanged();
 }
@@ -1171,8 +1295,10 @@ function changeSlotItemQty(itemId, delta) {
   item.qty += delta;
   if (item.qty <= 0) {
     slotItems[activeSlot] = items.filter((i) => i.id !== itemId);
+    notifyFoodChanged();
+    return;
   }
-  notifyFoodChanged();
+  notifyFoodChanged(activeSlot, { patchedItemId: itemId });
 }
 
 function removeSlotItem(itemId) {
@@ -1190,10 +1316,14 @@ function setupMealSummaryActions() {
     if (!itemId) return;
 
     if (btn.classList.contains('meal-qty-minus')) {
+      e.preventDefault();
+      if (!beginQtyAction()) return;
       changeSlotItemQty(itemId, -1);
       return;
     }
     if (btn.classList.contains('meal-qty-plus')) {
+      e.preventDefault();
+      if (!beginQtyAction()) return;
       changeSlotItemQty(itemId, 1);
       return;
     }
@@ -1209,6 +1339,30 @@ function setupMealSummaryActions() {
 }
 
 // ── Meal Summary ─────────────────────────────────────────────
+function mealItemProteinLabel(item) {
+  const p = item.protein * item.qty;
+  const c = item.calories * item.qty;
+  const unresolved = needsMacroResolve(item);
+  return unresolved ? formatMealMacroLabel(p, c, [item]) : `${p}g P · ${c} kcal`;
+}
+
+/** Update one meal-summary row without replacing the +/- button under the finger. */
+function patchMealSummaryItem(itemId) {
+  const item = slotItems[activeSlot]?.find((i) => i.id === itemId);
+  const row = document.querySelector(`#meal-summary .meal-summary-item[data-item-id="${CSS.escape(itemId)}"]`);
+  if (!item || !row) {
+    renderMealSummary();
+    return;
+  }
+  const nameEl = row.querySelector('.name');
+  const proteinEl = row.querySelector('.protein');
+  const qtyEl = row.querySelector('.meal-qty');
+  if (nameEl) nameEl.textContent = formatFoodLabel(item, item.qty);
+  if (proteinEl) proteinEl.textContent = mealItemProteinLabel(item);
+  if (qtyEl) qtyEl.textContent = String(item.qty);
+  row.classList.toggle('meal-summary-item--warn', needsMacroResolve(item));
+}
+
 function renderMealSummary() {
   const container = document.getElementById('meal-summary');
   const items = slotItems[activeSlot] || [];
@@ -1402,14 +1556,89 @@ function scrollFoodDiaryIntoView(slot) {
 }
 
 // ── Custom Food Modal ────────────────────────────────────────
+function readCustomModalFields() {
+  return {
+    name: document.getElementById('custom-name')?.value ?? '',
+    protein: document.getElementById('custom-protein')?.value ?? '',
+    calories: document.getElementById('custom-calories')?.value ?? '',
+    fat: document.getElementById('custom-fat')?.value ?? '',
+    unit: document.getElementById('custom-unit')?.value ?? '1',
+    saveLibrary: !!document.getElementById('custom-save-library')?.checked,
+  };
+}
+
+function writeCustomModalFields(fields) {
+  document.getElementById('custom-name').value = fields.name ?? '';
+  document.getElementById('custom-protein').value = fields.protein ?? '';
+  document.getElementById('custom-calories').value = fields.calories ?? '';
+  document.getElementById('custom-fat').value = fields.fat ?? '';
+  document.getElementById('custom-unit').value = fields.unit || '1';
+  const saveLib = document.getElementById('custom-save-library');
+  if (saveLib) saveLib.checked = fields.saveLibrary !== false;
+}
+
+function captureCustomModalDraft() {
+  const fields = readCustomModalFields();
+  const hasContent = !!(
+    fields.name.trim()
+    || fields.protein
+    || fields.calories
+    || fields.fat
+    || (fields.unit && fields.unit !== '1')
+    || editingCustomId
+    || pendingConfirmDraft
+  );
+  if (!hasContent) {
+    customModalDraftSnapshot = null;
+    return null;
+  }
+  customModalDraftSnapshot = {
+    ...fields,
+    editingCustomId,
+    pendingConfirmDraft,
+    title: document.getElementById('custom-modal-title')?.textContent || 'Add Custom Item',
+    addLabel: document.getElementById('custom-add')?.textContent || 'Add',
+    hint: document.getElementById('custom-modal-hint')?.textContent || '',
+    hintHidden: document.getElementById('custom-modal-hint')?.classList.contains('hidden') !== false,
+    saveWrapHidden: document.getElementById('custom-save-library-wrap')?.classList.contains('hidden') === true,
+  };
+  return customModalDraftSnapshot;
+}
+
+function restoreCustomModalDraft(snapshot) {
+  if (!snapshot) return false;
+  editingCustomId = snapshot.editingCustomId || null;
+  pendingConfirmDraft = snapshot.pendingConfirmDraft || null;
+  document.getElementById('custom-modal-title').textContent = snapshot.title || 'Add Custom Item';
+  document.getElementById('custom-add').textContent = snapshot.addLabel || 'Add';
+  const hintEl = document.getElementById('custom-modal-hint');
+  if (hintEl) {
+    hintEl.textContent = snapshot.hint || '';
+    hintEl.classList.toggle('hidden', snapshot.hintHidden !== false);
+  }
+  writeCustomModalFields(snapshot);
+  const saveWrap = document.getElementById('custom-save-library-wrap');
+  saveWrap?.classList.toggle('hidden', !!snapshot.saveWrapHidden);
+  return true;
+}
+
 function openCustomModal(item = null, { title = null, hint = null, draft = null } = {}) {
-  editingCustomId = item?.id || null;
-  pendingConfirmDraft = draft || null;
   const titleEl = document.getElementById('custom-modal-title');
   const addBtn = document.getElementById('custom-add');
   const hintEl = document.getElementById('custom-modal-hint');
   const saveLib = document.getElementById('custom-save-library');
   const saveWrap = document.getElementById('custom-save-library-wrap');
+
+  // Re-open after outside tap: restore in-progress create/confirm draft.
+  if (!item && !draft && customModalDraftSnapshot) {
+    restoreCustomModalDraft(customModalDraftSnapshot);
+    document.getElementById('custom-food-modal').classList.add('show');
+    return;
+  }
+
+  editingCustomId = item?.id || null;
+  pendingConfirmDraft = draft || null;
+  customModalDraftSnapshot = null;
 
   if (hintEl) {
     if (hint) {
@@ -1424,26 +1653,32 @@ function openCustomModal(item = null, { title = null, hint = null, draft = null 
   if (item) {
     titleEl.textContent = title || 'Edit Custom Item';
     addBtn.textContent = 'Save';
-    document.getElementById('custom-name').value = item.name;
-    document.getElementById('custom-protein').value = item.protein;
-    document.getElementById('custom-calories').value = item.calories;
-    document.getElementById('custom-fat').value = item.fat ?? '';
-    document.getElementById('custom-unit').value = item.unit || '1';
+    writeCustomModalFields({
+      name: item.name,
+      protein: item.protein,
+      calories: item.calories,
+      fat: item.fat ?? '',
+      unit: item.unit || '1',
+      saveLibrary: false,
+    });
     if (saveLib) saveLib.checked = false;
     if (saveWrap) saveWrap.classList.add('hidden');
   } else if (draft) {
     titleEl.textContent = title || 'Confirm food';
     addBtn.textContent = 'Add to meal';
-    document.getElementById('custom-name').value = draft.name || '';
-    document.getElementById('custom-protein').value = draft.protein ?? '';
-    document.getElementById('custom-calories').value = draft.calories ?? '';
-    document.getElementById('custom-fat').value = draft.fat ?? '';
-    document.getElementById('custom-unit').value = draft.unit || '100g';
+    writeCustomModalFields({
+      name: draft.name || '',
+      protein: draft.protein ?? '',
+      calories: draft.calories ?? '',
+      fat: draft.fat ?? '',
+      unit: draft.unit || '100g',
+      saveLibrary: true,
+    });
     if (saveLib) saveLib.checked = true;
     if (saveWrap) saveWrap.classList.remove('hidden');
   } else {
     titleEl.textContent = title || 'Add Custom Item';
-    addBtn.textContent = 'Add';
+    addBtn.textContent = 'Add to meal';
     resetCustomModalFields();
     if (saveLib) saveLib.checked = true;
     if (saveWrap) saveWrap.classList.remove('hidden');
@@ -1453,29 +1688,43 @@ function openCustomModal(item = null, { title = null, hint = null, draft = null 
 }
 
 function resetCustomModalFields() {
-  document.getElementById('custom-name').value = '';
-  document.getElementById('custom-protein').value = '';
-  document.getElementById('custom-calories').value = '';
-  document.getElementById('custom-fat').value = '';
-  document.getElementById('custom-unit').value = '1';
+  writeCustomModalFields({
+    name: '',
+    protein: '',
+    calories: '',
+    fat: '',
+    unit: '1',
+    saveLibrary: true,
+  });
   editingCustomId = null;
   pendingConfirmDraft = null;
 }
 
-function closeCustomModal() {
+function hideCustomModalKeepDraft() {
+  captureCustomModalDraft();
+  document.getElementById('custom-food-modal').classList.remove('show');
+}
+
+function closeCustomModal({ discard = true } = {}) {
   document.getElementById('custom-food-modal').classList.remove('show');
   document.getElementById('custom-modal-title').textContent = 'Add Custom Item';
-  document.getElementById('custom-add').textContent = 'Add';
+  document.getElementById('custom-add').textContent = 'Add to meal';
   document.getElementById('custom-modal-hint')?.classList.add('hidden');
-  resetCustomModalFields();
+  if (discard) {
+    customModalDraftSnapshot = null;
+    resetCustomModalFields();
+  }
 }
 
 function setupCustomModal() {
   document.getElementById('custom-cancel').addEventListener('click', () => {
-    closeCustomModal();
+    closeCustomModal({ discard: true });
   });
 
   document.getElementById('custom-add').addEventListener('click', async () => {
+    const addBtn = document.getElementById('custom-add');
+    if (addBtn?.disabled) return;
+
     const name = document.getElementById('custom-name').value.trim();
     const protein = parseFloat(document.getElementById('custom-protein').value) || 0;
     const calories = parseInt(document.getElementById('custom-calories').value, 10) || 0;
@@ -1495,53 +1744,67 @@ function setupCustomModal() {
         item.protein = protein;
         item.calories = calories;
         item.fat = fat;
+        item.unit = unit;
         notifyFoodChanged();
         showToast(`${name} updated`);
       }
-      closeCustomModal();
+      closeCustomModal({ discard: true });
       return;
     }
 
+    setButtonLoading(addBtn, true, saveToLibrary ? 'Saving…' : 'Adding…');
     let foodId = `custom_${Date.now()}`;
-    if (saveToLibrary) {
-      const saved = await saveFoodToLibrary({
+    let libraryOk = !saveToLibrary;
+
+    try {
+      if (saveToLibrary) {
+        try {
+          const saved = await saveFoodToLibrary({
+            name,
+            protein,
+            calories,
+            fat,
+            unit,
+            barcode: pendingConfirmDraft?.barcode || null,
+            source: pendingConfirmDraft?.source || 'manual',
+          });
+          if (saved?.id) {
+            foodId = `lib_${saved.id}`;
+            libraryOk = true;
+            renderFoodPicker();
+          } else {
+            showToast('Added to meal (library save needs migration)', { variant: 'error' });
+          }
+        } catch (err) {
+          console.error('saveFoodToLibrary:', err);
+          showToast('Could not save to Your foods — adding to meal only', { variant: 'error' });
+        }
+      }
+
+      const customItem = {
+        id: foodId,
         name,
         protein,
         calories,
         fat,
         unit,
-        barcode: pendingConfirmDraft?.barcode || null,
-        source: pendingConfirmDraft?.source || 'manual',
-      });
-      if (saved?.id) {
-        foodId = `lib_${saved.id}`;
-        renderFoodPicker();
-      } else if (saveToLibrary) {
-        showToast('Added to meal (library save needs migration)', { variant: 'error' });
-      }
+      };
+
+      if (!slotItems[activeSlot]) slotItems[activeSlot] = [];
+      slotItems[activeSlot].push({ ...customItem, qty: 1 });
+
+      closeCustomModal({ discard: true });
+      hideLookupPanel();
+      notifyFoodChanged();
+      showToast(libraryOk && saveToLibrary ? `${name} saved & added` : `${name} added`);
+    } finally {
+      setButtonLoading(addBtn, false);
     }
-
-    const customItem = {
-      id: foodId,
-      name,
-      protein,
-      calories,
-      fat,
-      unit,
-    };
-
-    if (!slotItems[activeSlot]) slotItems[activeSlot] = [];
-    slotItems[activeSlot].push({ ...customItem, qty: 1 });
-
-    closeCustomModal();
-    hideLookupPanel();
-    notifyFoodChanged();
-    showToast(`${name} added`);
   });
 
   document.getElementById('custom-food-modal').addEventListener('click', (e) => {
     if (e.target.id === 'custom-food-modal') {
-      closeCustomModal();
+      hideCustomModalKeepDraft();
     }
   });
 }
